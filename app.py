@@ -448,6 +448,21 @@ def main() -> None:
                     )
                 )
 
+            # CGの主要目盛（太線）: 2.35 / 2.40 / 2.45 / 2.50
+            for x_major in [2.35, 2.40, 2.45, 2.50]:
+                shapes.append(
+                    dict(
+                        type="line",
+                        xref="x",
+                        yref="paper",
+                        x0=x_major,
+                        x1=x_major,
+                        y0=0,
+                        y1=1,
+                        line=dict(color="rgba(239,68,68,0.65)", width=2),
+                    )
+                )
+
             fig.update_layout(
                 template="plotly_dark",
                 xaxis_title="CG [m]",
@@ -466,6 +481,7 @@ def main() -> None:
                 gridcolor="rgba(148,163,184,0.25)",
                 zeroline=False,
                 tickformat=".2f",
+                dtick=0.01,
             )
             fig.update_yaxes(
                 showgrid=True,
