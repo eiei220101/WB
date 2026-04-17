@@ -66,6 +66,27 @@ def _data_uri_for_png(path: str) -> str | None:
         return None
 
 
+def _find_png_data_uri() -> tuple[str | None, str]:
+    """
+    Streamlit Cloud での配置ゆれを吸収して、背景PNGを探す。
+    戻り値: (data_uri, 見つかったパス or エラーメッセージ)
+    """
+    here = Path(__file__).resolve().parent
+    candidates = [
+        here / "assets" / "da42_topview.png",
+        here / "assets" / "DA42_topview.png",
+        here / "assets" / "da42_topview.jpg",  # 念のため
+        here / "assets" / "da42_topview.jpeg",
+        Path("assets") / "da42_topview.png",
+        Path("WB") / "assets" / "da42_topview.png",
+    ]
+    for c in candidates:
+        uri = _data_uri_for_png(str(c))
+        if uri:
+            return uri, str(c)
+    return None, "not found"
+
+
 def render_top_view_svg(values: dict[str, float], unit_weight: str, *, background_png_data_uri: str | None = None) -> str:
     """
     クリック入力まではせず、「上面図＋現在値の見える化」をする簡易SVG。
@@ -412,7 +433,11 @@ def main() -> None:
             fuel_half_gal = main_fuel_gal / 2.0
             fuel_half_kg = main_fuel_kg / 2.0
             st.caption("枠をクリックすると、その項目を編集できます。")
-            bg_uri = _data_uri_for_png("assets/da42_topview.png")
+            bg_uri, bg_path = _find_png_data_uri()
+            if bg_uri:
+                st.caption(f"背景画像: `{bg_path}`")
+            else:
+                st.caption("背景画像: 未検出（`assets/da42_topview.png` を配置してください）")
             svg = render_top_view_svg(
                 {
                     "front_l": front_l,
