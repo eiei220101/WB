@@ -9,6 +9,8 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit.components.v1 as components
+import base64
+from pathlib import Path
 
 from wb_logic import compute_da42_points, evaluate_components, within_limits
 
@@ -53,7 +55,18 @@ def parse_points(raw) -> list[tuple[float, float]]:
     return pts
 
 
-def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
+def _data_uri_for_png(path: str) -> str | None:
+    p = Path(path)
+    if not p.exists() or not p.is_file():
+        return None
+    try:
+        b64 = base64.b64encode(p.read_bytes()).decode("ascii")
+        return f"data:image/png;base64,{b64}"
+    except OSError:
+        return None
+
+
+def render_top_view_svg(values: dict[str, float], unit_weight: str, *, background_png_data_uri: str | None = None) -> str:
     """
     クリック入力まではせず、「上面図＋現在値の見える化」をする簡易SVG。
     """
@@ -74,6 +87,11 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
     # DA42っぽいトップビュー（翼・胴体・エンジン・尾翼）に寄せた簡易シルエット。
     # Streamlit の markdown/HTML解釈差異で表示が真っ白になるケースがあるため、
     # components.html で確実に描画できるよう HTML として返す。
+    bg = ""
+    if background_png_data_uri:
+        # 参照画像をそのまま背景に敷く（“全く同じ”見た目に近づける）
+        bg = f'<image href="{background_png_data_uri}" x="0" y="0" width="520" height="820" preserveAspectRatio="xMidYMid meet" opacity="0.95" />'
+
     return f"""
 <div style="width:100%; max-width:600px; margin:0 auto;">
 <script>
@@ -93,6 +111,7 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   }}
 </script>
 <svg viewBox="0 0 520 820" width="100%" height="760" xmlns="http://www.w3.org/2000/svg">
+  {bg}
   <defs>
     <style>
       .air {{ fill:#f3f4f6; stroke:#cbd5e1; stroke-width:2; }}
@@ -110,7 +129,7 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <path class="air" d="M35 300
     L485 300
     L470 370
-    L50 370 Z"/>
+    L50 370 Z" opacity="0.55"/>
 
   <!-- fuselage (細め・長め) -->
   <path class="air" d="M260 40
@@ -121,11 +140,11 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
      C250 805, 244 780, 238 735
      C225 650, 210 565, 202 440
      C195 320, 195 220, 202 150
-     C208 94, 230 52, 260 40 Z"/>
+     C208 94, 230 52, 260 40 Z" opacity="0.55"/>
 
   <!-- engine nacelles (approx) -->
-  <rect class="air" x="150" y="285" width="70" height="90" rx="18"/>
-  <rect class="air" x="300" y="285" width="70" height="90" rx="18"/>
+  <rect class="air" x="150" y="285" width="70" height="90" rx="18" opacity="0.55"/>
+  <rect class="air" x="300" y="285" width="70" height="90" rx="18" opacity="0.55"/>
   <circle class="outline" cx="185" cy="330" r="26"/>
   <circle class="outline" cx="335" cy="330" r="26"/>
 
@@ -134,9 +153,9 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <path class="outline" d="M335 375 L315 735"/>
 
   <!-- tailplane + fins (DA42らしさ) -->
-  <path class="air" d="M175 735 L345 735 L345 770 L175 770 Z"/>
-  <path class="air" d="M175 710 L205 710 L205 770 L175 770 Z"/>
-  <path class="air" d="M315 710 L345 710 L345 770 L315 770 Z"/>
+  <path class="air" d="M175 735 L345 735 L345 770 L175 770 Z" opacity="0.55"/>
+  <path class="air" d="M175 710 L205 710 L205 770 L175 770 Z" opacity="0.55"/>
+  <path class="air" d="M315 710 L345 710 L345 770 L315 770 Z" opacity="0.55"/>
 
   <!-- cockpit seats -->
   {g_open("front_l")}
@@ -393,6 +412,7 @@ def main() -> None:
             fuel_half_gal = main_fuel_gal / 2.0
             fuel_half_kg = main_fuel_kg / 2.0
             st.caption("枠をクリックすると、その項目を編集できます。")
+            bg_uri = _data_uri_for_png("assets/da42_topview.png")
             svg = render_top_view_svg(
                 {
                     "front_l": front_l,
@@ -410,6 +430,7 @@ def main() -> None:
                     "fuel_r_kg": fuel_half_kg,
                 },
                 unit_weight=unit_weight,
+                background_png_data_uri=bg_uri,
             )
             components.html(svg, height=720)
 
