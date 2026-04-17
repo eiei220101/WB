@@ -142,6 +142,13 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <rect class="pill" x="237" y="112" width="46" height="32" rx="10"/>
   <text class="pillText" x="260" y="136" text-anchor="middle">{v("nose_bag")}</text>
 
+  <!-- de-ice (Nose baggage と Front seats の間) -->
+  <rect class="bag" x="212" y="145" width="96" height="62"/>
+  <text class="label" x="260" y="140" text-anchor="middle">De-ice</text>
+  <rect class="pill" x="235" y="164" width="50" height="34" rx="10"/>
+  <text class="pillText" x="260" y="189" text-anchor="middle">{v("deice")}</text>
+  <text class="small" x="260" y="210" text-anchor="middle">{unit_weight}</text>
+
   <!-- cabin baggage -->
   <rect class="bag" x="215" y="405" width="90" height="60"/>
   <text class="label" x="260" y="400" text-anchor="middle">Cabin</text>
@@ -154,19 +161,18 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <rect class="pill" x="237" y="500" width="46" height="32" rx="10"/>
   <text class="pillText" x="260" y="524" text-anchor="middle">{v("bag_ext")}</text>
 
-  <!-- fuel -->
-  <rect class="bag" x="85" y="205" width="95" height="62"/>
-  <text class="label" x="132" y="200" text-anchor="middle">Fuel</text>
-  <rect class="pill" x="109" y="223" width="46" height="32" rx="10"/>
-  <text class="pillText" x="132" y="247" text-anchor="middle">{v("main_fuel")}</text>
-  <text class="small" x="132" y="270" text-anchor="middle">{unit_weight}</text>
+  <!-- fuel (left wing / right wing) -->
+  <rect class="bag" x="72" y="230" width="100" height="70"/>
+  <text class="label" x="122" y="225" text-anchor="middle">Fuel L</text>
+  <rect class="pill" x="97" y="252" width="50" height="34" rx="10"/>
+  <text class="pillText" x="122" y="277" text-anchor="middle">{v("fuel_l")}</text>
+  <text class="small" x="122" y="300" text-anchor="middle">{unit_weight}</text>
 
-  <!-- de-ice (独立枠) -->
-  <rect class="bag" x="340" y="205" width="95" height="62"/>
-  <text class="label" x="388" y="200" text-anchor="middle">De-ice</text>
-  <rect class="pill" x="365" y="223" width="46" height="32" rx="10"/>
-  <text class="pillText" x="388" y="247" text-anchor="middle">{v("deice")}</text>
-  <text class="small" x="388" y="270" text-anchor="middle">{unit_weight}</text>
+  <rect class="bag" x="348" y="230" width="100" height="70"/>
+  <text class="label" x="398" y="225" text-anchor="middle">Fuel R</text>
+  <rect class="pill" x="373" y="252" width="50" height="34" rx="10"/>
+  <text class="pillText" x="398" y="277" text-anchor="middle">{v("fuel_r")}</text>
+  <text class="small" x="398" y="300" text-anchor="middle">{unit_weight}</text>
 </svg>
 </div>
 """
@@ -288,6 +294,7 @@ def main() -> None:
 
         with col_viz:
             st.markdown("**上面図（現在値の見える化）**")
+            fuel_half = main_fuel / 2.0
             svg = render_top_view_svg(
                 {
                     "front_l": front_l,
@@ -298,7 +305,8 @@ def main() -> None:
                     "cockpit_bag": cockpit_bag,
                     "bag_ext": bag_ext,
                     "deice": deice,
-                    "main_fuel": main_fuel,
+                    "fuel_l": fuel_half,
+                    "fuel_r": fuel_half,
                 },
                 unit_weight=unit_weight,
             )
