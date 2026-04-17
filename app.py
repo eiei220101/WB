@@ -333,7 +333,7 @@ def main() -> None:
                     st.success(f"{label}: {status}")
 
     with tab_env:
-        st.subheader("CGエンベロープ（封筒）")
+        st.subheader("CGエンベロープ")
         # 機体ごとの envelope を優先
         env_default = cfg.get("envelope", {}) or {}
         env_override = selected.get("envelope", {}) if isinstance(selected, dict) else {}
@@ -344,7 +344,9 @@ def main() -> None:
             st.warning("この機体のエンベロープ点が未入力です。`aircraft.toml` の `[aircraft.<TAIL>.envelope].points` に点を追加してください。")
             st.code('points = [[2400, 1350], [2500, 1900], [2450, 2000]]', language="toml")
         else:
-            xs = [p[0] for p in env_points] + [env_points[0][0]]
+            # 表示は m にしたい（例: 2350mm -> 2.35）
+            env_points_m = [(cg / 1000.0, wt) for (cg, wt) in env_points]
+            xs = [p[0] for p in env_points_m] + [env_points_m[0][0]]
             ys = [p[1] for p in env_points] + [env_points[0][1]]
 
             fig = go.Figure()
@@ -353,8 +355,9 @@ def main() -> None:
                     x=xs,
                     y=ys,
                     mode="lines",
-                    name="Envelope",
+                    name="",
                     line=dict(color="#ef4444", width=3),
+                    showlegend=False,
                 )
             )
 
@@ -363,7 +366,7 @@ def main() -> None:
             lx, ly = _safe_point_xy(lw)
             fig.add_trace(
                 go.Scatter(
-                    x=[zx],
+                    x=[None if zx is None else zx / 1000.0],
                     y=[zy],
                     mode="markers+text",
                     name="ZFM",
@@ -374,7 +377,7 @@ def main() -> None:
             )
             fig.add_trace(
                 go.Scatter(
-                    x=[tx],
+                    x=[None if tx is None else tx / 1000.0],
                     y=[ty],
                     mode="markers+text",
                     name="TOW",
@@ -385,7 +388,7 @@ def main() -> None:
             )
             fig.add_trace(
                 go.Scatter(
-                    x=[lx],
+                    x=[None if lx is None else lx / 1000.0],
                     y=[ly],
                     mode="markers+text",
                     name="LW",
@@ -447,19 +450,29 @@ def main() -> None:
 
             fig.update_layout(
                 template="plotly_dark",
-                xaxis_title=f"CG [{unit_arm}]",
+                xaxis_title="CG [m]",
                 yaxis_title=f"Weight [{unit_weight}]",
                 height=520,
                 width=1020,
                 margin=dict(l=60, r=20, t=30, b=50),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                showlegend=False,
                 paper_bgcolor="#0b1220",
                 plot_bgcolor="#0b1220",
                 shapes=shapes,
                 annotations=ann,
             )
-            fig.update_xaxes(showgrid=True, gridcolor="rgba(148,163,184,0.25)", zeroline=False)
-            fig.update_yaxes(showgrid=True, gridcolor="rgba(148,163,184,0.25)", zeroline=False)
+            fig.update_xaxes(
+                showgrid=True,
+                gridcolor="rgba(148,163,184,0.25)",
+                zeroline=False,
+                tickformat=".2f",
+            )
+            fig.update_yaxes(
+                showgrid=True,
+                gridcolor="rgba(148,163,184,0.25)",
+                zeroline=False,
+                dtick=20,
+            )
             left_pad, center, right_pad = st.columns([1, 3, 1])
             with center:
                 st.plotly_chart(fig, use_container_width=False)
