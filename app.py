@@ -335,7 +335,8 @@ def render_top_view_svg(
       .seat {{ fill:none; stroke:#22c55e; stroke-width:3; rx:10; }}
       .bag  {{ fill:none; stroke:#22c55e; stroke-width:3; rx:10; }}
       .label {{ fill:#22c55e; font: 700 14px system-ui, -apple-system, Segoe UI, Roboto; }}
-      .value {{ fill:#22c55e; font: 800 18px system-ui, -apple-system, Segoe UI, Roboto; }}
+      .valueBox {{ fill: rgba(255,255,255,0.86); stroke:#22c55e; stroke-width:2; }}
+      .value {{ fill:#16a34a; stroke: rgba(255,255,255,0.95); stroke-width:3; paint-order: stroke; font: 900 20px system-ui, -apple-system, Segoe UI, Roboto; }}
       .small {{ fill:#22c55e; font: 600 12px system-ui, -apple-system, Segoe UI, Roboto; }}
       .resize-handle {{ fill:#111827; opacity:0.55; cursor:nwse-resize; }}
       .main-rect {{ cursor:move; }}
@@ -382,6 +383,7 @@ def render_top_view_svg(
   <rect id="rect-front_l" class="seat main-rect overlay overlayRect" x="{L('front_l')['x']:.1f}" y="{L('front_l')['y']:.1f}" width="{L('front_l')['w']:.1f}" height="{L('front_l')['h']:.1f}"/>
   {_resize_handle("front_l", L('front_l')['x'], L('front_l')['y'], L('front_l')['w'], L('front_l')['h'])}
   <text id="label-front_l" class="label overlay" x="{(L('front_l')['x'] + 2):.1f}" y="{(L('front_l')['y'] - 6):.1f}" text-anchor="start">FRONT L</text>
+  <rect class="valueBox" x="{(L('front_l')['x'] + L('front_l')['w']/2 - 34):.1f}" y="{(L('front_l')['y'] + L('front_l')['h']/2 - 22):.1f}" width="68" height="40" rx="10"/>
   <text class="value" x="{(L('front_l')['x'] + L('front_l')['w']/2):.1f}" y="{(L('front_l')['y'] + L('front_l')['h']/2 + 6):.1f}" text-anchor="middle">{v("front_l")}</text>
   <text class="small" x="{(L('front_l')['x'] + L('front_l')['w']/2):.1f}" y="{(L('front_l')['y'] + L('front_l')['h']/2 + 26):.1f}" text-anchor="middle">{unit_weight}</text>
   {(_group_close())}
@@ -390,6 +392,7 @@ def render_top_view_svg(
   <rect id="rect-front_r" class="seat main-rect overlay overlayRect" x="{L('front_r')['x']:.1f}" y="{L('front_r')['y']:.1f}" width="{L('front_r')['w']:.1f}" height="{L('front_r')['h']:.1f}"/>
   {_resize_handle("front_r", L('front_r')['x'], L('front_r')['y'], L('front_r')['w'], L('front_r')['h'])}
   <text id="label-front_r" class="label overlay" x="{(L('front_r')['x'] + 2):.1f}" y="{(L('front_r')['y'] - 6):.1f}" text-anchor="start">FRONT R</text>
+  <rect class="valueBox" x="{(L('front_r')['x'] + L('front_r')['w']/2 - 34):.1f}" y="{(L('front_r')['y'] + L('front_r')['h']/2 - 22):.1f}" width="68" height="40" rx="10"/>
   <text class="value" x="{(L('front_r')['x'] + L('front_r')['w']/2):.1f}" y="{(L('front_r')['y'] + L('front_r')['h']/2 + 6):.1f}" text-anchor="middle">{v("front_r")}</text>
   <text class="small" x="{(L('front_r')['x'] + L('front_r')['w']/2):.1f}" y="{(L('front_r')['y'] + L('front_r')['h']/2 + 26):.1f}" text-anchor="middle">{unit_weight}</text>
   {(_group_close())}
@@ -399,6 +402,7 @@ def render_top_view_svg(
   <rect id="rect-rear_l" class="seat main-rect overlay overlayRect" x="{L('rear_l')['x']:.1f}" y="{L('rear_l')['y']:.1f}" width="{L('rear_l')['w']:.1f}" height="{L('rear_l')['h']:.1f}"/>
   {_resize_handle("rear_l", L('rear_l')['x'], L('rear_l')['y'], L('rear_l')['w'], L('rear_l')['h'])}
   <text id="label-rear_l" class="label overlay" x="{(L('rear_l')['x'] + 2):.1f}" y="{(L('rear_l')['y'] - 6):.1f}" text-anchor="start">REAR L</text>
+  <rect class="valueBox" x="{(L('rear_l')['x'] + L('rear_l')['w']/2 - 34):.1f}" y="{(L('rear_l')['y'] + L('rear_l')['h']/2 - 22):.1f}" width="68" height="40" rx="10"/>
   <text class="value" x="{(L('rear_l')['x'] + L('rear_l')['w']/2):.1f}" y="{(L('rear_l')['y'] + L('rear_l')['h']/2 + 6):.1f}" text-anchor="middle">{v("rear_l")}</text>
   <text class="small" x="{(L('rear_l')['x'] + L('rear_l')['w']/2):.1f}" y="{(L('rear_l')['y'] + L('rear_l')['h']/2 + 26):.1f}" text-anchor="middle">{unit_weight}</text>
   {(_group_close())}
@@ -407,6 +411,7 @@ def render_top_view_svg(
   <rect id="rect-rear_r" class="seat main-rect overlay overlayRect" x="{L('rear_r')['x']:.1f}" y="{L('rear_r')['y']:.1f}" width="{L('rear_r')['w']:.1f}" height="{L('rear_r')['h']:.1f}"/>
   {_resize_handle("rear_r", L('rear_r')['x'], L('rear_r')['y'], L('rear_r')['w'], L('rear_r')['h'])}
   <text id="label-rear_r" class="label overlay" x="{(L('rear_r')['x'] + 2):.1f}" y="{(L('rear_r')['y'] - 6):.1f}" text-anchor="start">REAR R</text>
+  <rect class="valueBox" x="{(L('rear_r')['x'] + L('rear_r')['w']/2 - 34):.1f}" y="{(L('rear_r')['y'] + L('rear_r')['h']/2 - 22):.1f}" width="68" height="40" rx="10"/>
   <text class="value" x="{(L('rear_r')['x'] + L('rear_r')['w']/2):.1f}" y="{(L('rear_r')['y'] + L('rear_r')['h']/2 + 6):.1f}" text-anchor="middle">{v("rear_r")}</text>
   <text class="small" x="{(L('rear_r')['x'] + L('rear_r')['w']/2):.1f}" y="{(L('rear_r')['y'] + L('rear_r')['h']/2 + 26):.1f}" text-anchor="middle">{unit_weight}</text>
   {(_group_close())}
@@ -416,6 +421,7 @@ def render_top_view_svg(
   <rect id="rect-nose_bag" class="bag main-rect overlay overlayRect" x="{L('nose_bag')['x']:.1f}" y="{L('nose_bag')['y']:.1f}" width="{L('nose_bag')['w']:.1f}" height="{L('nose_bag')['h']:.1f}"/>
   {_resize_handle("nose_bag", L('nose_bag')['x'], L('nose_bag')['y'], L('nose_bag')['w'], L('nose_bag')['h'])}
   <text id="label-nose_bag" class="label overlay" x="{(L('nose_bag')['x'] + 2):.1f}" y="{(L('nose_bag')['y'] - 6):.1f}" text-anchor="start">NOSE</text>
+  <rect class="valueBox" x="{(L('nose_bag')['x'] + L('nose_bag')['w']/2 - 30):.1f}" y="{(L('nose_bag')['y'] + L('nose_bag')['h']/2 - 18):.1f}" width="60" height="36" rx="10"/>
   <text class="value" x="{(L('nose_bag')['x'] + L('nose_bag')['w']/2):.1f}" y="{(L('nose_bag')['y'] + L('nose_bag')['h']/2 + 6):.1f}" text-anchor="middle">{v("nose_bag")}</text>
   {(_group_close())}
 
@@ -424,6 +430,7 @@ def render_top_view_svg(
   <rect id="rect-deice_l" class="bag main-rect overlay overlayRect" x="{L('deice_l')['x']:.1f}" y="{L('deice_l')['y']:.1f}" width="{L('deice_l')['w']:.1f}" height="{L('deice_l')['h']:.1f}"/>
   {_resize_handle("deice_l", L('deice_l')['x'], L('deice_l')['y'], L('deice_l')['w'], L('deice_l')['h'])}
   <text id="label-deice_l" class="label overlay" x="{(L('deice_l')['x'] + 2):.1f}" y="{(L('deice_l')['y'] - 6):.1f}" text-anchor="start">DEICE</text>
+  <rect class="valueBox" x="{(L('deice_l')['x'] + L('deice_l')['w']/2 - 38):.1f}" y="{(L('deice_l')['y'] + L('deice_l')['h']/2 - 22):.1f}" width="76" height="44" rx="10"/>
   <text class="value" x="{(L('deice_l')['x'] + L('deice_l')['w']/2):.1f}" y="{(L('deice_l')['y'] + L('deice_l')['h']/2 + 2):.1f}" text-anchor="middle">{v1("deice_l")}</text>
   <text class="small" x="{(L('deice_l')['x'] + L('deice_l')['w']/2):.1f}" y="{(L('deice_l')['y'] + L('deice_l')['h']/2 + 22):.1f}" text-anchor="middle">{v1("deice_kg")} {unit_weight}</text>
   {(_group_close())}
@@ -433,6 +440,7 @@ def render_top_view_svg(
   <rect id="rect-cockpit_bag" class="bag main-rect overlay overlayRect" x="{L('cockpit_bag')['x']:.1f}" y="{L('cockpit_bag')['y']:.1f}" width="{L('cockpit_bag')['w']:.1f}" height="{L('cockpit_bag')['h']:.1f}"/>
   {_resize_handle("cockpit_bag", L('cockpit_bag')['x'], L('cockpit_bag')['y'], L('cockpit_bag')['w'], L('cockpit_bag')['h'])}
   <text id="label-cockpit_bag" class="label overlay" x="{(L('cockpit_bag')['x'] + 2):.1f}" y="{(L('cockpit_bag')['y'] - 6):.1f}" text-anchor="start">BAGGAGE</text>
+  <rect class="valueBox" x="{(L('cockpit_bag')['x'] + L('cockpit_bag')['w']/2 - 34):.1f}" y="{(L('cockpit_bag')['y'] + L('cockpit_bag')['h']/2 - 20):.1f}" width="68" height="40" rx="10"/>
   <text class="value" x="{(L('cockpit_bag')['x'] + L('cockpit_bag')['w']/2):.1f}" y="{(L('cockpit_bag')['y'] + L('cockpit_bag')['h']/2 + 7):.1f}" text-anchor="middle">{v("cockpit_bag")}</text>
   {(_group_close())}
 
@@ -441,6 +449,7 @@ def render_top_view_svg(
   <rect id="rect-bag_ext" class="bag main-rect overlay overlayRect" x="{L('bag_ext')['x']:.1f}" y="{L('bag_ext')['y']:.1f}" width="{L('bag_ext')['w']:.1f}" height="{L('bag_ext')['h']:.1f}"/>
   {_resize_handle("bag_ext", L('bag_ext')['x'], L('bag_ext')['y'], L('bag_ext')['w'], L('bag_ext')['h'])}
   <text id="label-bag_ext" class="label overlay" x="{(L('bag_ext')['x'] + 2):.1f}" y="{(L('bag_ext')['y'] - 6):.1f}" text-anchor="start">BAG EXT</text>
+  <rect class="valueBox" x="{(L('bag_ext')['x'] + L('bag_ext')['w']/2 - 34):.1f}" y="{(L('bag_ext')['y'] + L('bag_ext')['h']/2 - 20):.1f}" width="68" height="40" rx="10"/>
   <text class="value" x="{(L('bag_ext')['x'] + L('bag_ext')['w']/2):.1f}" y="{(L('bag_ext')['y'] + L('bag_ext')['h']/2 + 6):.1f}" text-anchor="middle">{v("bag_ext")}</text>
   {(_group_close())}
 
@@ -449,6 +458,7 @@ def render_top_view_svg(
   <rect id="rect-fuel_l" class="bag main-rect overlay overlayRect" x="{L('fuel_l')['x']:.1f}" y="{L('fuel_l')['y']:.1f}" width="{L('fuel_l')['w']:.1f}" height="{L('fuel_l')['h']:.1f}"/>
   {_resize_handle("fuel_l", L('fuel_l')['x'], L('fuel_l')['y'], L('fuel_l')['w'], L('fuel_l')['h'])}
   <text id="label-fuel_l" class="label overlay" x="{(L('fuel_l')['x'] + 2):.1f}" y="{(L('fuel_l')['y'] - 6):.1f}" text-anchor="start">FUEL L</text>
+  <rect class="valueBox" x="{(L('fuel_l')['x'] + L('fuel_l')['w']/2 - 42):.1f}" y="{(L('fuel_l')['y'] + L('fuel_l')['h']/2 - 22):.1f}" width="84" height="44" rx="10"/>
   <text class="value" x="{(L('fuel_l')['x'] + L('fuel_l')['w']/2):.1f}" y="{(L('fuel_l')['y'] + L('fuel_l')['h']/2 + 2):.1f}" text-anchor="middle">{v1("fuel_l_gal")}</text>
   <text class="small" x="{(L('fuel_l')['x'] + L('fuel_l')['w']/2):.1f}" y="{(L('fuel_l')['y'] + L('fuel_l')['h']/2 + 22):.1f}" text-anchor="middle">{v1("fuel_l_kg")} {unit_weight}</text>
   {(_group_close())}
@@ -457,6 +467,7 @@ def render_top_view_svg(
   <rect id="rect-fuel_r" class="bag main-rect overlay overlayRect" x="{L('fuel_r')['x']:.1f}" y="{L('fuel_r')['y']:.1f}" width="{L('fuel_r')['w']:.1f}" height="{L('fuel_r')['h']:.1f}"/>
   {_resize_handle("fuel_r", L('fuel_r')['x'], L('fuel_r')['y'], L('fuel_r')['w'], L('fuel_r')['h'])}
   <text id="label-fuel_r" class="label overlay" x="{(L('fuel_r')['x'] + 2):.1f}" y="{(L('fuel_r')['y'] - 6):.1f}" text-anchor="start">FUEL R</text>
+  <rect class="valueBox" x="{(L('fuel_r')['x'] + L('fuel_r')['w']/2 - 42):.1f}" y="{(L('fuel_r')['y'] + L('fuel_r')['h']/2 - 22):.1f}" width="84" height="44" rx="10"/>
   <text class="value" x="{(L('fuel_r')['x'] + L('fuel_r')['w']/2):.1f}" y="{(L('fuel_r')['y'] + L('fuel_r')['h']/2 + 2):.1f}" text-anchor="middle">{v1("fuel_r_gal")}</text>
   <text class="small" x="{(L('fuel_r')['x'] + L('fuel_r')['w']/2):.1f}" y="{(L('fuel_r')['y'] + L('fuel_r')['h']/2 + 22):.1f}" text-anchor="middle">{v1("fuel_r_kg")} {unit_weight}</text>
   {(_group_close())}
