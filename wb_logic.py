@@ -3,10 +3,8 @@
 画面（Streamlit）とは分離してあるので、式を変えたいときはここだけ直せばよい。
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import Iterable, Mapping
+from typing import Iterable, Mapping, Optional
 
 
 @dataclass(frozen=True)
@@ -34,7 +32,7 @@ class Totals:
 
     weight: float
     moment: float
-    cg: float | None
+    cg: Optional[float]
 
 
 @dataclass(frozen=True)
@@ -43,7 +41,7 @@ class WBPoint:
 
     weight: float
     moment: float
-    cg: float | None
+    cg: Optional[float]
 
 
 def moment(weight: float, arm: float) -> float:
@@ -51,7 +49,7 @@ def moment(weight: float, arm: float) -> float:
     return weight * arm
 
 
-def cg_from_totals(total_weight: float, total_moment: float) -> float | None:
+def cg_from_totals(total_weight: float, total_moment: float) -> Optional[float]:
     """重心位置（アーム）= 総モーメント ÷ 総重量。重量0なら未定義。"""
     if total_weight <= 0:
         return None
@@ -74,7 +72,7 @@ def evaluate_rows(rows: Iterable[RowInput]) -> tuple[list[RowResult], Totals]:
     return results, Totals(weight=tw, moment=tm, cg=cg)
 
 
-def within_limits(cg: float | None, cg_min: float | None, cg_max: float | None) -> str | None:
+def within_limits(cg: Optional[float], cg_min: Optional[float], cg_max: Optional[float]) -> Optional[str]:
     """
     許容範囲が入力されていれば「範囲内／外」を返す。CGが無ければ None。
     """
