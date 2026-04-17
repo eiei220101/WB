@@ -128,16 +128,16 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <text class="small" x="298" y="319" text-anchor="middle">{unit_weight}</text>
 
   <!-- rear seats -->
-  <rect class="seat" x="190" y="495" width="65" height="85"/>
-  <rect class="seat" x="265" y="495" width="65" height="85"/>
-  <text class="label" x="222" y="489" text-anchor="middle">Rear L</text>
-  <text class="label" x="298" y="489" text-anchor="middle">Rear R</text>
-  <rect class="pill" x="198" y="525" width="50" height="34" rx="10"/>
-  <rect class="pill" x="273" y="525" width="50" height="34" rx="10"/>
-  <text class="pillText" x="223" y="550" text-anchor="middle">{v("rear_l")}</text>
-  <text class="pillText" x="298" y="550" text-anchor="middle">{v("rear_r")}</text>
-  <text class="small" x="223" y="573" text-anchor="middle">{unit_weight}</text>
-  <text class="small" x="298" y="573" text-anchor="middle">{unit_weight}</text>
+  <rect class="seat" x="190" y="470" width="65" height="85"/>
+  <rect class="seat" x="265" y="470" width="65" height="85"/>
+  <text class="label" x="222" y="464" text-anchor="middle">Rear L</text>
+  <text class="label" x="298" y="464" text-anchor="middle">Rear R</text>
+  <rect class="pill" x="198" y="500" width="50" height="34" rx="10"/>
+  <rect class="pill" x="273" y="500" width="50" height="34" rx="10"/>
+  <text class="pillText" x="223" y="525" text-anchor="middle">{v("rear_l")}</text>
+  <text class="pillText" x="298" y="525" text-anchor="middle">{v("rear_r")}</text>
+  <text class="small" x="223" y="548" text-anchor="middle">{unit_weight}</text>
+  <text class="small" x="298" y="548" text-anchor="middle">{unit_weight}</text>
 
   <!-- nose baggage -->
   <rect class="bag" x="225" y="65" width="70" height="55"/>
@@ -153,16 +153,16 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <text class="small" x="260" y="202" text-anchor="middle">{v1("deice_kg")} {unit_weight}</text>
 
   <!-- cockpit baggage (Front/Rear の間の細長い枠) -->
-  <rect class="bag" x="165" y="440" width="190" height="40"/>
-  <text class="label" x="260" y="435" text-anchor="middle">CockpitBaggage</text>
-  <rect class="pill" x="237" y="448" width="46" height="28" rx="10"/>
-  <text class="pillText" x="260" y="470" text-anchor="middle">{v("cockpit_bag")}</text>
+  <rect class="bag" x="165" y="415" width="190" height="40"/>
+  <text class="label" x="260" y="410" text-anchor="middle">CockpitBaggage</text>
+  <rect class="pill" x="237" y="423" width="46" height="28" rx="10"/>
+  <text class="pillText" x="260" y="445" text-anchor="middle">{v("cockpit_bag")}</text>
 
   <!-- baggage extension -->
-  <rect class="bag" x="170" y="645" width="180" height="55"/>
-  <text class="label" x="260" y="640" text-anchor="middle">BaggageExtension</text>
-  <rect class="pill" x="237" y="660" width="46" height="32" rx="10"/>
-  <text class="pillText" x="260" y="684" text-anchor="middle">{v("bag_ext")}</text>
+  <rect class="bag" x="170" y="620" width="180" height="55"/>
+  <text class="label" x="260" y="615" text-anchor="middle">BaggageExtension</text>
+  <rect class="pill" x="237" y="635" width="46" height="32" rx="10"/>
+  <text class="pillText" x="260" y="659" text-anchor="middle">{v("bag_ext")}</text>
 
   <!-- fuel (left wing / right wing) -->
   <rect class="bag" x="62" y="260" width="110" height="74"/>
