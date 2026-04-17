@@ -91,14 +91,17 @@ DEFAULT_TOPVIEW_LAYOUT: dict[str, dict[str, float]] = {
     # 座標は SVG viewBox (0..520, 0..820) 基準
     "front_l": {"x": 190, "y": 235, "w": 65, "h": 95, "pill_dx": 8, "pill_dy": 35, "label_dy": -6},
     "front_r": {"x": 265, "y": 235, "w": 65, "h": 95, "pill_dx": 8, "pill_dy": 35, "label_dy": -6},
-    "rear_l": {"x": 190, "y": 490, "w": 65, "h": 85, "pill_dx": 8, "pill_dy": 30, "label_dy": -7},
-    "rear_r": {"x": 265, "y": 490, "w": 65, "h": 85, "pill_dx": 8, "pill_dy": 30, "label_dy": -7},
+    # Rear はコックピットバゲッジに近づける
+    "rear_l": {"x": 190, "y": 455, "w": 65, "h": 85, "pill_dx": 8, "pill_dy": 30, "label_dy": -7},
+    "rear_r": {"x": 265, "y": 455, "w": 65, "h": 85, "pill_dx": 8, "pill_dy": 30, "label_dy": -7},
     "nose_bag": {"x": 225, "y": 65, "w": 70, "h": 55, "pill_dx": 12, "pill_dy": 17, "label_dy": -5},
     "deice_l": {"x": 210, "y": 145, "w": 100, "h": 70, "pill_dx": 25, "pill_dy": 24, "label_dy": -2},
-    "cockpit_bag": {"x": 165, "y": 395, "w": 190, "h": 40, "pill_dx": 72, "pill_dy": 8, "label_dy": -5},
+    # Front と Rear の間隔を詰める
+    "cockpit_bag": {"x": 165, "y": 372, "w": 190, "h": 40, "pill_dx": 72, "pill_dy": 8, "label_dy": -5},
     "bag_ext": {"x": 170, "y": 675, "w": 180, "h": 55, "pill_dx": 67, "pill_dy": 15, "label_dy": -5},
-    "fuel_l": {"x": 86, "y": 262, "w": 102, "h": 72, "pill_dx": 25, "pill_dy": 23, "label_dy": -6},
-    "fuel_r": {"x": 332, "y": 262, "w": 102, "h": 72, "pill_dx": 24, "pill_dy": 23, "label_dy": -6},
+    # Fuel は翼の上（少し上側）へ
+    "fuel_l": {"x": 86, "y": 232, "w": 110, "h": 72, "pill_dx": 25, "pill_dy": 23, "label_dy": -6},
+    "fuel_r": {"x": 324, "y": 232, "w": 110, "h": 72, "pill_dx": 24, "pill_dy": 23, "label_dy": -6},
 }
 
 
@@ -475,14 +478,14 @@ DEFAULT_TOPVIEW_LAYOUT: dict[str, dict[str, float]] = {
     # 座標は SVG viewBox (0..520, 0..820) 基準
     "front_l": {"x": 190, "y": 235, "w": 65, "h": 95, "pill_dx": 8, "pill_dy": 35, "label_dy": -6},
     "front_r": {"x": 265, "y": 235, "w": 65, "h": 95, "pill_dx": 8, "pill_dy": 35, "label_dy": -6},
-    "rear_l": {"x": 190, "y": 490, "w": 65, "h": 85, "pill_dx": 8, "pill_dy": 30, "label_dy": -7},
-    "rear_r": {"x": 265, "y": 490, "w": 65, "h": 85, "pill_dx": 8, "pill_dy": 30, "label_dy": -7},
+    "rear_l": {"x": 190, "y": 455, "w": 65, "h": 85, "pill_dx": 8, "pill_dy": 30, "label_dy": -7},
+    "rear_r": {"x": 265, "y": 455, "w": 65, "h": 85, "pill_dx": 8, "pill_dy": 30, "label_dy": -7},
     "nose_bag": {"x": 225, "y": 65, "w": 70, "h": 55, "pill_dx": 12, "pill_dy": 17, "label_dy": -5},
     "deice_l": {"x": 210, "y": 145, "w": 100, "h": 70, "pill_dx": 25, "pill_dy": 24, "label_dy": -2},
-    "cockpit_bag": {"x": 165, "y": 395, "w": 190, "h": 40, "pill_dx": 72, "pill_dy": 8, "label_dy": -5},
+    "cockpit_bag": {"x": 165, "y": 372, "w": 190, "h": 40, "pill_dx": 72, "pill_dy": 8, "label_dy": -5},
     "bag_ext": {"x": 170, "y": 675, "w": 180, "h": 55, "pill_dx": 67, "pill_dy": 15, "label_dy": -5},
-    "fuel_l": {"x": 86, "y": 262, "w": 102, "h": 72, "pill_dx": 25, "pill_dy": 23, "label_dy": -6},
-    "fuel_r": {"x": 332, "y": 262, "w": 102, "h": 72, "pill_dx": 24, "pill_dy": 23, "label_dy": -6},
+    "fuel_l": {"x": 86, "y": 232, "w": 110, "h": 72, "pill_dx": 25, "pill_dy": 23, "label_dy": -6},
+    "fuel_r": {"x": 324, "y": 232, "w": 110, "h": 72, "pill_dx": 24, "pill_dy": 23, "label_dy": -6},
 }
 
 
