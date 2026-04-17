@@ -63,21 +63,35 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
     def v1(key: str) -> str:
         return f"{values.get(key, 0.0):.1f}"
 
-    def href(edit_key: str) -> str:
-        # クリックで ?edit=... を付けて Streamlit を再実行させる
-        return f"?edit={edit_key}#topview"
+    # components.html 内では SVGの <a href> が効かない環境があるため、
+    # onclick で top window のURLを更新して確実に遷移させる。
+    def g_open(edit_key: str) -> str:
+        return f"<g onclick=\"setEdit('{edit_key}')\" style=\"cursor:pointer;\">"
 
-    def a_open(edit_key: str) -> str:
-        return f'<a href="{href(edit_key)}" target="_top" style="cursor:pointer; text-decoration:none;">'
-
-    def a_close() -> str:
-        return "</a>"
+    def g_close() -> str:
+        return "</g>"
 
     # DA42っぽいトップビュー（翼・胴体・エンジン・尾翼）に寄せた簡易シルエット。
     # Streamlit の markdown/HTML解釈差異で表示が真っ白になるケースがあるため、
     # components.html で確実に描画できるよう HTML として返す。
     return f"""
 <div style="width:100%; max-width:600px; margin:0 auto;">
+<script>
+  function setEdit(key) {{
+    try {{
+      const u = new URL(window.top.location.href);
+      u.searchParams.set('edit', key);
+      u.hash = 'topview';
+      window.top.location.href = u.toString();
+    }} catch (e) {{
+      // fallback: same-frame
+      const u = new URL(window.location.href);
+      u.searchParams.set('edit', key);
+      u.hash = 'topview';
+      window.location.href = u.toString();
+    }}
+  }}
+</script>
 <svg viewBox="0 0 520 820" width="100%" height="760" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>
@@ -126,88 +140,88 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
     C240 805, 215 792, 185 775 Z"/>
 
   <!-- cockpit seats -->
-  {a_open("front_l")}
+  {g_open("front_l")}
   <rect class="seat" x="190" y="235" width="65" height="95"/>
   <text class="label" x="222" y="229" text-anchor="middle">Front L</text>
   <rect class="pill" x="198" y="270" width="50" height="34" rx="10"/>
   <text class="pillText" x="223" y="295" text-anchor="middle">{v("front_l")}</text>
   <text class="small" x="223" y="319" text-anchor="middle">{unit_weight}</text>
-  {a_close()}
+  {g_close()}
 
-  {a_open("front_r")}
+  {g_open("front_r")}
   <rect class="seat" x="265" y="235" width="65" height="95"/>
   <text class="label" x="298" y="229" text-anchor="middle">Front R</text>
   <rect class="pill" x="273" y="270" width="50" height="34" rx="10"/>
   <text class="pillText" x="298" y="295" text-anchor="middle">{v("front_r")}</text>
   <text class="small" x="298" y="319" text-anchor="middle">{unit_weight}</text>
-  {a_close()}
+  {g_close()}
 
   <!-- rear seats -->
-  {a_open("rear_l")}
+  {g_open("rear_l")}
   <rect class="seat" x="190" y="470" width="65" height="85"/>
   <text class="label" x="222" y="458" text-anchor="middle">Rear L</text>
   <rect class="pill" x="198" y="500" width="50" height="34" rx="10"/>
   <text class="pillText" x="223" y="525" text-anchor="middle">{v("rear_l")}</text>
   <text class="small" x="223" y="548" text-anchor="middle">{unit_weight}</text>
-  {a_close()}
+  {g_close()}
 
-  {a_open("rear_r")}
+  {g_open("rear_r")}
   <rect class="seat" x="265" y="470" width="65" height="85"/>
   <text class="label" x="298" y="458" text-anchor="middle">Rear R</text>
   <rect class="pill" x="273" y="500" width="50" height="34" rx="10"/>
   <text class="pillText" x="298" y="525" text-anchor="middle">{v("rear_r")}</text>
   <text class="small" x="298" y="548" text-anchor="middle">{unit_weight}</text>
-  {a_close()}
+  {g_close()}
 
   <!-- nose baggage -->
-  {a_open("nose_bag")}
+  {g_open("nose_bag")}
   <rect class="bag" x="225" y="65" width="70" height="55"/>
   <text class="label" x="260" y="60" text-anchor="middle">Nose</text>
   <rect class="pill" x="237" y="82" width="46" height="32" rx="10"/>
   <text class="pillText" x="260" y="106" text-anchor="middle">{v("nose_bag")}</text>
-  {a_close()}
+  {g_close()}
 
   <!-- de-ice (Nose baggage と Front seats の間) -->
-  {a_open("deice_l")}
+  {g_open("deice_l")}
   <rect class="bag" x="210" y="130" width="100" height="70"/>
   <text class="label" x="260" y="125" text-anchor="middle">De-ice</text>
   <rect class="pill" x="235" y="154" width="50" height="34" rx="10"/>
   <text class="pillText" x="260" y="179" text-anchor="middle">{v1("deice_l")}</text>
   <text class="small" x="260" y="202" text-anchor="middle">{v1("deice_kg")} {unit_weight}</text>
-  {a_close()}
+  {g_close()}
 
   <!-- cockpit baggage (Front/Rear の間の細長い枠) -->
-  {a_open("cockpit_bag")}
+  {g_open("cockpit_bag")}
   <rect class="bag" x="165" y="395" width="190" height="40"/>
   <text class="label" x="260" y="390" text-anchor="middle">CockpitBaggage</text>
   <rect class="pill" x="237" y="403" width="46" height="28" rx="10"/>
   <text class="pillText" x="260" y="425" text-anchor="middle">{v("cockpit_bag")}</text>
-  {a_close()}
+  {g_close()}
 
   <!-- baggage extension -->
-  {a_open("bag_ext")}
+  {g_open("bag_ext")}
   <rect class="bag" x="170" y="620" width="180" height="55"/>
   <text class="label" x="260" y="615" text-anchor="middle">BaggageExtension</text>
   <rect class="pill" x="237" y="635" width="46" height="32" rx="10"/>
   <text class="pillText" x="260" y="659" text-anchor="middle">{v("bag_ext")}</text>
-  {a_close()}
+  {g_close()}
 
   <!-- fuel (left wing / right wing) -->
-  {a_open("main_fuel_gal")}
+  {g_open("main_fuel_gal")}
   <rect class="bag" x="62" y="260" width="110" height="74"/>
   <text class="label" x="117" y="254" text-anchor="middle">Fuel L</text>
   <rect class="pill" x="90" y="284" width="54" height="34" rx="10"/>
   <text class="pillText" x="117" y="309" text-anchor="middle">{v1("fuel_l_gal")}</text>
   <text class="small" x="117" y="332" text-anchor="middle">{v1("fuel_l_kg")} {unit_weight}</text>
-  {a_close()}
+  {g_close()}
 
-  {a_open("main_fuel_gal")}
+  {g_open("main_fuel_gal")}
   <rect class="bag" x="348" y="260" width="110" height="74"/>
   <text class="label" x="403" y="254" text-anchor="middle">Fuel R</text>
   <rect class="pill" x="376" y="284" width="54" height="34" rx="10"/>
   <text class="pillText" x="403" y="309" text-anchor="middle">{v1("fuel_r_gal")}</text>
   <text class="small" x="403" y="332" text-anchor="middle">{v1("fuel_r_kg")} {unit_weight}</text>
-  {a_close()}
+  {g_close()}
 </svg>
 </div>
 """
