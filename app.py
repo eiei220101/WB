@@ -221,6 +221,17 @@ def render_top_view_svg(
     const MIN_W = 60;
     const MIN_H = 40;
 
+    function cssEscape(s) {{
+      // CSS.escape が無い環境もあるための簡易版
+      const str = String(s ?? "");
+      if (window.CSS && typeof window.CSS.escape === "function") return window.CSS.escape(str);
+      return str.replace(/[^a-zA-Z0-9_-]/g, "\\\\$&");
+    }}
+
+    function sel(idPrefix, key) {{
+      return "#" + idPrefix + "-" + cssEscape(key);
+    }}
+
     function getSVGPoint(evt) {{
       const pt = svg.createSVGPoint();
       pt.x = evt.clientX;
@@ -235,7 +246,7 @@ def render_top_view_svg(
       evt.preventDefault();
       evt.stopPropagation();
       const p = getSVGPoint(evt);
-      const rect = svg.querySelector(`#rect-${CSS.escape(key)}`);
+      const rect = svg.querySelector(sel("rect", key));
       if (!rect) return;
       const x = parseFloat(rect.getAttribute('x') || '0');
       const y = parseFloat(rect.getAttribute('y') || '0');
@@ -250,9 +261,9 @@ def render_top_view_svg(
       const p = getSVGPoint(evt);
       const dx = p.x - active.sx;
       const dy = p.y - active.sy;
-      const rect = svg.querySelector(`#rect-${CSS.escape(active.key)}`);
-      const handle = svg.querySelector(`#handle-${CSS.escape(active.key)}`);
-      const label = svg.querySelector(`#label-${CSS.escape(active.key)}`);
+      const rect = svg.querySelector(sel("rect", active.key));
+      const handle = svg.querySelector(sel("handle", active.key));
+      const label = svg.querySelector(sel("label", active.key));
       if (!rect) return;
 
       let x = active.ox;
@@ -283,7 +294,7 @@ def render_top_view_svg(
 
     function end(evt) {{
       if (!active) return;
-      const rect = svg.querySelector(`#rect-${CSS.escape(active.key)}`);
+      const rect = svg.querySelector(sel("rect", active.key));
       if (rect) {{
         const x = parseFloat(rect.getAttribute('x') || '0');
         const y = parseFloat(rect.getAttribute('y') || '0');
