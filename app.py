@@ -60,15 +60,16 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
     def v(key: str) -> str:
         return f"{values.get(key, 0.0):.0f}"
 
-    # シンプルなトップビュー（左右席・後席・バゲッジ・燃料を配置）
+    # DA42っぽいトップビュー（翼・胴体・エンジン・尾翼）に寄せた簡易シルエット。
     # Streamlit の markdown/HTML解釈差異で表示が真っ白になるケースがあるため、
     # components.html で確実に描画できるよう HTML として返す。
     return f"""
-<div style="width:100%; max-width:520px; margin:0 auto;">
-<svg viewBox="0 0 420 700" width="100%" height="700" xmlns="http://www.w3.org/2000/svg">
+<div style="width:100%; max-width:560px; margin:0 auto;">
+<svg viewBox="0 0 520 720" width="100%" height="700" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>
       .air {{ fill:#f3f4f6; stroke:#cbd5e1; stroke-width:2; }}
+      .outline {{ fill:none; stroke:#94a3b8; stroke-width:2; }}
       .seat {{ fill:#e5e7eb; stroke:#9ca3af; stroke-width:2; rx:12; }}
       .bag  {{ fill:#e5e7eb; stroke:#9ca3af; stroke-width:2; rx:12; }}
       .pill {{ fill:#16a34a; }}
@@ -78,60 +79,94 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
     </style>
   </defs>
 
+  <!-- wings -->
+  <path class="air" d="M35 265
+    C120 235, 200 225, 260 225
+    C320 225, 400 235, 485 265
+    L485 320
+    C400 345, 320 355, 260 355
+    C200 355, 120 345, 35 320 Z"/>
+
   <!-- fuselage -->
-  <path class="air" d="M210 20
-     C270 40, 315 95, 330 170
-     C350 270, 345 430, 320 560
-     C300 660, 250 690, 210 690
-     C170 690, 120 660, 100 560
-     C75 430, 70 270, 90 170
-     C105 95, 150 40, 210 20 Z"/>
+  <path class="air" d="M260 70
+     C300 80, 332 118, 342 170
+     C354 235, 354 300, 342 370
+     C328 452, 312 540, 300 640
+     C295 680, 282 700, 260 705
+     C238 700, 225 680, 220 640
+     C208 540, 192 452, 178 370
+     C166 300, 166 235, 178 170
+     C188 118, 220 80, 260 70 Z"/>
+
+  <!-- engine nacelles (approx) -->
+  <rect class="air" x="150" y="255" width="70" height="90" rx="18"/>
+  <rect class="air" x="300" y="255" width="70" height="90" rx="18"/>
+  <circle class="outline" cx="185" cy="300" r="26"/>
+  <circle class="outline" cx="335" cy="300" r="26"/>
+
+  <!-- tailplane -->
+  <path class="air" d="M185 640
+    C215 615, 240 605, 260 605
+    C280 605, 305 615, 335 640
+    L335 675
+    C305 690, 280 700, 260 700
+    C240 700, 215 690, 185 675 Z"/>
 
   <!-- cockpit seats -->
-  <rect class="seat" x="95" y="210" width="115" height="130"/>
-  <rect class="seat" x="210" y="210" width="115" height="130"/>
-  <text class="label" x="152" y="205" text-anchor="middle">Front L</text>
-  <text class="label" x="268" y="205" text-anchor="middle">Front R</text>
-  <rect class="pill" x="125" y="250" width="55" height="38" rx="10"/>
-  <rect class="pill" x="240" y="250" width="55" height="38" rx="10"/>
-  <text class="pillText" x="152" y="277" text-anchor="middle">{v("front_l")}</text>
-  <text class="pillText" x="268" y="277" text-anchor="middle">{v("front_r")}</text>
-  <text class="small" x="152" y="305" text-anchor="middle">{unit_weight}</text>
-  <text class="small" x="268" y="305" text-anchor="middle">{unit_weight}</text>
+  <rect class="seat" x="190" y="170" width="65" height="95"/>
+  <rect class="seat" x="265" y="170" width="65" height="95"/>
+  <text class="label" x="222" y="164" text-anchor="middle">Front L</text>
+  <text class="label" x="298" y="164" text-anchor="middle">Front R</text>
+  <rect class="pill" x="198" y="205" width="50" height="34" rx="10"/>
+  <rect class="pill" x="273" y="205" width="50" height="34" rx="10"/>
+  <text class="pillText" x="223" y="230" text-anchor="middle">{v("front_l")}</text>
+  <text class="pillText" x="298" y="230" text-anchor="middle">{v("front_r")}</text>
+  <text class="small" x="223" y="254" text-anchor="middle">{unit_weight}</text>
+  <text class="small" x="298" y="254" text-anchor="middle">{unit_weight}</text>
 
   <!-- rear seats -->
-  <rect class="seat" x="95" y="365" width="115" height="120"/>
-  <rect class="seat" x="210" y="365" width="115" height="120"/>
-  <text class="label" x="152" y="360" text-anchor="middle">Rear L</text>
-  <text class="label" x="268" y="360" text-anchor="middle">Rear R</text>
-  <rect class="pill" x="125" y="402" width="55" height="38" rx="10"/>
-  <rect class="pill" x="240" y="402" width="55" height="38" rx="10"/>
-  <text class="pillText" x="152" y="429" text-anchor="middle">{v("rear_l")}</text>
-  <text class="pillText" x="268" y="429" text-anchor="middle">{v("rear_r")}</text>
-  <text class="small" x="152" y="457" text-anchor="middle">{unit_weight}</text>
-  <text class="small" x="268" y="457" text-anchor="middle">{unit_weight}</text>
+  <rect class="seat" x="190" y="290" width="65" height="85"/>
+  <rect class="seat" x="265" y="290" width="65" height="85"/>
+  <text class="label" x="222" y="284" text-anchor="middle">Rear L</text>
+  <text class="label" x="298" y="284" text-anchor="middle">Rear R</text>
+  <rect class="pill" x="198" y="320" width="50" height="34" rx="10"/>
+  <rect class="pill" x="273" y="320" width="50" height="34" rx="10"/>
+  <text class="pillText" x="223" y="345" text-anchor="middle">{v("rear_l")}</text>
+  <text class="pillText" x="298" y="345" text-anchor="middle">{v("rear_r")}</text>
+  <text class="small" x="223" y="368" text-anchor="middle">{unit_weight}</text>
+  <text class="small" x="298" y="368" text-anchor="middle">{unit_weight}</text>
 
   <!-- nose baggage -->
-  <rect class="bag" x="160" y="90" width="100" height="70"/>
-  <text class="label" x="210" y="83" text-anchor="middle">Nose bag</text>
-  <rect class="pill" x="182" y="110" width="56" height="38" rx="10"/>
-  <text class="pillText" x="210" y="137" text-anchor="middle">{v("nose_bag")}</text>
+  <rect class="bag" x="225" y="95" width="70" height="55"/>
+  <text class="label" x="260" y="90" text-anchor="middle">Nose</text>
+  <rect class="pill" x="237" y="112" width="46" height="32" rx="10"/>
+  <text class="pillText" x="260" y="136" text-anchor="middle">{v("nose_bag")}</text>
 
   <!-- cabin baggage -->
-  <rect class="bag" x="155" y="505" width="110" height="75"/>
-  <text class="label" x="210" y="500" text-anchor="middle">Cabin bag</text>
-  <rect class="pill" x="182" y="527" width="56" height="38" rx="10"/>
-  <text class="pillText" x="210" y="554" text-anchor="middle">{v("cockpit_bag")}</text>
+  <rect class="bag" x="215" y="405" width="90" height="60"/>
+  <text class="label" x="260" y="400" text-anchor="middle">Cabin</text>
+  <rect class="pill" x="237" y="423" width="46" height="32" rx="10"/>
+  <text class="pillText" x="260" y="447" text-anchor="middle">{v("cockpit_bag")}</text>
 
   <!-- extension baggage -->
-  <rect class="bag" x="145" y="595" width="130" height="70"/>
-  <text class="label" x="210" y="590" text-anchor="middle">Ext</text>
-  <rect class="pill" x="182" y="615" width="56" height="38" rx="10"/>
-  <text class="pillText" x="210" y="642" text-anchor="middle">{v("bag_ext")}</text>
+  <rect class="bag" x="210" y="485" width="100" height="55"/>
+  <text class="label" x="260" y="480" text-anchor="middle">Ext</text>
+  <rect class="pill" x="237" y="500" width="46" height="32" rx="10"/>
+  <text class="pillText" x="260" y="524" text-anchor="middle">{v("bag_ext")}</text>
 
-  <!-- fuel / de-ice -->
-  <text class="label" x="210" y="175" text-anchor="middle">Fuel / De-ice</text>
-  <text class="small" x="210" y="195" text-anchor="middle">Fuel {v("main_fuel")} {unit_weight} / De-ice {v("deice")} {unit_weight}</text>
+  <!-- fuel -->
+  <rect class="bag" x="85" y="205" width="95" height="62"/>
+  <text class="label" x="132" y="200" text-anchor="middle">Fuel</text>
+  <rect class="pill" x="109" y="223" width="46" height="32" rx="10"/>
+  <text class="pillText" x="132" y="247" text-anchor="middle">{v("main_fuel")}</text>
+  <text class="small" x="132" y="270" text-anchor="middle">{unit_weight}</text>
+
+  <!-- de-ice (独立枠) -->
+  <rect class="bag" x="340" y="205" width="95" height="62"/>
+  <text class="label" x="388" y="200" text-anchor="middle">De-ice</text>
+  <rect class="pill" x="365" y="223" width="46" height="32" rx="10"/>
+  <text class="pillText" x="388" y="247" text-anchor="middle">{v("deice")}</text>
+  <text class="small" x="388" y="270" text-anchor="middle">{unit_weight}</text>
 </svg>
 </div>
 """
