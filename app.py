@@ -112,7 +112,21 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str, *, backgroun
     has_bg = bool(background_png_data_uri)
     if has_bg:
         # 参照画像をそのまま背景に敷く（“全く同じ”見た目に近づける）
-        bg = f'<image href="{background_png_data_uri}" x="0" y="0" width="520" height="820" preserveAspectRatio="xMidYMid meet" opacity="1.0" />'
+        #
+        # 画像を少し拡大（ズーム）して、入力枠が機体の中に収まりやすいようにする。
+        # center を基準にスケールし、微調整は pan_x/pan_y で行う。
+        bg_scale = 1.12
+        pan_x = 0.0
+        pan_y = -8.0
+        cx = 260.0
+        cy = 410.0
+        tx = (1.0 - bg_scale) * cx + pan_x
+        ty = (1.0 - bg_scale) * cy + pan_y
+        bg = (
+            f'<g transform="translate({tx:.2f},{ty:.2f}) scale({bg_scale:.4f})">'
+            f'<image href="{background_png_data_uri}" x="0" y="0" width="520" height="820" preserveAspectRatio="xMidYMid meet" opacity="1.0" />'
+            f"</g>"
+        )
 
     return f"""
 <div style="width:100%; max-width:600px; margin:0 auto;">
@@ -249,19 +263,19 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str, *, backgroun
 
   <!-- fuel (left wing / right wing) -->
   {g_open("main_fuel_gal")}
-  <rect class="bag" x="62" y="260" width="110" height="74"/>
-  <text class="label" x="117" y="254" text-anchor="middle">Fuel L</text>
-  <rect class="pill" x="90" y="284" width="54" height="34" rx="10"/>
-  <text class="pillText" x="117" y="309" text-anchor="middle">{v1("fuel_l_gal")}</text>
-  <text class="small" x="117" y="332" text-anchor="middle">{v1("fuel_l_kg")} {unit_weight}</text>
+  <rect class="bag" x="86" y="262" width="102" height="72"/>
+  <text class="label" x="137" y="256" text-anchor="middle">Fuel L</text>
+  <rect class="pill" x="111" y="285" width="54" height="34" rx="10"/>
+  <text class="pillText" x="138" y="310" text-anchor="middle">{v1("fuel_l_gal")}</text>
+  <text class="small" x="138" y="332" text-anchor="middle">{v1("fuel_l_kg")} {unit_weight}</text>
   {g_close()}
 
   {g_open("main_fuel_gal")}
-  <rect class="bag" x="348" y="260" width="110" height="74"/>
-  <text class="label" x="403" y="254" text-anchor="middle">Fuel R</text>
-  <rect class="pill" x="376" y="284" width="54" height="34" rx="10"/>
-  <text class="pillText" x="403" y="309" text-anchor="middle">{v1("fuel_r_gal")}</text>
-  <text class="small" x="403" y="332" text-anchor="middle">{v1("fuel_r_kg")} {unit_weight}</text>
+  <rect class="bag" x="332" y="262" width="102" height="72"/>
+  <text class="label" x="383" y="256" text-anchor="middle">Fuel R</text>
+  <rect class="pill" x="356" y="285" width="54" height="34" rx="10"/>
+  <text class="pillText" x="383" y="310" text-anchor="middle">{v1("fuel_r_gal")}</text>
+  <text class="small" x="383" y="332" text-anchor="middle">{v1("fuel_r_kg")} {unit_weight}</text>
   {g_close()}
 </svg>
 </div>
