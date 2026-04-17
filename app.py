@@ -130,8 +130,8 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <!-- rear seats -->
   <rect class="seat" x="190" y="470" width="65" height="85"/>
   <rect class="seat" x="265" y="470" width="65" height="85"/>
-  <text class="label" x="222" y="464" text-anchor="middle">Rear L</text>
-  <text class="label" x="298" y="464" text-anchor="middle">Rear R</text>
+  <text class="label" x="222" y="458" text-anchor="middle">Rear L</text>
+  <text class="label" x="298" y="458" text-anchor="middle">Rear R</text>
   <rect class="pill" x="198" y="500" width="50" height="34" rx="10"/>
   <rect class="pill" x="273" y="500" width="50" height="34" rx="10"/>
   <text class="pillText" x="223" y="525" text-anchor="middle">{v("rear_l")}</text>
@@ -153,10 +153,10 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <text class="small" x="260" y="202" text-anchor="middle">{v1("deice_kg")} {unit_weight}</text>
 
   <!-- cockpit baggage (Front/Rear の間の細長い枠) -->
-  <rect class="bag" x="165" y="415" width="190" height="40"/>
-  <text class="label" x="260" y="410" text-anchor="middle">CockpitBaggage</text>
-  <rect class="pill" x="237" y="423" width="46" height="28" rx="10"/>
-  <text class="pillText" x="260" y="445" text-anchor="middle">{v("cockpit_bag")}</text>
+  <rect class="bag" x="165" y="395" width="190" height="40"/>
+  <text class="label" x="260" y="390" text-anchor="middle">CockpitBaggage</text>
+  <rect class="pill" x="237" y="403" width="46" height="28" rx="10"/>
+  <text class="pillText" x="260" y="425" text-anchor="middle">{v("cockpit_bag")}</text>
 
   <!-- baggage extension -->
   <rect class="bag" x="170" y="620" width="180" height="55"/>
