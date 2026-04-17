@@ -450,8 +450,8 @@ def main() -> None:
                 xaxis_title=f"CG [{unit_arm}]",
                 yaxis_title=f"Weight [{unit_weight}]",
                 height=520,
-                width=520,
-                margin=dict(l=10, r=10, t=30, b=10),
+                width=920,
+                margin=dict(l=60, r=20, t=30, b=50),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 paper_bgcolor="#0b1220",
                 plot_bgcolor="#0b1220",
@@ -460,7 +460,7 @@ def main() -> None:
             )
             fig.update_xaxes(showgrid=True, gridcolor="rgba(148,163,184,0.25)", zeroline=False)
             fig.update_yaxes(showgrid=True, gridcolor="rgba(148,163,184,0.25)", zeroline=False)
-            left_pad, center, right_pad = st.columns([1, 2, 1])
+            left_pad, center, right_pad = st.columns([1, 3, 1])
             with center:
                 st.plotly_chart(fig, use_container_width=False)
 
