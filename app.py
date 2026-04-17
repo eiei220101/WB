@@ -360,7 +360,7 @@ def main() -> None:
         "Nose baggage": (nose_bag, arms.get("nose_baggage", 0.0)),
         "Cockpit baggage": (cockpit_bag, arms.get("cockpit_baggage", 0.0)),
         "Baggage extension": (bag_ext, arms.get("baggage_extension", 0.0)),
-        "De-ice fluid": (deice, arms.get("deice_fluid", 0.0)),
+        "De-ice fluid": (deice_kg, arms.get("deice_fluid", 0.0)),
         "Main fuel (loaded)": (main_fuel_kg, arms.get("main_fuel", 0.0)),
     }
     results, totals = evaluate_components(load_components)
