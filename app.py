@@ -152,15 +152,15 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <text class="pillText" x="260" y="179" text-anchor="middle">{v1("deice_l")}</text>
   <text class="small" x="260" y="202" text-anchor="middle">{v1("deice_kg")} {unit_weight}</text>
 
-  <!-- cabin baggage -->
-  <rect class="bag" x="215" y="485" width="90" height="60"/>
-  <text class="label" x="260" y="480" text-anchor="middle">Cabin</text>
-  <rect class="pill" x="237" y="503" width="46" height="32" rx="10"/>
-  <text class="pillText" x="260" y="527" text-anchor="middle">{v("cockpit_bag")}</text>
+  <!-- cockpit baggage (Front/Rear の間の細長い枠) -->
+  <rect class="bag" x="165" y="330" width="190" height="40"/>
+  <text class="label" x="260" y="325" text-anchor="middle">CockpitBaggage</text>
+  <rect class="pill" x="237" y="338" width="46" height="28" rx="10"/>
+  <text class="pillText" x="260" y="360" text-anchor="middle">{v("cockpit_bag")}</text>
 
-  <!-- extension baggage -->
-  <rect class="bag" x="210" y="565" width="100" height="55"/>
-  <text class="label" x="260" y="560" text-anchor="middle">Ext</text>
+  <!-- baggage extension -->
+  <rect class="bag" x="170" y="565" width="180" height="55"/>
+  <text class="label" x="260" y="560" text-anchor="middle">BaggageExtension</text>
   <rect class="pill" x="237" y="580" width="46" height="32" rx="10"/>
   <text class="pillText" x="260" y="604" text-anchor="middle">{v("bag_ext")}</text>
 
@@ -293,12 +293,14 @@ def main() -> None:
             st.caption("燃料は **US gal** で入力（1 US gal = 3.028 kg）")
             main_fuel_gal = st.number_input("MainFuel（搭載・ガロンで入力）", min_value=0.0, value=0.0, step=1.0, format="%.1f")
             taxi_burn_gal = st.number_input("FuelConsumption FOR Taxi（ガロンで入力）", min_value=0.0, value=0.0, step=0.5, format="%.1f")
-            flight_burn_gal = st.number_input("FuelConsumption（離陸後〜着陸まで・ガロンで入力）", min_value=0.0, value=0.0, step=0.5, format="%.1f")
+            flight_burn_gal = st.number_input("FuelConsumption（目的地まで・ガロンで入力）", min_value=0.0, value=0.0, step=0.5, format="%.1f")
+            return_burn_gal = st.number_input("FuelConsumption（復路・ガロンで入力）", min_value=0.0, value=0.0, step=0.5, format="%.1f")
 
             fuel_kg_per_usg = 3.028
             main_fuel_kg = main_fuel_gal * fuel_kg_per_usg
             taxi_burn_kg = taxi_burn_gal * fuel_kg_per_usg
             flight_burn_kg = flight_burn_gal * fuel_kg_per_usg
+            return_burn_kg = return_burn_gal * fuel_kg_per_usg
 
             st.caption(f"単位: 重量={unit_weight}, アーム={unit_arm}")
 
@@ -348,6 +350,7 @@ def main() -> None:
         main_fuel_weight=main_fuel_kg,
         taxi_fuel_burn_weight=taxi_burn_kg,
         flight_fuel_burn_weight=flight_burn_kg,
+        return_fuel_burn_weight=return_burn_kg,
     )
 
     # 内訳（ZFM/TOW/LWそれぞれで共通の“入力値”を表示したいので、現在の搭載項目を一覧化）
@@ -367,22 +370,28 @@ def main() -> None:
 
     zfm = points["ZFM"]
     tow = points["TOW"]
-    lw = points["LW"]
+    lw1 = points["LW1"]
+    lw2 = points["LW2"]
 
     with tab_input:
         st.subheader("計算結果")
         c1, c2, c3 = st.columns(3)
-        c1.metric(f"Zero Fuel Mass (ZFM) [{unit_weight}]", f"{zfm.weight:,.2f}", help="燃料を除いた重量")
+        c1.metric(f"Zero Fuel Weight (ZFW) [{unit_weight}]", f"{zfm.weight:,.2f}", help="燃料を除いた重量")
         c2.metric(f"Takeoff Weight (TOW) [{unit_weight}]", f"{tow.weight:,.2f}", help="Taxi消費後の燃料を含む")
-        c3.metric(f"Landing Weight (LW) [{unit_weight}]", f"{lw.weight:,.2f}", help="飛行中の燃料消費後")
+        c3.metric(f"Landing Weight 1 (LW1) [{unit_weight}]", f"{lw1.weight:,.2f}", help="目的地到着時（燃料消費後）")
 
         g1, g2, g3 = st.columns(3)
         g1.metric(f"ZFM CG [{unit_arm}]", "—" if zfm.cg is None else f"{zfm.cg:,.1f}")
         g2.metric(f"TOW CG [{unit_arm}]", "—" if tow.cg is None else f"{tow.cg:,.1f}")
-        g3.metric(f"LW CG [{unit_arm}]", "—" if lw.cg is None else f"{lw.cg:,.1f}")
+        g3.metric(f"LW1 CG [{unit_arm}]", "—" if lw1.cg is None else f"{lw1.cg:,.1f}")
+
+        h1, h2, h3 = st.columns(3)
+        h1.metric(f"LW2 [{unit_weight}]", f"{lw2.weight:,.2f}", help="復路消費後（帰投想定）")
+        h2.metric(f"LW2 CG [{unit_arm}]", "—" if lw2.cg is None else f"{lw2.cg:,.1f}")
+        h3.write("")
 
         if use_limits:
-            for label, p in [("ZFM", zfm), ("TOW", tow), ("LW", lw)]:
+            for label, p in [("ZFW", zfm), ("TOW", tow), ("LW1", lw1), ("LW2", lw2)]:
                 status = within_limits(p.cg, cg_min, cg_max)
                 if status and "外" in status:
                     st.error(f"{label}: {status}")
@@ -420,14 +429,15 @@ def main() -> None:
 
             zx, zy = _safe_point_xy(zfm)
             tx, ty = _safe_point_xy(tow)
-            lx, ly = _safe_point_xy(lw)
+            l1x, l1y = _safe_point_xy(lw1)
+            l2x, l2y = _safe_point_xy(lw2)
             fig.add_trace(
                 go.Scatter(
                     x=[None if zx is None else zx / 1000.0],
                     y=[zy],
                     mode="markers+text",
-                    name="ZFM",
-                    text=["ZFM"],
+                    name="ZFW",
+                    text=["ZFW"],
                     textposition="bottom right",
                     marker=dict(size=10, color="#60a5fa"),
                 )
@@ -445,15 +455,46 @@ def main() -> None:
             )
             fig.add_trace(
                 go.Scatter(
-                    x=[None if lx is None else lx / 1000.0],
-                    y=[ly],
+                    x=[None if l1x is None else l1x / 1000.0],
+                    y=[l1y],
                     mode="markers+text",
-                    name="LW",
-                    text=["LW"],
+                    name="LW1",
+                    text=["LW1"],
                     textposition="bottom right",
                     marker=dict(size=10, color="#34d399"),
                 )
             )
+            fig.add_trace(
+                go.Scatter(
+                    x=[None if l2x is None else l2x / 1000.0],
+                    y=[l2y],
+                    mode="markers+text",
+                    name="LW2",
+                    text=["LW2"],
+                    textposition="bottom right",
+                    marker=dict(size=10, color="#fbbf24"),
+                )
+            )
+
+            # 点を直線で結ぶ（ZFW -> TOW -> LW1 -> LW2）
+            path_x = []
+            path_y = []
+            for x_mm, y in [(zx, zy), (tx, ty), (l1x, l1y), (l2x, l2y)]:
+                if x_mm is None or y is None:
+                    continue
+                path_x.append(x_mm / 1000.0)
+                path_y.append(y)
+            if len(path_x) >= 2:
+                fig.add_trace(
+                    go.Scatter(
+                        x=path_x,
+                        y=path_y,
+                        mode="lines",
+                        line=dict(color="rgba(226,232,240,0.9)", width=2),
+                        showlegend=False,
+                        hoverinfo="skip",
+                    )
+                )
 
             # 参考の制限線（入力がある場合のみ）
             shapes = []

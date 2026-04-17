@@ -106,6 +106,7 @@ def compute_da42_points(
     main_fuel_weight: float,
     taxi_fuel_burn_weight: float,
     flight_fuel_burn_weight: float,
+    return_fuel_burn_weight: float = 0.0,
 ) -> dict[str, WBPoint]:
     """
     DA42向け（固定項目）の ZFM / TOW / LW をまとめて算出。
@@ -139,7 +140,10 @@ def compute_da42_points(
     takeoff_fuel_remaining = max(main_fuel_weight - taxi_fuel_burn_weight, 0.0)
     tow = point(include_fuel_weight=takeoff_fuel_remaining)
 
-    landing_fuel_remaining = max(takeoff_fuel_remaining - flight_fuel_burn_weight, 0.0)
-    lw = point(include_fuel_weight=landing_fuel_remaining)
+    landing1_fuel_remaining = max(takeoff_fuel_remaining - flight_fuel_burn_weight, 0.0)
+    lw1 = point(include_fuel_weight=landing1_fuel_remaining)
 
-    return {"ZFM": zfm, "TOW": tow, "LW": lw}
+    landing2_fuel_remaining = max(landing1_fuel_remaining - return_fuel_burn_weight, 0.0)
+    lw2 = point(include_fuel_weight=landing2_fuel_remaining)
+
+    return {"ZFM": zfm, "TOW": tow, "LW1": lw1, "LW2": lw2}
