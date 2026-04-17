@@ -3,45 +3,41 @@
 画面（Streamlit）とは分離してあるので、式を変えたいときはここだけ直せばよい。
 """
 
-from dataclasses import dataclass
-from typing import Iterable, Mapping, Optional
+from typing import Iterable, Mapping
 
 
-@dataclass(frozen=True)
-class RowInput:
-    """1行分：項目名・重量・アーム（基準点からの距離）。"""
-
-    name: str
-    weight: float
-    arm: float
-
-
-@dataclass(frozen=True)
 class RowResult:
     """計算結果の1行。"""
 
-    name: str
-    weight: float
-    arm: float
-    moment: float
+    __slots__ = ("name", "weight", "arm", "moment")
+
+    def __init__(self, *, name: str, weight: float, arm: float, moment: float) -> None:
+        self.name = name
+        self.weight = float(weight)
+        self.arm = float(arm)
+        self.moment = float(moment)
 
 
-@dataclass(frozen=True)
 class Totals:
     """合計値。"""
 
-    weight: float
-    moment: float
-    cg: Optional[float]
+    __slots__ = ("weight", "moment", "cg")
+
+    def __init__(self, *, weight: float, moment: float, cg) -> None:
+        self.weight = float(weight)
+        self.moment = float(moment)
+        self.cg = None if cg is None else float(cg)
 
 
-@dataclass(frozen=True)
 class WBPoint:
     """ある状態（例: ZFM/TOW/LW）の重量・モーメント・CG。"""
 
-    weight: float
-    moment: float
-    cg: Optional[float]
+    __slots__ = ("weight", "moment", "cg")
+
+    def __init__(self, *, weight: float, moment: float, cg) -> None:
+        self.weight = float(weight)
+        self.moment = float(moment)
+        self.cg = None if cg is None else float(cg)
 
 
 def moment(weight: float, arm: float) -> float:
@@ -49,30 +45,32 @@ def moment(weight: float, arm: float) -> float:
     return weight * arm
 
 
-def cg_from_totals(total_weight: float, total_moment: float) -> Optional[float]:
+def cg_from_totals(total_weight: float, total_moment: float):
     """重心位置（アーム）= 総モーメント ÷ 総重量。重量0なら未定義。"""
     if total_weight <= 0:
         return None
     return total_moment / total_weight
 
 
-def evaluate_rows(rows: Iterable[RowInput]) -> tuple[list[RowResult], Totals]:
+def evaluate_rows(rows: Iterable[tuple[str, float, float]]) -> tuple[list[RowResult], Totals]:
     """
     各行のモーメントと、合計重量・合計モーメント・重心を求める。
     """
     results: list[RowResult] = []
     tw = 0.0
     tm = 0.0
-    for r in rows:
-        m = moment(r.weight, r.arm)
-        results.append(RowResult(name=r.name, weight=r.weight, arm=r.arm, moment=m))
-        tw += r.weight
+    for name, weight, arm in rows:
+        w = float(weight)
+        a = float(arm)
+        m = moment(w, a)
+        results.append(RowResult(name=name, weight=w, arm=a, moment=m))
+        tw += w
         tm += m
     cg = cg_from_totals(tw, tm)
     return results, Totals(weight=tw, moment=tm, cg=cg)
 
 
-def within_limits(cg: Optional[float], cg_min: Optional[float], cg_max: Optional[float]) -> Optional[str]:
+def within_limits(cg, cg_min, cg_max):
     """
     許容範囲が入力されていれば「範囲内／外」を返す。CGが無ければ None。
     """
@@ -91,7 +89,7 @@ def evaluate_components(components: Mapping[str, tuple[float, float]]) -> tuple[
     """
     components: {name: (weight, arm)}
     """
-    rows = [RowInput(name=k, weight=v[0], arm=v[1]) for k, v in components.items()]
+    rows = [(k, float(v[0]), float(v[1])) for k, v in components.items()]
     return evaluate_rows(rows)
 
 
