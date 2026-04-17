@@ -294,7 +294,7 @@ def main() -> None:
     )
 
     # 内訳（ZFM/TOW/LWそれぞれで共通の“入力値”を表示したいので、現在の搭載項目を一覧化）
-    components = {
+    load_components = {
         "Basic Empty": (bew_w, bew_a),
         "Front seat L": (front_l, arms.get("front_seat_left", 0.0)),
         "Front seat R": (front_r, arms.get("front_seat_right", 0.0)),
@@ -306,7 +306,7 @@ def main() -> None:
         "De-ice fluid": (deice, arms.get("deice_fluid", 0.0)),
         "Main fuel (loaded)": (main_fuel, arms.get("main_fuel", 0.0)),
     }
-    results, totals = evaluate_components(components)
+    results, totals = evaluate_components(load_components)
 
     zfm = points["ZFM"]
     tow = points["TOW"]
