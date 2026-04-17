@@ -116,7 +116,7 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str, *, backgroun
         # 画像を少し拡大（ズーム）して、入力枠が機体の中に収まりやすいようにする。
         # center を基準にスケールし、微調整は pan_x/pan_y で行う。
         bg_scale = 1.52
-        pan_x = 0.0
+        pan_x = -18.0
         pan_y = -28.0
         cx = 260.0
         cy = 410.0
