@@ -8,6 +8,7 @@ from __future__ import annotations
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit.components.v1 as components
 
 from wb_logic import compute_da42_points, evaluate_components, within_limits
 
@@ -60,7 +61,10 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
         return f"{values.get(key, 0.0):.0f}"
 
     # シンプルなトップビュー（左右席・後席・バゲッジ・燃料を配置）
+    # Streamlit の markdown/HTML解釈差異で表示が真っ白になるケースがあるため、
+    # components.html で確実に描画できるよう HTML として返す。
     return f"""
+<div style="width:100%; max-width:520px; margin:0 auto;">
 <svg viewBox="0 0 420 700" width="100%" height="700" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>
@@ -129,7 +133,14 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <text class="label" x="210" y="175" text-anchor="middle">Fuel / De-ice</text>
   <text class="small" x="210" y="195" text-anchor="middle">Fuel {v("main_fuel")} {unit_weight} / De-ice {v("deice")} {unit_weight}</text>
 </svg>
+</div>
 """
+
+
+def _safe_point_xy(p) -> tuple[float | None, float | None]:
+    if p.cg is None:
+        return None, None
+    return float(p.cg), float(p.weight)
 def load_aircraft_config(path: str = "aircraft.toml") -> dict:
     if tomllib is None:
         raise RuntimeError("Python 3.11+ が必要です（tomllibが無い環境）。")
@@ -256,7 +267,7 @@ def main() -> None:
                 },
                 unit_weight=unit_weight,
             )
-            st.markdown(svg, unsafe_allow_html=True)
+            components.html(svg, height=720)
 
     if bew_w <= 0 or bew_a <= 0:
         st.warning("`aircraft.toml` の basic_empty（BEWの重量とアーム）を入力してください。入力が無いと実機の結果になりません。")
@@ -343,20 +354,111 @@ def main() -> None:
                     y=ys,
                     mode="lines",
                     name="Envelope",
-                    line=dict(color="#111827", width=2),
+                    line=dict(color="#ef4444", width=3),
                 )
             )
-            fig.add_trace(go.Scatter(x=[zfm.cg], y=[zfm.weight], mode="markers+text", name="ZFM", text=["ZFM"], textposition="top center", marker=dict(size=10)))
-            fig.add_trace(go.Scatter(x=[tow.cg], y=[tow.weight], mode="markers+text", name="TOW", text=["TOW"], textposition="top center", marker=dict(size=10)))
-            fig.add_trace(go.Scatter(x=[lw.cg], y=[lw.weight], mode="markers+text", name="LW", text=["LW"], textposition="top center", marker=dict(size=10)))
+
+            zx, zy = _safe_point_xy(zfm)
+            tx, ty = _safe_point_xy(tow)
+            lx, ly = _safe_point_xy(lw)
+            fig.add_trace(
+                go.Scatter(
+                    x=[zx],
+                    y=[zy],
+                    mode="markers+text",
+                    name="ZFM",
+                    text=["ZFM"],
+                    textposition="bottom right",
+                    marker=dict(size=10, color="#60a5fa"),
+                )
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=[tx],
+                    y=[ty],
+                    mode="markers+text",
+                    name="TOW",
+                    text=["TOW"],
+                    textposition="bottom right",
+                    marker=dict(size=10, color="#f87171"),
+                )
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=[lx],
+                    y=[ly],
+                    mode="markers+text",
+                    name="LW",
+                    text=["LW"],
+                    textposition="bottom right",
+                    marker=dict(size=10, color="#34d399"),
+                )
+            )
+
+            # 参考の制限線（入力がある場合のみ）
+            shapes = []
+            ann = []
+            if mlw and mlw > 0:
+                shapes.append(
+                    dict(
+                        type="line",
+                        xref="paper",
+                        x0=0,
+                        x1=1,
+                        y0=mlw,
+                        y1=mlw,
+                        line=dict(color="#ef4444", width=2, dash="solid"),
+                    )
+                )
+                ann.append(
+                    dict(
+                        xref="paper",
+                        x=0.02,
+                        y=mlw,
+                        text=f"MAX LDW {mlw:.0f}{unit_weight}",
+                        showarrow=False,
+                        font=dict(color="#ef4444", size=14),
+                        yanchor="bottom",
+                    )
+                )
+            if mtow and mtow > 0:
+                shapes.append(
+                    dict(
+                        type="line",
+                        xref="paper",
+                        x0=0,
+                        x1=1,
+                        y0=mtow,
+                        y1=mtow,
+                        line=dict(color="#ef4444", width=1, dash="dot"),
+                    )
+                )
+                ann.append(
+                    dict(
+                        xref="paper",
+                        x=0.02,
+                        y=mtow,
+                        text=f"MAX TOW {mtow:.0f}{unit_weight}",
+                        showarrow=False,
+                        font=dict(color="#ef4444", size=12),
+                        yanchor="bottom",
+                    )
+                )
 
             fig.update_layout(
+                template="plotly_dark",
                 xaxis_title=f"CG [{unit_arm}]",
                 yaxis_title=f"Weight [{unit_weight}]",
                 height=520,
                 margin=dict(l=10, r=10, t=30, b=10),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                paper_bgcolor="#0b1220",
+                plot_bgcolor="#0b1220",
+                shapes=shapes,
+                annotations=ann,
             )
+            fig.update_xaxes(showgrid=True, gridcolor="rgba(148,163,184,0.25)", zeroline=False)
+            fig.update_yaxes(showgrid=True, gridcolor="rgba(148,163,184,0.25)", zeroline=False)
             st.plotly_chart(fig, use_container_width=True)
 
     with tab_breakdown:
