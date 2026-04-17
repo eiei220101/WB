@@ -99,8 +99,8 @@ DEFAULT_TOPVIEW_LAYOUT: dict[str, dict[str, float]] = {
     "nose_bag": {"x": 225, "y": 65, "w": 70, "h": 55, "pill_dx": 12, "pill_dy": 17, "label_dy": -5},
     "deice_l": {"x": 210, "y": 145, "w": 100, "h": 70, "pill_dx": 25, "pill_dy": 24, "label_dy": -2},
     # Fuel は「他と離す」+ 翼の上
-    "fuel_l": {"x": 40, "y": 210, "w": 130, "h": 72, "pill_dx": 25, "pill_dy": 23, "label_dy": -6},
-    "fuel_r": {"x": 350, "y": 210, "w": 130, "h": 72, "pill_dx": 24, "pill_dy": 23, "label_dy": -6},
+    "fuel_l": {"x": 40, "y": 230, "w": 130, "h": 72, "pill_dx": 25, "pill_dy": 23, "label_dy": -6},
+    "fuel_r": {"x": 350, "y": 230, "w": 130, "h": 72, "pill_dx": 24, "pill_dy": 23, "label_dy": -6},
 }
 
 
