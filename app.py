@@ -168,14 +168,14 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <rect class="bag" x="62" y="260" width="110" height="74"/>
   <text class="label" x="117" y="254" text-anchor="middle">Fuel L</text>
   <rect class="pill" x="90" y="284" width="54" height="34" rx="10"/>
-  <text class="pillText" x="117" y="309" text-anchor="middle">{v("fuel_l")}</text>
-  <text class="small" x="117" y="332" text-anchor="middle">{unit_weight}</text>
+  <text class="pillText" x="117" y="309" text-anchor="middle">{v1("fuel_l_gal")}</text>
+  <text class="small" x="117" y="332" text-anchor="middle">{v1("fuel_l_kg")} {unit_weight}</text>
 
   <rect class="bag" x="348" y="260" width="110" height="74"/>
   <text class="label" x="403" y="254" text-anchor="middle">Fuel R</text>
   <rect class="pill" x="376" y="284" width="54" height="34" rx="10"/>
-  <text class="pillText" x="403" y="309" text-anchor="middle">{v("fuel_r")}</text>
-  <text class="small" x="403" y="332" text-anchor="middle">{unit_weight}</text>
+  <text class="pillText" x="403" y="309" text-anchor="middle">{v1("fuel_r_gal")}</text>
+  <text class="small" x="403" y="332" text-anchor="middle">{v1("fuel_r_kg")} {unit_weight}</text>
 </svg>
 </div>
 """
@@ -290,15 +290,22 @@ def main() -> None:
             deice_kg = deice_l * 1.1
 
             st.markdown("**燃料（重量換算）**")
-            main_fuel = st.number_input("MainFuel（搭載）", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-            taxi_burn = st.number_input("FuelConsumption FOR Taxi", min_value=0.0, value=0.0, step=0.5, format="%.2f")
-            flight_burn = st.number_input("FuelConsumption（離陸後〜着陸まで）", min_value=0.0, value=0.0, step=0.5, format="%.2f")
+            st.caption("燃料は **US gal** で入力（1 US gal = 3.028 kg）")
+            main_fuel_gal = st.number_input("MainFuel（搭載・ガロンで入力）", min_value=0.0, value=0.0, step=1.0, format="%.1f")
+            taxi_burn_gal = st.number_input("FuelConsumption FOR Taxi（ガロンで入力）", min_value=0.0, value=0.0, step=0.5, format="%.1f")
+            flight_burn_gal = st.number_input("FuelConsumption（離陸後〜着陸まで・ガロンで入力）", min_value=0.0, value=0.0, step=0.5, format="%.1f")
+
+            fuel_kg_per_usg = 3.028
+            main_fuel_kg = main_fuel_gal * fuel_kg_per_usg
+            taxi_burn_kg = taxi_burn_gal * fuel_kg_per_usg
+            flight_burn_kg = flight_burn_gal * fuel_kg_per_usg
 
             st.caption(f"単位: 重量={unit_weight}, アーム={unit_arm}")
 
         with col_viz:
             st.markdown("**上面図（現在値の見える化）**")
-            fuel_half = main_fuel / 2.0
+            fuel_half_gal = main_fuel_gal / 2.0
+            fuel_half_kg = main_fuel_kg / 2.0
             svg = render_top_view_svg(
                 {
                     "front_l": front_l,
@@ -310,8 +317,10 @@ def main() -> None:
                     "bag_ext": bag_ext,
                     "deice_l": deice_l,
                     "deice_kg": deice_kg,
-                    "fuel_l": fuel_half,
-                    "fuel_r": fuel_half,
+                    "fuel_l_gal": fuel_half_gal,
+                    "fuel_r_gal": fuel_half_gal,
+                    "fuel_l_kg": fuel_half_kg,
+                    "fuel_r_kg": fuel_half_kg,
                 },
                 unit_weight=unit_weight,
             )
@@ -336,9 +345,9 @@ def main() -> None:
         basic_empty_arm=bew_a,
         arms_mm=arms,
         inputs_weight=inputs_weight,
-        main_fuel_weight=main_fuel,
-        taxi_fuel_burn_weight=taxi_burn,
-        flight_fuel_burn_weight=flight_burn,
+        main_fuel_weight=main_fuel_kg,
+        taxi_fuel_burn_weight=taxi_burn_kg,
+        flight_fuel_burn_weight=flight_burn_kg,
     )
 
     # 内訳（ZFM/TOW/LWそれぞれで共通の“入力値”を表示したいので、現在の搭載項目を一覧化）
@@ -352,7 +361,7 @@ def main() -> None:
         "Cockpit baggage": (cockpit_bag, arms.get("cockpit_baggage", 0.0)),
         "Baggage extension": (bag_ext, arms.get("baggage_extension", 0.0)),
         "De-ice fluid": (deice, arms.get("deice_fluid", 0.0)),
-        "Main fuel (loaded)": (main_fuel, arms.get("main_fuel", 0.0)),
+        "Main fuel (loaded)": (main_fuel_kg, arms.get("main_fuel", 0.0)),
     }
     results, totals = evaluate_components(load_components)
 
