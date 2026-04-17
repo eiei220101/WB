@@ -11,8 +11,7 @@ import plotly.graph_objects as go
 import streamlit.components.v1 as components
 import base64
 from pathlib import Path
-
-from wb_logic import compute_da42_points, evaluate_components, within_limits
+import traceback
 
 try:
     import tomllib  # py3.11+
@@ -301,6 +300,13 @@ def num(x) -> float:
 
 
 def main() -> None:
+    try:
+        from wb_logic import compute_da42_points, evaluate_components, within_limits
+    except Exception:
+        st.error("`wb_logic` の読み込みでエラーが発生しました。")
+        st.code(traceback.format_exc())
+        st.stop()
+
     cfg = load_aircraft_config()
     aircraft_name = str(cfg.get("meta", {}).get("aircraft_name", "重量・重心計算"))
     fleet_default = str(cfg.get("fleet", {}).get("default_tail", "") or "")
