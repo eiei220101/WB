@@ -60,6 +60,9 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
     def v(key: str) -> str:
         return f"{values.get(key, 0.0):.0f}"
 
+    def v1(key: str) -> str:
+        return f"{values.get(key, 0.0):.1f}"
+
     # DA42っぽいトップビュー（翼・胴体・エンジン・尾翼）に寄せた簡易シルエット。
     # Streamlit の markdown/HTML解釈差異で表示が真っ白になるケースがあるため、
     # components.html で確実に描画できるよう HTML として返す。
@@ -146,8 +149,8 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <rect class="bag" x="210" y="130" width="100" height="70"/>
   <text class="label" x="260" y="125" text-anchor="middle">De-ice</text>
   <rect class="pill" x="235" y="154" width="50" height="34" rx="10"/>
-  <text class="pillText" x="260" y="179" text-anchor="middle">{v("deice")}</text>
-  <text class="small" x="260" y="202" text-anchor="middle">{unit_weight}</text>
+  <text class="pillText" x="260" y="179" text-anchor="middle">{v1("deice_l")}</text>
+  <text class="small" x="260" y="202" text-anchor="middle">{v1("deice_kg")} {unit_weight}</text>
 
   <!-- cabin baggage -->
   <rect class="bag" x="215" y="485" width="90" height="60"/>
@@ -283,7 +286,8 @@ def main() -> None:
             nose_bag = st.number_input("NoseBaggage", min_value=0.0, value=0.0, step=1.0, format="%.2f")
             cockpit_bag = st.number_input("CockpitBaggage", min_value=0.0, value=0.0, step=1.0, format="%.2f")
             bag_ext = st.number_input("BaggageExtension", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-            deice = st.number_input("De-iceFluid", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+            deice_l = st.number_input("De-iceFluid（リットルで入力）", min_value=0.0, value=0.0, step=1.0, format="%.1f")
+            deice_kg = deice_l * 1.1
 
             st.markdown("**燃料（重量換算）**")
             main_fuel = st.number_input("MainFuel（搭載）", min_value=0.0, value=0.0, step=1.0, format="%.2f")
@@ -304,7 +308,8 @@ def main() -> None:
                     "nose_bag": nose_bag,
                     "cockpit_bag": cockpit_bag,
                     "bag_ext": bag_ext,
-                    "deice": deice,
+                    "deice_l": deice_l,
+                    "deice_kg": deice_kg,
                     "fuel_l": fuel_half,
                     "fuel_r": fuel_half,
                 },
@@ -323,7 +328,7 @@ def main() -> None:
         "nose_baggage": nose_bag,
         "cockpit_baggage": cockpit_bag,
         "baggage_extension": bag_ext,
-        "deice_fluid": deice,
+        "deice_fluid": deice_kg,
     }
 
     points = compute_da42_points(
