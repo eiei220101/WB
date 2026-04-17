@@ -450,7 +450,7 @@ def main() -> None:
                 xaxis_title=f"CG [{unit_arm}]",
                 yaxis_title=f"Weight [{unit_weight}]",
                 height=520,
-                width=920,
+                width=1020,
                 margin=dict(l=60, r=20, t=30, b=50),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 paper_bgcolor="#0b1220",
