@@ -106,24 +106,22 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
     </style>
   </defs>
 
-  <!-- wings -->
-  <path class="air" d="M35 295
-    C120 265, 200 255, 260 255
-    C320 255, 400 265, 485 295
-    L485 350
-    C400 375, 320 385, 260 385
-    C200 385, 120 375, 35 350 Z"/>
+  <!-- wings (reference画像のように直線的) -->
+  <path class="air" d="M35 305
+    L485 305
+    L485 365
+    L35 365 Z"/>
 
-  <!-- fuselage -->
-  <path class="air" d="M260 45
-     C300 58, 332 112, 342 185
-     C354 255, 354 330, 342 420
-     C328 515, 312 610, 300 720
-     C295 770, 282 798, 260 805
-     C238 798, 225 770, 220 720
-     C208 610, 192 515, 178 420
-     C166 330, 166 255, 178 185
-     C188 112, 220 58, 260 45 Z"/>
+  <!-- fuselage (細め・長め) -->
+  <path class="air" d="M260 40
+     C290 52, 312 94, 318 150
+     C325 220, 325 320, 318 440
+     C310 565, 295 650, 282 735
+     C276 780, 270 805, 260 810
+     C250 805, 244 780, 238 735
+     C225 650, 210 565, 202 440
+     C195 320, 195 220, 202 150
+     C208 94, 230 52, 260 40 Z"/>
 
   <!-- engine nacelles (approx) -->
   <rect class="air" x="150" y="285" width="70" height="90" rx="18"/>
@@ -132,12 +130,10 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <circle class="outline" cx="335" cy="330" r="26"/>
 
   <!-- tailplane -->
-  <path class="air" d="M185 735
-    C215 705, 240 695, 260 695
-    C280 695, 305 705, 335 735
-    L335 775
-    C305 792, 280 805, 260 805
-    C240 805, 215 792, 185 775 Z"/>
+  <path class="air" d="M190 735
+    L330 735
+    L330 775
+    L190 775 Z"/>
 
   <!-- cockpit seats -->
   {g_open("front_l")}
@@ -183,11 +179,11 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
 
   <!-- de-ice (Nose baggage と Front seats の間) -->
   {g_open("deice_l")}
-  <rect class="bag" x="210" y="130" width="100" height="70"/>
-  <text class="label" x="260" y="125" text-anchor="middle">De-ice</text>
-  <rect class="pill" x="235" y="154" width="50" height="34" rx="10"/>
-  <text class="pillText" x="260" y="179" text-anchor="middle">{v1("deice_l")}</text>
-  <text class="small" x="260" y="202" text-anchor="middle">{v1("deice_kg")} {unit_weight}</text>
+  <rect class="bag" x="210" y="145" width="100" height="70"/>
+  <text class="label" x="260" y="143" text-anchor="middle">De-ice</text>
+  <rect class="pill" x="235" y="169" width="50" height="34" rx="10"/>
+  <text class="pillText" x="260" y="194" text-anchor="middle">{v1("deice_l")}</text>
+  <text class="small" x="260" y="217" text-anchor="middle">{v1("deice_kg")} {unit_weight}</text>
   {g_close()}
 
   <!-- cockpit baggage (Front/Rear の間の細長い枠) -->
