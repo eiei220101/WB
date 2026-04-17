@@ -88,15 +88,15 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
     C200 355, 120 345, 35 320 Z"/>
 
   <!-- fuselage -->
-  <path class="air" d="M260 70
-     C300 80, 332 118, 342 170
+  <path class="air" d="M260 50
+     C300 60, 332 110, 342 170
      C354 235, 354 300, 342 370
      C328 452, 312 540, 300 640
      C295 680, 282 700, 260 705
      C238 700, 225 680, 220 640
      C208 540, 192 452, 178 370
      C166 300, 166 235, 178 170
-     C188 118, 220 80, 260 70 Z"/>
+     C188 110, 220 60, 260 50 Z"/>
 
   <!-- engine nacelles (approx) -->
   <rect class="air" x="150" y="255" width="70" height="90" rx="18"/>
@@ -113,16 +113,16 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
     C240 700, 215 690, 185 675 Z"/>
 
   <!-- cockpit seats -->
-  <rect class="seat" x="190" y="170" width="65" height="95"/>
-  <rect class="seat" x="265" y="170" width="65" height="95"/>
-  <text class="label" x="222" y="164" text-anchor="middle">Front L</text>
-  <text class="label" x="298" y="164" text-anchor="middle">Front R</text>
-  <rect class="pill" x="198" y="205" width="50" height="34" rx="10"/>
-  <rect class="pill" x="273" y="205" width="50" height="34" rx="10"/>
-  <text class="pillText" x="223" y="230" text-anchor="middle">{v("front_l")}</text>
-  <text class="pillText" x="298" y="230" text-anchor="middle">{v("front_r")}</text>
-  <text class="small" x="223" y="254" text-anchor="middle">{unit_weight}</text>
-  <text class="small" x="298" y="254" text-anchor="middle">{unit_weight}</text>
+  <rect class="seat" x="190" y="190" width="65" height="95"/>
+  <rect class="seat" x="265" y="190" width="65" height="95"/>
+  <text class="label" x="222" y="184" text-anchor="middle">Front L</text>
+  <text class="label" x="298" y="184" text-anchor="middle">Front R</text>
+  <rect class="pill" x="198" y="225" width="50" height="34" rx="10"/>
+  <rect class="pill" x="273" y="225" width="50" height="34" rx="10"/>
+  <text class="pillText" x="223" y="250" text-anchor="middle">{v("front_l")}</text>
+  <text class="pillText" x="298" y="250" text-anchor="middle">{v("front_r")}</text>
+  <text class="small" x="223" y="274" text-anchor="middle">{unit_weight}</text>
+  <text class="small" x="298" y="274" text-anchor="middle">{unit_weight}</text>
 
   <!-- rear seats -->
   <rect class="seat" x="190" y="290" width="65" height="85"/>
@@ -137,17 +137,17 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <text class="small" x="298" y="368" text-anchor="middle">{unit_weight}</text>
 
   <!-- nose baggage -->
-  <rect class="bag" x="225" y="95" width="70" height="55"/>
-  <text class="label" x="260" y="90" text-anchor="middle">Nose</text>
-  <rect class="pill" x="237" y="112" width="46" height="32" rx="10"/>
-  <text class="pillText" x="260" y="136" text-anchor="middle">{v("nose_bag")}</text>
+  <rect class="bag" x="225" y="75" width="70" height="55"/>
+  <text class="label" x="260" y="70" text-anchor="middle">Nose</text>
+  <rect class="pill" x="237" y="92" width="46" height="32" rx="10"/>
+  <text class="pillText" x="260" y="116" text-anchor="middle">{v("nose_bag")}</text>
 
   <!-- de-ice (Nose baggage と Front seats の間) -->
-  <rect class="bag" x="212" y="145" width="96" height="62"/>
-  <text class="label" x="260" y="140" text-anchor="middle">De-ice</text>
-  <rect class="pill" x="235" y="164" width="50" height="34" rx="10"/>
-  <text class="pillText" x="260" y="189" text-anchor="middle">{v("deice")}</text>
-  <text class="small" x="260" y="210" text-anchor="middle">{unit_weight}</text>
+  <rect class="bag" x="212" y="132" width="96" height="62"/>
+  <text class="label" x="260" y="127" text-anchor="middle">De-ice</text>
+  <rect class="pill" x="235" y="151" width="50" height="34" rx="10"/>
+  <text class="pillText" x="260" y="176" text-anchor="middle">{v("deice")}</text>
+  <text class="small" x="260" y="197" text-anchor="middle">{unit_weight}</text>
 
   <!-- cabin baggage -->
   <rect class="bag" x="215" y="405" width="90" height="60"/>
