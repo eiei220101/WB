@@ -1,0 +1,85 @@
+[meta]
+# 表示用（機体名）
+aircraft_name = "DA42 (TDI / NG / FA42NG-VI)"
+
+# 距離の基準（メモ用途）
+arm_reference_note = "主翼ルートリブ最前から前方に 2196 mm"
+
+[units]
+weight = "kg"
+arm = "mm"
+
+[basic_empty]
+# 互換用（古い1機運用向けの値）。通常は下の [aircraft.<TAIL>] を使います。
+weight = 0.0
+arm = 0.0
+
+[fleet]
+# 表示・選択のデフォルト機体
+default_tail = "JA52DA"
+
+[arms_mm]
+# 各ステーションのアーム（上の基準に対する値）を入力
+# 出典: DA42 NG AFM (Doc. No. 7.01.16-E Rev.7) 6.4.1 Moment Arms
+front_seat_left = 2300.0
+front_seat_right = 2300.0
+rear_seat_left = 3250.0
+rear_seat_right = 3250.0
+
+# Baggage (Standard): Nose 0.60 m / Cabin 3.89 m / Extension 4.54 m
+nose_baggage = 600.0
+cockpit_baggage = 3890.0
+baggage_extension = 4540.0
+
+# De-icing fluid: two possible installations exist (AFM参照)。ここは例として Nose-tank を初期値にしています。
+deice_fluid = 1000.0
+
+# Fuel in main tanks 2.63 m
+main_fuel = 2630.0
+
+[limits]
+# まずは固定CGで判定できる形にしてあります（必要なら後で封筒対応に拡張）
+use_fixed_cg = false
+cg_min = 0.0
+cg_max = 0.0
+
+# 参考：重量制限（必要なら入力。判定UIで表示します）
+mzfm = 0.0
+mtow = 0.0
+mlw = 0.0
+
+# --- 機体ごとの設定（あなたのBEWデータを反映） ---
+[aircraft.JA52DA]
+model = "DA42 TDI"
+
+[aircraft.JA52DA.basic_empty]
+weight = 1353.0
+arm = 2420.0 # LevelArm 2.42 m
+moment_kgm = 3274.0
+
+[aircraft.JA52DA.limits]
+# 未入力（必要なら追記）
+
+[aircraft.JA53DA]
+model = "DA42 TDI"
+
+[aircraft.JA53DA.basic_empty]
+weight = 1364.0
+arm = 2470.0 # LevelArm 2.47 m
+moment_kgm = 3369.0
+
+[aircraft.JA53DA.limits]
+# 未入力（必要なら追記）
+
+[aircraft.JA56DA]
+model = "DA42 -VI"
+notes = "脚強化"
+
+[aircraft.JA56DA.basic_empty]
+weight = 1531.0
+arm = 2445.0 # LevelArm 2.445 m
+moment_kgm = 3744.38
+
+[aircraft.JA56DA.limits]
+mtow = 1999.0
+mlw = 1999.0
