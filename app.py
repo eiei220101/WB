@@ -106,11 +106,11 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
     </style>
   </defs>
 
-  <!-- wings (reference画像のように直線的) -->
-  <path class="air" d="M35 305
-    L485 305
-    L485 365
-    L35 365 Z"/>
+  <!-- wings (DA42っぽく: 先細り) -->
+  <path class="air" d="M35 300
+    L485 300
+    L470 370
+    L50 370 Z"/>
 
   <!-- fuselage (細め・長め) -->
   <path class="air" d="M260 40
@@ -129,11 +129,14 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
   <circle class="outline" cx="185" cy="330" r="26"/>
   <circle class="outline" cx="335" cy="330" r="26"/>
 
-  <!-- tailplane -->
-  <path class="air" d="M190 735
-    L330 735
-    L330 775
-    L190 775 Z"/>
+  <!-- twin tail booms -->
+  <path class="outline" d="M185 375 L205 735"/>
+  <path class="outline" d="M335 375 L315 735"/>
+
+  <!-- tailplane + fins (DA42らしさ) -->
+  <path class="air" d="M175 735 L345 735 L345 770 L175 770 Z"/>
+  <path class="air" d="M175 710 L205 710 L205 770 L175 770 Z"/>
+  <path class="air" d="M315 710 L345 710 L345 770 L315 770 Z"/>
 
   <!-- cockpit seats -->
   {g_open("front_l")}
@@ -154,19 +157,19 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
 
   <!-- rear seats -->
   {g_open("rear_l")}
-  <rect class="seat" x="190" y="505" width="65" height="85"/>
-  <text class="label" x="222" y="498" text-anchor="middle">Rear L</text>
-  <rect class="pill" x="198" y="535" width="50" height="34" rx="10"/>
-  <text class="pillText" x="223" y="560" text-anchor="middle">{v("rear_l")}</text>
-  <text class="small" x="223" y="583" text-anchor="middle">{unit_weight}</text>
+  <rect class="seat" x="190" y="490" width="65" height="85"/>
+  <text class="label" x="222" y="483" text-anchor="middle">Rear L</text>
+  <rect class="pill" x="198" y="520" width="50" height="34" rx="10"/>
+  <text class="pillText" x="223" y="545" text-anchor="middle">{v("rear_l")}</text>
+  <text class="small" x="223" y="568" text-anchor="middle">{unit_weight}</text>
   {g_close()}
 
   {g_open("rear_r")}
-  <rect class="seat" x="265" y="505" width="65" height="85"/>
-  <text class="label" x="298" y="498" text-anchor="middle">Rear R</text>
-  <rect class="pill" x="273" y="535" width="50" height="34" rx="10"/>
-  <text class="pillText" x="298" y="560" text-anchor="middle">{v("rear_r")}</text>
-  <text class="small" x="298" y="583" text-anchor="middle">{unit_weight}</text>
+  <rect class="seat" x="265" y="490" width="65" height="85"/>
+  <text class="label" x="298" y="483" text-anchor="middle">Rear R</text>
+  <rect class="pill" x="273" y="520" width="50" height="34" rx="10"/>
+  <text class="pillText" x="298" y="545" text-anchor="middle">{v("rear_r")}</text>
+  <text class="small" x="298" y="568" text-anchor="middle">{unit_weight}</text>
   {g_close()}
 
   <!-- nose baggage -->
