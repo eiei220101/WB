@@ -472,6 +472,22 @@ def main() -> None:
                 gridcolor="rgba(148,163,184,0.25)",
                 zeroline=False,
                 dtick=20,
+                tickmode="array",
+                tickvals=[1250, 1300, 1350, 1400, 1450, 1500, 1550, 1600, 1650, 1700, 1750, 1800],
+                ticktext=[
+                    "<b>1250</b>",
+                    "<b>1300</b>",
+                    "<b>1350</b>",
+                    "<b>1400</b>",
+                    "<b>1450</b>",
+                    "<b>1500</b>",
+                    "<b>1550</b>",
+                    "<b>1600</b>",
+                    "<b>1650</b>",
+                    "<b>1700</b>",
+                    "<b>1750</b>",
+                    "<b>1800</b>",
+                ],
             )
             left_pad, center, right_pad = st.columns([1, 3, 1])
             with center:
