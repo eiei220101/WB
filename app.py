@@ -12,6 +12,7 @@ import streamlit.components.v1 as components
 import base64
 from pathlib import Path
 import traceback
+import json
 
 try:
     import tomllib  # py3.11+
@@ -86,7 +87,28 @@ def _find_png_data_uri() -> tuple[str | None, str]:
     return None, "not found"
 
 
-def render_top_view_svg(values: dict[str, float], unit_weight: str, *, background_png_data_uri: str | None = None) -> str:
+DEFAULT_TOPVIEW_LAYOUT: dict[str, dict[str, float]] = {
+    # 座標は SVG viewBox (0..520, 0..820) 基準
+    "front_l": {"x": 190, "y": 235, "w": 65, "h": 95, "pill_dx": 8, "pill_dy": 35, "label_dy": -6},
+    "front_r": {"x": 265, "y": 235, "w": 65, "h": 95, "pill_dx": 8, "pill_dy": 35, "label_dy": -6},
+    "rear_l": {"x": 190, "y": 490, "w": 65, "h": 85, "pill_dx": 8, "pill_dy": 30, "label_dy": -7},
+    "rear_r": {"x": 265, "y": 490, "w": 65, "h": 85, "pill_dx": 8, "pill_dy": 30, "label_dy": -7},
+    "nose_bag": {"x": 225, "y": 65, "w": 70, "h": 55, "pill_dx": 12, "pill_dy": 17, "label_dy": -5},
+    "deice_l": {"x": 210, "y": 145, "w": 100, "h": 70, "pill_dx": 25, "pill_dy": 24, "label_dy": -2},
+    "cockpit_bag": {"x": 165, "y": 395, "w": 190, "h": 40, "pill_dx": 72, "pill_dy": 8, "label_dy": -5},
+    "bag_ext": {"x": 170, "y": 675, "w": 180, "h": 55, "pill_dx": 67, "pill_dy": 15, "label_dy": -5},
+    "fuel_l": {"x": 86, "y": 262, "w": 102, "h": 72, "pill_dx": 25, "pill_dy": 23, "label_dy": -6},
+    "fuel_r": {"x": 332, "y": 262, "w": 102, "h": 72, "pill_dx": 24, "pill_dy": 23, "label_dy": -6},
+}
+
+
+def render_top_view_svg(
+    values: dict[str, float],
+    unit_weight: str,
+    *,
+    layout: dict[str, dict[str, float]] | None = None,
+    background_png_data_uri: str | None = None,
+) -> str:
     """
     クリック入力まではせず、「上面図＋現在値の見える化」をする簡易SVG。
     """
@@ -104,9 +126,21 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str, *, backgroun
     def g_close() -> str:
         return "</g>"
 
-    # DA42っぽいトップビュー（翼・胴体・エンジン・尾翼）に寄せた簡易シルエット。
-    # Streamlit の markdown/HTML解釈差異で表示が真っ白になるケースがあるため、
-    # components.html で確実に描画できるよう HTML として返す。
+    def L(key: str) -> dict[str, float]:
+        base = DEFAULT_TOPVIEW_LAYOUT.get(key, {})
+        ov = (layout or {}).get(key, {}) if isinstance(layout, dict) else {}
+        merged = {**base, **(ov or {})}
+        return {
+            "x": float(merged.get("x", 0.0)),
+            "y": float(merged.get("y", 0.0)),
+            "w": float(merged.get("w", 80.0)),
+            "h": float(merged.get("h", 60.0)),
+            "pill_dx": float(merged.get("pill_dx", 10.0)),
+            "pill_dy": float(merged.get("pill_dy", 20.0)),
+            "label_dy": float(merged.get("label_dy", -6.0)),
+        }
+
+    # 背景PNG（上面図）
     bg = ""
     has_bg = bool(background_png_data_uri)
     if has_bg:
@@ -127,9 +161,41 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str, *, backgroun
             f"</g>"
         )
 
+    # 便利: draggable group 生成（main rect + resize handle）
+    def _group_open(key: str) -> str:
+        return f'<g data-key="{key}">'
+
+    def _group_close() -> str:
+        return "</g>"
+
+    def _resize_handle(key: str, x: float, y: float, w: float, h: float) -> str:
+        return f'<rect id="handle-{key}" class="resize-handle" x="{(x + w - 10):.1f}" y="{(y + h - 10):.1f}" width="10" height="10" rx="2" />'
+
     return f"""
 <div style="width:100%; max-width:600px; margin:0 auto;">
 <script>
+  function setLayout(key, x, y, w, h) {{
+    try {{
+      const u = new URL(window.top.location.href);
+      u.searchParams.set('edit', key);
+      u.searchParams.set('lx', String(Math.round(x)));
+      u.searchParams.set('ly', String(Math.round(y)));
+      u.searchParams.set('lw', String(Math.round(w)));
+      u.searchParams.set('lh', String(Math.round(h)));
+      u.hash = 'topview';
+      window.top.location.href = u.toString();
+    }} catch (e) {{
+      const u = new URL(window.location.href);
+      u.searchParams.set('edit', key);
+      u.searchParams.set('lx', String(Math.round(x)));
+      u.searchParams.set('ly', String(Math.round(y)));
+      u.searchParams.set('lw', String(Math.round(w)));
+      u.searchParams.set('lh', String(Math.round(h)));
+      u.hash = 'topview';
+      window.location.href = u.toString();
+    }}
+  }}
+
   function setEdit(key) {{
     try {{
       const u = new URL(window.top.location.href);
@@ -144,6 +210,103 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str, *, backgroun
       window.location.href = u.toString();
     }}
   }}
+
+  // drag & resize
+  (function () {{
+    const root = document.currentScript?.parentElement;
+    const svg = root?.querySelector('svg');
+    if (!svg) return;
+
+    let active = null;
+    const MIN_W = 60;
+    const MIN_H = 40;
+
+    function getSVGPoint(evt) {{
+      const pt = svg.createSVGPoint();
+      pt.x = evt.clientX;
+      pt.y = evt.clientY;
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return {{x: 0, y: 0}};
+      const p = pt.matrixTransform(ctm.inverse());
+      return {{x: p.x, y: p.y}};
+    }}
+
+    function start(evt, key, mode) {{
+      evt.preventDefault();
+      evt.stopPropagation();
+      const p = getSVGPoint(evt);
+      const rect = svg.querySelector(`#rect-${CSS.escape(key)}`);
+      if (!rect) return;
+      const x = parseFloat(rect.getAttribute('x') || '0');
+      const y = parseFloat(rect.getAttribute('y') || '0');
+      const w = parseFloat(rect.getAttribute('width') || '0');
+      const h = parseFloat(rect.getAttribute('height') || '0');
+      active = {{ key, mode, sx: p.x, sy: p.y, ox: x, oy: y, ow: w, oh: h, pid: evt.pointerId }};
+      try {{ svg.setPointerCapture(evt.pointerId); }} catch (e) {{}}
+    }}
+
+    function move(evt) {{
+      if (!active) return;
+      const p = getSVGPoint(evt);
+      const dx = p.x - active.sx;
+      const dy = p.y - active.sy;
+      const rect = svg.querySelector(`#rect-${CSS.escape(active.key)}`);
+      const handle = svg.querySelector(`#handle-${CSS.escape(active.key)}`);
+      const label = svg.querySelector(`#label-${CSS.escape(active.key)}`);
+      if (!rect) return;
+
+      let x = active.ox;
+      let y = active.oy;
+      let w = active.ow;
+      let h = active.oh;
+
+      if (active.mode === 'move') {{
+        x = active.ox + dx;
+        y = active.oy + dy;
+      }} else {{
+        w = Math.max(MIN_W, active.ow + dx);
+        h = Math.max(MIN_H, active.oh + dy);
+      }}
+
+      rect.setAttribute('x', x.toFixed(1));
+      rect.setAttribute('y', y.toFixed(1));
+      rect.setAttribute('width', w.toFixed(1));
+      rect.setAttribute('height', h.toFixed(1));
+      if (handle) {{
+        handle.setAttribute('x', (x + w - 10).toFixed(1));
+        handle.setAttribute('y', (y + h - 10).toFixed(1));
+      }}
+      if (label) {{
+        label.setAttribute('x', (x + w / 2).toFixed(1));
+      }}
+    }}
+
+    function end(evt) {{
+      if (!active) return;
+      const rect = svg.querySelector(`#rect-${CSS.escape(active.key)}`);
+      if (rect) {{
+        const x = parseFloat(rect.getAttribute('x') || '0');
+        const y = parseFloat(rect.getAttribute('y') || '0');
+        const w = parseFloat(rect.getAttribute('width') || '0');
+        const h = parseFloat(rect.getAttribute('height') || '0');
+        setLayout(active.key, x, y, w, h);
+      }}
+      try {{ svg.releasePointerCapture(active.pid); }} catch (e) {{}}
+      active = null;
+    }}
+
+    svg.addEventListener('pointermove', move);
+    svg.addEventListener('pointerup', end);
+    svg.addEventListener('pointercancel', end);
+
+    svg.querySelectorAll('g[data-key]').forEach((g) => {{
+      const key = g.getAttribute('data-key');
+      const rect = g.querySelector('rect.main-rect');
+      const handle = g.querySelector('rect.resize-handle');
+      if (key && rect) rect.addEventListener('pointerdown', (e) => start(e, key, 'move'));
+      if (key && handle) handle.addEventListener('pointerdown', (e) => start(e, key, 'resize'));
+    }});
+  }})();
 </script>
 <svg viewBox="0 0 520 820" width="100%" height="760" xmlns="http://www.w3.org/2000/svg">
   {bg}
@@ -157,6 +320,8 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str, *, backgroun
       .pillText {{ fill:white; font: 700 22px system-ui, -apple-system, Segoe UI, Roboto; }}
       .label {{ fill:#111827; font: 600 14px system-ui, -apple-system, Segoe UI, Roboto; }}
       .small {{ fill:#374151; font: 500 12px system-ui, -apple-system, Segoe UI, Roboto; }}
+      .resize-handle {{ fill:#111827; opacity:0.55; cursor:nwse-resize; }}
+      .main-rect {{ cursor:move; }}
     </style>
   </defs>
   {"" if has_bg else """
@@ -194,88 +359,248 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str, *, backgroun
   """}
 
   <!-- cockpit seats -->
-  {g_open("front_l")}
-  <rect class="seat" x="190" y="235" width="65" height="95"/>
-  <text class="label" x="222" y="229" text-anchor="middle">Front L</text>
-  <rect class="pill" x="198" y="270" width="50" height="34" rx="10"/>
-  <text class="pillText" x="223" y="295" text-anchor="middle">{v("front_l")}</text>
-  <text class="small" x="223" y="319" text-anchor="middle">{unit_weight}</text>
-  {g_close()}
+  {(_group_open("front_l"))}
+  <rect id="rect-front_l" class="seat main-rect" x="{L('front_l')['x']:.1f}" y="{L('front_l')['y']:.1f}" width="{L('front_l')['w']:.1f}" height="{L('front_l')['h']:.1f}"/>
+  {_resize_handle("front_l", L('front_l')['x'], L('front_l')['y'], L('front_l')['w'], L('front_l')['h'])}
+  <text id="label-front_l" class="label" x="{(L('front_l')['x'] + L('front_l')['w']/2):.1f}" y="{(L('front_l')['y'] + L('front_l')['label_dy']):.1f}" text-anchor="middle">Front L</text>
+  <rect class="pill" x="{(L('front_l')['x'] + L('front_l')['pill_dx']):.1f}" y="{(L('front_l')['y'] + L('front_l')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
+  <text class="pillText" x="{(L('front_l')['x'] + L('front_l')['pill_dx'] + 25):.1f}" y="{(L('front_l')['y'] + L('front_l')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("front_l")}</text>
+  <text class="small" x="{(L('front_l')['x'] + L('front_l')['pill_dx'] + 25):.1f}" y="{(L('front_l')['y'] + L('front_l')['pill_dy'] + 49):.1f}" text-anchor="middle">{unit_weight}</text>
+  {(_group_close())}
 
-  {g_open("front_r")}
-  <rect class="seat" x="265" y="235" width="65" height="95"/>
-  <text class="label" x="298" y="229" text-anchor="middle">Front R</text>
-  <rect class="pill" x="273" y="270" width="50" height="34" rx="10"/>
-  <text class="pillText" x="298" y="295" text-anchor="middle">{v("front_r")}</text>
-  <text class="small" x="298" y="319" text-anchor="middle">{unit_weight}</text>
-  {g_close()}
+  {(_group_open("front_r"))}
+  <rect id="rect-front_r" class="seat main-rect" x="{L('front_r')['x']:.1f}" y="{L('front_r')['y']:.1f}" width="{L('front_r')['w']:.1f}" height="{L('front_r')['h']:.1f}"/>
+  {_resize_handle("front_r", L('front_r')['x'], L('front_r')['y'], L('front_r')['w'], L('front_r')['h'])}
+  <text id="label-front_r" class="label" x="{(L('front_r')['x'] + L('front_r')['w']/2):.1f}" y="{(L('front_r')['y'] + L('front_r')['label_dy']):.1f}" text-anchor="middle">Front R</text>
+  <rect class="pill" x="{(L('front_r')['x'] + L('front_r')['pill_dx']):.1f}" y="{(L('front_r')['y'] + L('front_r')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
+  <text class="pillText" x="{(L('front_r')['x'] + L('front_r')['pill_dx'] + 25):.1f}" y="{(L('front_r')['y'] + L('front_r')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("front_r")}</text>
+  <text class="small" x="{(L('front_r')['x'] + L('front_r')['pill_dx'] + 25):.1f}" y="{(L('front_r')['y'] + L('front_r')['pill_dy'] + 49):.1f}" text-anchor="middle">{unit_weight}</text>
+  {(_group_close())}
 
   <!-- rear seats -->
-  {g_open("rear_l")}
-  <rect class="seat" x="190" y="490" width="65" height="85"/>
-  <text class="label" x="222" y="483" text-anchor="middle">Rear L</text>
-  <rect class="pill" x="198" y="520" width="50" height="34" rx="10"/>
-  <text class="pillText" x="223" y="545" text-anchor="middle">{v("rear_l")}</text>
-  <text class="small" x="223" y="568" text-anchor="middle">{unit_weight}</text>
-  {g_close()}
+  {(_group_open("rear_l"))}
+  <rect id="rect-rear_l" class="seat main-rect" x="{L('rear_l')['x']:.1f}" y="{L('rear_l')['y']:.1f}" width="{L('rear_l')['w']:.1f}" height="{L('rear_l')['h']:.1f}"/>
+  {_resize_handle("rear_l", L('rear_l')['x'], L('rear_l')['y'], L('rear_l')['w'], L('rear_l')['h'])}
+  <text id="label-rear_l" class="label" x="{(L('rear_l')['x'] + L('rear_l')['w']/2):.1f}" y="{(L('rear_l')['y'] + L('rear_l')['label_dy']):.1f}" text-anchor="middle">Rear L</text>
+  <rect class="pill" x="{(L('rear_l')['x'] + L('rear_l')['pill_dx']):.1f}" y="{(L('rear_l')['y'] + L('rear_l')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
+  <text class="pillText" x="{(L('rear_l')['x'] + L('rear_l')['pill_dx'] + 25):.1f}" y="{(L('rear_l')['y'] + L('rear_l')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("rear_l")}</text>
+  <text class="small" x="{(L('rear_l')['x'] + L('rear_l')['pill_dx'] + 25):.1f}" y="{(L('rear_l')['y'] + L('rear_l')['pill_dy'] + 49):.1f}" text-anchor="middle">{unit_weight}</text>
+  {(_group_close())}
 
-  {g_open("rear_r")}
-  <rect class="seat" x="265" y="490" width="65" height="85"/>
-  <text class="label" x="298" y="483" text-anchor="middle">Rear R</text>
-  <rect class="pill" x="273" y="520" width="50" height="34" rx="10"/>
-  <text class="pillText" x="298" y="545" text-anchor="middle">{v("rear_r")}</text>
-  <text class="small" x="298" y="568" text-anchor="middle">{unit_weight}</text>
-  {g_close()}
+  {(_group_open("rear_r"))}
+  <rect id="rect-rear_r" class="seat main-rect" x="{L('rear_r')['x']:.1f}" y="{L('rear_r')['y']:.1f}" width="{L('rear_r')['w']:.1f}" height="{L('rear_r')['h']:.1f}"/>
+  {_resize_handle("rear_r", L('rear_r')['x'], L('rear_r')['y'], L('rear_r')['w'], L('rear_r')['h'])}
+  <text id="label-rear_r" class="label" x="{(L('rear_r')['x'] + L('rear_r')['w']/2):.1f}" y="{(L('rear_r')['y'] + L('rear_r')['label_dy']):.1f}" text-anchor="middle">Rear R</text>
+  <rect class="pill" x="{(L('rear_r')['x'] + L('rear_r')['pill_dx']):.1f}" y="{(L('rear_r')['y'] + L('rear_r')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
+  <text class="pillText" x="{(L('rear_r')['x'] + L('rear_r')['pill_dx'] + 25):.1f}" y="{(L('rear_r')['y'] + L('rear_r')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("rear_r")}</text>
+  <text class="small" x="{(L('rear_r')['x'] + L('rear_r')['pill_dx'] + 25):.1f}" y="{(L('rear_r')['y'] + L('rear_r')['pill_dy'] + 49):.1f}" text-anchor="middle">{unit_weight}</text>
+  {(_group_close())}
 
   <!-- nose baggage -->
-  {g_open("nose_bag")}
-  <rect class="bag" x="225" y="65" width="70" height="55"/>
-  <text class="label" x="260" y="60" text-anchor="middle">Nose</text>
-  <rect class="pill" x="237" y="82" width="46" height="32" rx="10"/>
-  <text class="pillText" x="260" y="106" text-anchor="middle">{v("nose_bag")}</text>
-  {g_close()}
+  {(_group_open("nose_bag"))}
+  <rect id="rect-nose_bag" class="bag main-rect" x="{L('nose_bag')['x']:.1f}" y="{L('nose_bag')['y']:.1f}" width="{L('nose_bag')['w']:.1f}" height="{L('nose_bag')['h']:.1f}"/>
+  {_resize_handle("nose_bag", L('nose_bag')['x'], L('nose_bag')['y'], L('nose_bag')['w'], L('nose_bag')['h'])}
+  <text id="label-nose_bag" class="label" x="{(L('nose_bag')['x'] + L('nose_bag')['w']/2):.1f}" y="{(L('nose_bag')['y'] + L('nose_bag')['label_dy']):.1f}" text-anchor="middle">Nose</text>
+  <rect class="pill" x="{(L('nose_bag')['x'] + L('nose_bag')['pill_dx']):.1f}" y="{(L('nose_bag')['y'] + L('nose_bag')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
+  <text class="pillText" x="{(L('nose_bag')['x'] + L('nose_bag')['pill_dx'] + 25):.1f}" y="{(L('nose_bag')['y'] + L('nose_bag')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("nose_bag")}</text>
+  {(_group_close())}
 
   <!-- de-ice (Nose baggage と Front seats の間) -->
-  {g_open("deice_l")}
-  <rect class="bag" x="210" y="145" width="100" height="70"/>
-  <text class="label" x="260" y="143" text-anchor="middle">De-ice</text>
-  <rect class="pill" x="235" y="169" width="50" height="34" rx="10"/>
-  <text class="pillText" x="260" y="194" text-anchor="middle">{v1("deice_l")}</text>
-  <text class="small" x="260" y="217" text-anchor="middle">{v1("deice_kg")} {unit_weight}</text>
-  {g_close()}
+  {(_group_open("deice_l"))}
+  <rect id="rect-deice_l" class="bag main-rect" x="{L('deice_l')['x']:.1f}" y="{L('deice_l')['y']:.1f}" width="{L('deice_l')['w']:.1f}" height="{L('deice_l')['h']:.1f}"/>
+  {_resize_handle("deice_l", L('deice_l')['x'], L('deice_l')['y'], L('deice_l')['w'], L('deice_l')['h'])}
+  <text id="label-deice_l" class="label" x="{(L('deice_l')['x'] + L('deice_l')['w']/2):.1f}" y="{(L('deice_l')['y'] + L('deice_l')['label_dy']):.1f}" text-anchor="middle">De-ice</text>
+  <rect class="pill" x="{(L('deice_l')['x'] + L('deice_l')['pill_dx']):.1f}" y="{(L('deice_l')['y'] + L('deice_l')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
+  <text class="pillText" x="{(L('deice_l')['x'] + L('deice_l')['pill_dx'] + 25):.1f}" y="{(L('deice_l')['y'] + L('deice_l')['pill_dy'] + 25):.1f}" text-anchor="middle">{v1("deice_l")}</text>
+  <text class="small" x="{(L('deice_l')['x'] + L('deice_l')['pill_dx'] + 25):.1f}" y="{(L('deice_l')['y'] + L('deice_l')['pill_dy'] + 49):.1f}" text-anchor="middle">{v1("deice_kg")} {unit_weight}</text>
+  {(_group_close())}
 
   <!-- cockpit baggage (Front/Rear の間の細長い枠) -->
-  {g_open("cockpit_bag")}
-  <rect class="bag" x="165" y="395" width="190" height="40"/>
-  <text class="label" x="260" y="390" text-anchor="middle">CockpitBaggage</text>
-  <rect class="pill" x="237" y="403" width="46" height="28" rx="10"/>
-  <text class="pillText" x="260" y="425" text-anchor="middle">{v("cockpit_bag")}</text>
-  {g_close()}
+  {(_group_open("cockpit_bag"))}
+  <rect id="rect-cockpit_bag" class="bag main-rect" x="{L('cockpit_bag')['x']:.1f}" y="{L('cockpit_bag')['y']:.1f}" width="{L('cockpit_bag')['w']:.1f}" height="{L('cockpit_bag')['h']:.1f}"/>
+  {_resize_handle("cockpit_bag", L('cockpit_bag')['x'], L('cockpit_bag')['y'], L('cockpit_bag')['w'], L('cockpit_bag')['h'])}
+  <text id="label-cockpit_bag" class="label" x="{(L('cockpit_bag')['x'] + L('cockpit_bag')['w']/2):.1f}" y="{(L('cockpit_bag')['y'] + L('cockpit_bag')['label_dy']):.1f}" text-anchor="middle">CockpitBaggage</text>
+  <rect class="pill" x="{(L('cockpit_bag')['x'] + L('cockpit_bag')['pill_dx']):.1f}" y="{(L('cockpit_bag')['y'] + L('cockpit_bag')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
+  <text class="pillText" x="{(L('cockpit_bag')['x'] + L('cockpit_bag')['pill_dx'] + 25):.1f}" y="{(L('cockpit_bag')['y'] + L('cockpit_bag')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("cockpit_bag")}</text>
+  {(_group_close())}
 
   <!-- baggage extension -->
-  {g_open("bag_ext")}
-  <rect class="bag" x="170" y="675" width="180" height="55"/>
-  <text class="label" x="260" y="670" text-anchor="middle">BaggageExtension</text>
-  <rect class="pill" x="237" y="690" width="46" height="32" rx="10"/>
-  <text class="pillText" x="260" y="714" text-anchor="middle">{v("bag_ext")}</text>
-  {g_close()}
+  {(_group_open("bag_ext"))}
+  <rect id="rect-bag_ext" class="bag main-rect" x="{L('bag_ext')['x']:.1f}" y="{L('bag_ext')['y']:.1f}" width="{L('bag_ext')['w']:.1f}" height="{L('bag_ext')['h']:.1f}"/>
+  {_resize_handle("bag_ext", L('bag_ext')['x'], L('bag_ext')['y'], L('bag_ext')['w'], L('bag_ext')['h'])}
+  <text id="label-bag_ext" class="label" x="{(L('bag_ext')['x'] + L('bag_ext')['w']/2):.1f}" y="{(L('bag_ext')['y'] + L('bag_ext')['label_dy']):.1f}" text-anchor="middle">BaggageExtension</text>
+  <rect class="pill" x="{(L('bag_ext')['x'] + L('bag_ext')['pill_dx']):.1f}" y="{(L('bag_ext')['y'] + L('bag_ext')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
+  <text class="pillText" x="{(L('bag_ext')['x'] + L('bag_ext')['pill_dx'] + 25):.1f}" y="{(L('bag_ext')['y'] + L('bag_ext')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("bag_ext")}</text>
+  {(_group_close())}
 
   <!-- fuel (left wing / right wing) -->
-  {g_open("main_fuel_gal")}
-  <rect class="bag" x="86" y="262" width="102" height="72"/>
-  <text class="label" x="137" y="256" text-anchor="middle">Fuel L</text>
-  <rect class="pill" x="111" y="285" width="54" height="34" rx="10"/>
-  <text class="pillText" x="138" y="310" text-anchor="middle">{v1("fuel_l_gal")}</text>
-  <text class="small" x="138" y="332" text-anchor="middle">{v1("fuel_l_kg")} {unit_weight}</text>
-  {g_close()}
+  {(_group_open("fuel_l"))}
+  <rect id="rect-fuel_l" class="bag main-rect" x="{L('fuel_l')['x']:.1f}" y="{L('fuel_l')['y']:.1f}" width="{L('fuel_l')['w']:.1f}" height="{L('fuel_l')['h']:.1f}"/>
+  {_resize_handle("fuel_l", L('fuel_l')['x'], L('fuel_l')['y'], L('fuel_l')['w'], L('fuel_l')['h'])}
+  <text id="label-fuel_l" class="label" x="{(L('fuel_l')['x'] + L('fuel_l')['w']/2):.1f}" y="{(L('fuel_l')['y'] + L('fuel_l')['label_dy']):.1f}" text-anchor="middle">Fuel L</text>
+  <rect class="pill" x="{(L('fuel_l')['x'] + L('fuel_l')['pill_dx']):.1f}" y="{(L('fuel_l')['y'] + L('fuel_l')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
+  <text class="pillText" x="{(L('fuel_l')['x'] + L('fuel_l')['pill_dx'] + 25):.1f}" y="{(L('fuel_l')['y'] + L('fuel_l')['pill_dy'] + 25):.1f}" text-anchor="middle">{v1("fuel_l_gal")}</text>
+  <text class="small" x="{(L('fuel_l')['x'] + L('fuel_l')['pill_dx'] + 25):.1f}" y="{(L('fuel_l')['y'] + L('fuel_l')['pill_dy'] + 49):.1f}" text-anchor="middle">{v1("fuel_l_kg")} {unit_weight}</text>
+  {(_group_close())}
 
-  {g_open("main_fuel_gal")}
-  <rect class="bag" x="332" y="262" width="102" height="72"/>
-  <text class="label" x="383" y="256" text-anchor="middle">Fuel R</text>
-  <rect class="pill" x="356" y="285" width="54" height="34" rx="10"/>
-  <text class="pillText" x="383" y="310" text-anchor="middle">{v1("fuel_r_gal")}</text>
-  <text class="small" x="383" y="332" text-anchor="middle">{v1("fuel_r_kg")} {unit_weight}</text>
+  {(_group_open("fuel_r"))}
+  <rect id="rect-fuel_r" class="bag main-rect" x="{L('fuel_r')['x']:.1f}" y="{L('fuel_r')['y']:.1f}" width="{L('fuel_r')['w']:.1f}" height="{L('fuel_r')['h']:.1f}"/>
+  {_resize_handle("fuel_r", L('fuel_r')['x'], L('fuel_r')['y'], L('fuel_r')['w'], L('fuel_r')['h'])}
+  <text id="label-fuel_r" class="label" x="{(L('fuel_r')['x'] + L('fuel_r')['w']/2):.1f}" y="{(L('fuel_r')['y'] + L('fuel_r')['label_dy']):.1f}" text-anchor="middle">Fuel R</text>
+  <rect class="pill" x="{(L('fuel_r')['x'] + L('fuel_r')['pill_dx']):.1f}" y="{(L('fuel_r')['y'] + L('fuel_r')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
+  <text class="pillText" x="{(L('fuel_r')['x'] + L('fuel_r')['pill_dx'] + 25):.1f}" y="{(L('fuel_r')['y'] + L('fuel_r')['pill_dy'] + 25):.1f}" text-anchor="middle">{v1("fuel_r_gal")}</text>
+  <text class="small" x="{(L('fuel_r')['x'] + L('fuel_r')['pill_dx'] + 25):.1f}" y="{(L('fuel_r')['y'] + L('fuel_r')['pill_dy'] + 49):.1f}" text-anchor="middle">{v1("fuel_r_kg")} {unit_weight}</text>
+  {(_group_close())}
+</svg>
+</div>
+"""
+
+DEFAULT_TOPVIEW_LAYOUT: dict[str, dict[str, float]] = {
+    # 座標は SVG viewBox (0..520, 0..820) 基準
+    "front_l": {"x": 190, "y": 235, "w": 65, "h": 95, "pill_dx": 8, "pill_dy": 35, "label_dy": -6},
+    "front_r": {"x": 265, "y": 235, "w": 65, "h": 95, "pill_dx": 8, "pill_dy": 35, "label_dy": -6},
+    "rear_l": {"x": 190, "y": 490, "w": 65, "h": 85, "pill_dx": 8, "pill_dy": 30, "label_dy": -7},
+    "rear_r": {"x": 265, "y": 490, "w": 65, "h": 85, "pill_dx": 8, "pill_dy": 30, "label_dy": -7},
+    "nose_bag": {"x": 225, "y": 65, "w": 70, "h": 55, "pill_dx": 12, "pill_dy": 17, "label_dy": -5},
+    "deice_l": {"x": 210, "y": 145, "w": 100, "h": 70, "pill_dx": 25, "pill_dy": 24, "label_dy": -2},
+    "cockpit_bag": {"x": 165, "y": 395, "w": 190, "h": 40, "pill_dx": 72, "pill_dy": 8, "label_dy": -5},
+    "bag_ext": {"x": 170, "y": 675, "w": 180, "h": 55, "pill_dx": 67, "pill_dy": 15, "label_dy": -5},
+    "fuel_l": {"x": 86, "y": 262, "w": 102, "h": 72, "pill_dx": 25, "pill_dy": 23, "label_dy": -6},
+    "fuel_r": {"x": 332, "y": 262, "w": 102, "h": 72, "pill_dx": 24, "pill_dy": 23, "label_dy": -6},
+}
+
+
+def render_top_view_svg_with_layout(
+    values: dict[str, float],
+    unit_weight: str,
+    *,
+    layout: Mapping[str, Mapping[str, float]],
+    background_png_data_uri: str | None = None,
+) -> str:
+    """上面図（背景PNG + 枠）を layout 指定で描画する。"""
+
+    def v(key: str) -> str:
+        return f"{values.get(key, 0.0):.0f}"
+
+    def v1(key: str) -> str:
+        return f"{values.get(key, 0.0):.1f}"
+
+    def g_open(edit_key: str) -> str:
+        return f"<g onclick=\"setEdit('{edit_key}')\" style=\"cursor:pointer;\">"
+
+    def g_close() -> str:
+        return "</g>"
+
+    bg = ""
+    has_bg = bool(background_png_data_uri)
+    if has_bg:
+        bg_scale = 1.52
+        pan_x = -10.0
+        pan_y = -28.0
+        cx = 260.0
+        cy = 410.0
+        tx = (1.0 - bg_scale) * cx + pan_x
+        ty = (1.0 - bg_scale) * cy + pan_y
+        bg = (
+            f'<g transform="translate({tx:.2f},{ty:.2f}) scale({bg_scale:.4f})">'
+            f'<image href="{background_png_data_uri}" x="0" y="0" width="520" height="820" preserveAspectRatio="xMidYMid meet" opacity="1.0" />'
+            f"</g>"
+        )
+
+    def L(key: str) -> dict[str, float]:
+        base = DEFAULT_TOPVIEW_LAYOUT.get(key, {})
+        override = dict(layout.get(key, {})) if isinstance(layout, Mapping) else {}
+        merged = {**base, **override}
+        return {
+            "x": float(merged.get("x", 0.0)),
+            "y": float(merged.get("y", 0.0)),
+            "w": float(merged.get("w", 80.0)),
+            "h": float(merged.get("h", 60.0)),
+            "pill_dx": float(merged.get("pill_dx", 10.0)),
+            "pill_dy": float(merged.get("pill_dy", 20.0)),
+            "label_dy": float(merged.get("label_dy", -6.0)),
+        }
+
+    def seat_box(key: str, label: str, value_key: str) -> str:
+        p = L(key)
+        x, y, w, h = p["x"], p["y"], p["w"], p["h"]
+        pill_x = x + p["pill_dx"]
+        pill_y = y + p["pill_dy"]
+        cx = x + w / 2.0
+        return f"""
+  {g_open(key)}
+  <rect class="seat" x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}"/>
+  <text class="label" x="{cx:.1f}" y="{(y + p['label_dy']):.1f}" text-anchor="middle">{label}</text>
+  <rect class="pill" x="{pill_x:.1f}" y="{pill_y:.1f}" width="50" height="34" rx="10"/>
+  <text class="pillText" x="{(pill_x + 25):.1f}" y="{(pill_y + 25):.1f}" text-anchor="middle">{v(value_key)}</text>
+  <text class="small" x="{(pill_x + 25):.1f}" y="{(pill_y + 49):.1f}" text-anchor="middle">{unit_weight}</text>
   {g_close()}
+"""
+
+    def bag_box(key: str, label: str, value_text: str, *, second_line: str | None = None) -> str:
+        p = L(key)
+        x, y, w, h = p["x"], p["y"], p["w"], p["h"]
+        pill_x = x + p["pill_dx"]
+        pill_y = y + p["pill_dy"]
+        cx = x + w / 2.0
+        extra = ""
+        if second_line is not None:
+            extra = f'<text class="small" x="{(pill_x + 25):.1f}" y="{(pill_y + 49):.1f}" text-anchor="middle">{second_line}</text>'
+        return f"""
+  {g_open(key)}
+  <rect class="bag" x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}"/>
+  <text class="label" x="{cx:.1f}" y="{(y + p['label_dy']):.1f}" text-anchor="middle">{label}</text>
+  <rect class="pill" x="{pill_x:.1f}" y="{pill_y:.1f}" width="50" height="34" rx="10"/>
+  <text class="pillText" x="{(pill_x + 25):.1f}" y="{(pill_y + 25):.1f}" text-anchor="middle">{value_text}</text>
+  {extra}
+  {g_close()}
+"""
+
+    fuel_l = bag_box("fuel_l", "Fuel L", v1("fuel_l_gal"), second_line=f'{v1("fuel_l_kg")} {unit_weight}')
+    fuel_r = bag_box("fuel_r", "Fuel R", v1("fuel_r_gal"), second_line=f'{v1("fuel_r_kg")} {unit_weight}')
+
+    return f"""
+<div style="width:100%; max-width:600px; margin:0 auto;">
+<script>
+  function setEdit(key) {{
+    try {{
+      const u = new URL(window.top.location.href);
+      u.searchParams.set('edit', key);
+      u.hash = 'topview';
+      window.top.location.href = u.toString();
+    }} catch (e) {{
+      const u = new URL(window.location.href);
+      u.searchParams.set('edit', key);
+      u.hash = 'topview';
+      window.location.href = u.toString();
+    }}
+  }}
+</script>
+<svg viewBox="0 0 520 820" width="100%" height="760" xmlns="http://www.w3.org/2000/svg">
+  {bg}
+  <defs>
+    <style>
+      .seat {{ fill:#e5e7eb; stroke:#9ca3af; stroke-width:2; rx:12; }}
+      .bag  {{ fill:#e5e7eb; stroke:#9ca3af; stroke-width:2; rx:12; }}
+      .pill {{ fill:#16a34a; }}
+      .pillText {{ fill:white; font: 700 22px system-ui, -apple-system, Segoe UI, Roboto; }}
+      .label {{ fill:#111827; font: 600 14px system-ui, -apple-system, Segoe UI, Roboto; }}
+      .small {{ fill:#374151; font: 500 12px system-ui, -apple-system, Segoe UI, Roboto; }}
+    </style>
+  </defs>
+
+  {seat_box("front_l", "Front L", "front_l")}
+  {seat_box("front_r", "Front R", "front_r")}
+  {seat_box("rear_l", "Rear L", "rear_l")}
+  {seat_box("rear_r", "Rear R", "rear_r")}
+
+  {bag_box("nose_bag", "Nose", v("nose_bag"))}
+  {bag_box("deice_l", "De-ice", v1("deice_l"), second_line=f'{v1("deice_kg")} {unit_weight}')}
+  {bag_box("cockpit_bag", "CockpitBaggage", v("cockpit_bag"))}
+  {bag_box("bag_ext", "BaggageExtension", v("bag_ext"))}
+
+  {fuel_l}
+  {fuel_r}
 </svg>
 </div>
 """
@@ -381,6 +706,26 @@ def main() -> None:
 
     # 上面図クリックで ?edit=... が付いたら、ここで受け取る
     edit_key = st.query_params.get("edit")
+    lx = st.query_params.get("lx")
+    ly = st.query_params.get("ly")
+    lw = st.query_params.get("lw")
+    lh = st.query_params.get("lh")
+
+    if "topview_layout" not in st.session_state:
+        st.session_state.topview_layout = json.loads(json.dumps(DEFAULT_TOPVIEW_LAYOUT))
+
+    # SVG側ドラッグ/リサイズの結果を取り込む
+    if edit_key and lx and ly and lw and lh:
+        try:
+            k = str(edit_key)
+            cur = dict(st.session_state.topview_layout.get(k, DEFAULT_TOPVIEW_LAYOUT.get(k, {})))
+            cur.update({"x": float(lx), "y": float(ly), "w": float(lw), "h": float(lh)})
+            st.session_state.topview_layout[k] = cur
+        except Exception:
+            pass
+        for qk in ["lx", "ly", "lw", "lh"]:
+            st.query_params.pop(qk, None)
+        st.rerun()
 
     with tab_input:
         st.subheader("入力（DA42用・固定項目）")
@@ -396,6 +741,34 @@ def main() -> None:
                     st.rerun()
             else:
                 st.caption("上面図の枠をクリックすると、ここでその項目を編集できます。")
+
+            st.divider()
+            st.subheader("上面図レイアウト調整")
+            st.caption("各枠の座標（x/y）を手動で調整できます。")
+
+            keys = list(DEFAULT_TOPVIEW_LAYOUT.keys())
+            sel_layout_key = st.selectbox("調整する枠", keys, index=0)
+            cur = dict(st.session_state.topview_layout.get(sel_layout_key, DEFAULT_TOPVIEW_LAYOUT[sel_layout_key]))
+
+            x = st.number_input("x", value=float(cur.get("x", 0.0)), step=1.0)
+            y = st.number_input("y", value=float(cur.get("y", 0.0)), step=1.0)
+            w = st.number_input("w", value=float(cur.get("w", 80.0)), step=1.0, min_value=40.0)
+            h = st.number_input("h", value=float(cur.get("h", 60.0)), step=1.0, min_value=30.0)
+
+            st.session_state.topview_layout[sel_layout_key] = {**cur, "x": float(x), "y": float(y), "w": float(w), "h": float(h)}
+
+            c_reset, c_copy = st.columns(2)
+            with c_reset:
+                if st.button("レイアウトを初期化"):
+                    st.session_state.topview_layout = json.loads(json.dumps(DEFAULT_TOPVIEW_LAYOUT))
+                    st.rerun()
+            with c_copy:
+                st.download_button(
+                    "レイアウトを書き出し(JSON)",
+                    data=json.dumps(st.session_state.topview_layout, ensure_ascii=False, indent=2),
+                    file_name="topview_layout.json",
+                    mime="application/json",
+                )
 
         with col_form:
             st.markdown("**座席**")
@@ -477,6 +850,7 @@ def main() -> None:
                     "fuel_r_kg": fuel_half_kg,
                 },
                 unit_weight=unit_weight,
+                layout=st.session_state.topview_layout,
                 background_png_data_uri=bg_uri,
             )
             components.html(svg, height=720)
