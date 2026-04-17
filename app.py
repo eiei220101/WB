@@ -109,9 +109,10 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str, *, backgroun
     # Streamlit の markdown/HTML解釈差異で表示が真っ白になるケースがあるため、
     # components.html で確実に描画できるよう HTML として返す。
     bg = ""
-    if background_png_data_uri:
+    has_bg = bool(background_png_data_uri)
+    if has_bg:
         # 参照画像をそのまま背景に敷く（“全く同じ”見た目に近づける）
-        bg = f'<image href="{background_png_data_uri}" x="0" y="0" width="520" height="820" preserveAspectRatio="xMidYMid meet" opacity="0.95" />'
+        bg = f'<image href="{background_png_data_uri}" x="0" y="0" width="520" height="820" preserveAspectRatio="xMidYMid meet" opacity="1.0" />'
 
     return f"""
 <div style="width:100%; max-width:600px; margin:0 auto;">
@@ -145,7 +146,7 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str, *, backgroun
       .small {{ fill:#374151; font: 500 12px system-ui, -apple-system, Segoe UI, Roboto; }}
     </style>
   </defs>
-
+  {"" if has_bg else """
   <!-- wings (DA42っぽく: 先細り) -->
   <path class="air" d="M35 300
     L485 300
@@ -177,6 +178,7 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str, *, backgroun
   <path class="air" d="M175 735 L345 735 L345 770 L175 770 Z" opacity="0.55"/>
   <path class="air" d="M175 710 L205 710 L205 770 L175 770 Z" opacity="0.55"/>
   <path class="air" d="M315 710 L345 710 L345 770 L315 770 Z" opacity="0.55"/>
+  """}
 
   <!-- cockpit seats -->
   {g_open("front_l")}
