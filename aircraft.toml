@@ -48,6 +48,12 @@ mzfm = 0.0
 mtow = 0.0
 mlw = 0.0
 
+[envelope]
+# エンベロープ（CG封筒）の点を「(CG[mm], Weight[kg])」で並べます。
+# 例: points = [[2400, 1350], [2500, 1900], ...]
+# 最後の点は自動で最初に接続されます。
+points = []
+
 # --- 機体ごとの設定（あなたのBEWデータを反映） ---
 [aircraft.JA52DA]
 model = "DA42 TDI"
@@ -60,6 +66,18 @@ moment_kgm = 3274.0
 [aircraft.JA52DA.limits]
 # 未入力（必要なら追記）
 
+[aircraft.JA52DA.envelope]
+# TDI 飛行CG封筒（提供いただいた頂点）
+# points = [[CG_mm, Weight_kg], ...] を外周順に並べる
+points = [
+  [2350, 1250],
+  [2350, 1468],
+  [2400, 1785],
+  [2490, 1785],
+  [2490, 1600],
+  [2420, 1250],
+]
+
 [aircraft.JA53DA]
 model = "DA42 TDI"
 
@@ -70,6 +88,16 @@ moment_kgm = 3369.0
 
 [aircraft.JA53DA.limits]
 # 未入力（必要なら追記）
+
+[aircraft.JA53DA.envelope]
+points = [
+  [2350, 1250],
+  [2350, 1468],
+  [2400, 1785],
+  [2490, 1785],
+  [2490, 1600],
+  [2420, 1250],
+]
 
 [aircraft.JA56DA]
 model = "DA42 -VI"
@@ -83,3 +111,6 @@ moment_kgm = 3744.38
 [aircraft.JA56DA.limits]
 mtow = 1999.0
 mlw = 1999.0
+
+[aircraft.JA56DA.envelope]
+points = []

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 
 from wb_logic import compute_da42_points, evaluate_components, within_limits
 
@@ -33,6 +34,102 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+
+def parse_points(raw) -> list[tuple[float, float]]:
+    """
+    aircraft.toml の points = [[cg_mm, weight_kg], ...] を (cg, weight) に正規化。
+    """
+    pts: list[tuple[float, float]] = []
+    if not isinstance(raw, list):
+        return pts
+    for item in raw:
+        if isinstance(item, (list, tuple)) and len(item) >= 2:
+            x = num(item[0])
+            y = num(item[1])
+            if x != 0.0 or y != 0.0:
+                pts.append((x, y))
+    return pts
+
+
+def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
+    """
+    クリック入力まではせず、「上面図＋現在値の見える化」をする簡易SVG。
+    """
+    def v(key: str) -> str:
+        return f"{values.get(key, 0.0):.0f}"
+
+    # シンプルなトップビュー（左右席・後席・バゲッジ・燃料を配置）
+    return f"""
+<svg viewBox="0 0 420 700" width="100%" height="700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .air {{ fill:#f3f4f6; stroke:#cbd5e1; stroke-width:2; }}
+      .seat {{ fill:#e5e7eb; stroke:#9ca3af; stroke-width:2; rx:12; }}
+      .bag  {{ fill:#e5e7eb; stroke:#9ca3af; stroke-width:2; rx:12; }}
+      .pill {{ fill:#16a34a; }}
+      .pillText {{ fill:white; font: 700 22px system-ui, -apple-system, Segoe UI, Roboto; }}
+      .label {{ fill:#111827; font: 600 14px system-ui, -apple-system, Segoe UI, Roboto; }}
+      .small {{ fill:#374151; font: 500 12px system-ui, -apple-system, Segoe UI, Roboto; }}
+    </style>
+  </defs>
+
+  <!-- fuselage -->
+  <path class="air" d="M210 20
+     C270 40, 315 95, 330 170
+     C350 270, 345 430, 320 560
+     C300 660, 250 690, 210 690
+     C170 690, 120 660, 100 560
+     C75 430, 70 270, 90 170
+     C105 95, 150 40, 210 20 Z"/>
+
+  <!-- cockpit seats -->
+  <rect class="seat" x="95" y="210" width="115" height="130"/>
+  <rect class="seat" x="210" y="210" width="115" height="130"/>
+  <text class="label" x="152" y="205" text-anchor="middle">Front L</text>
+  <text class="label" x="268" y="205" text-anchor="middle">Front R</text>
+  <rect class="pill" x="125" y="250" width="55" height="38" rx="10"/>
+  <rect class="pill" x="240" y="250" width="55" height="38" rx="10"/>
+  <text class="pillText" x="152" y="277" text-anchor="middle">{v("front_l")}</text>
+  <text class="pillText" x="268" y="277" text-anchor="middle">{v("front_r")}</text>
+  <text class="small" x="152" y="305" text-anchor="middle">{unit_weight}</text>
+  <text class="small" x="268" y="305" text-anchor="middle">{unit_weight}</text>
+
+  <!-- rear seats -->
+  <rect class="seat" x="95" y="365" width="115" height="120"/>
+  <rect class="seat" x="210" y="365" width="115" height="120"/>
+  <text class="label" x="152" y="360" text-anchor="middle">Rear L</text>
+  <text class="label" x="268" y="360" text-anchor="middle">Rear R</text>
+  <rect class="pill" x="125" y="402" width="55" height="38" rx="10"/>
+  <rect class="pill" x="240" y="402" width="55" height="38" rx="10"/>
+  <text class="pillText" x="152" y="429" text-anchor="middle">{v("rear_l")}</text>
+  <text class="pillText" x="268" y="429" text-anchor="middle">{v("rear_r")}</text>
+  <text class="small" x="152" y="457" text-anchor="middle">{unit_weight}</text>
+  <text class="small" x="268" y="457" text-anchor="middle">{unit_weight}</text>
+
+  <!-- nose baggage -->
+  <rect class="bag" x="160" y="90" width="100" height="70"/>
+  <text class="label" x="210" y="83" text-anchor="middle">Nose bag</text>
+  <rect class="pill" x="182" y="110" width="56" height="38" rx="10"/>
+  <text class="pillText" x="210" y="137" text-anchor="middle">{v("nose_bag")}</text>
+
+  <!-- cabin baggage -->
+  <rect class="bag" x="155" y="505" width="110" height="75"/>
+  <text class="label" x="210" y="500" text-anchor="middle">Cabin bag</text>
+  <rect class="pill" x="182" y="527" width="56" height="38" rx="10"/>
+  <text class="pillText" x="210" y="554" text-anchor="middle">{v("cockpit_bag")}</text>
+
+  <!-- extension baggage -->
+  <rect class="bag" x="145" y="595" width="130" height="70"/>
+  <text class="label" x="210" y="590" text-anchor="middle">Ext</text>
+  <rect class="pill" x="182" y="615" width="56" height="38" rx="10"/>
+  <text class="pillText" x="210" y="642" text-anchor="middle">{v("bag_ext")}</text>
+
+  <!-- fuel / de-ice -->
+  <text class="label" x="210" y="175" text-anchor="middle">Fuel / De-ice</text>
+  <text class="small" x="210" y="195" text-anchor="middle">Fuel {v("main_fuel")} {unit_weight} / De-ice {v("deice")} {unit_weight}</text>
+</svg>
+"""
 def load_aircraft_config(path: str = "aircraft.toml") -> dict:
     if tomllib is None:
         raise RuntimeError("Python 3.11+ が必要です（tomllibが無い環境）。")
@@ -117,29 +214,49 @@ def main() -> None:
 
     arms = {k: num(v) for k, v in (cfg.get("arms_mm", {}) or {}).items()}
 
-    st.subheader("入力（DA42用・固定項目）")
-    left, right = st.columns(2)
-    with left:
-        st.markdown("**座席**")
-        front_l = st.number_input("FrontSeats Left", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-        front_r = st.number_input("FrontSeats Right", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-        rear_l = st.number_input("RearSeats Left", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-        rear_r = st.number_input("RearSeats Right", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+    tab_input, tab_env, tab_breakdown = st.tabs(["入力（上面図）", "エンベロープ", "内訳"])
 
-        st.markdown("**燃料**")
-        main_fuel = st.number_input("MainFuel（搭載）", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-        taxi_burn = st.number_input("FuelConsumption FOR Taxi", min_value=0.0, value=0.0, step=0.5, format="%.2f")
-        flight_burn = st.number_input("FuelConsumption（離陸後〜着陸まで）", min_value=0.0, value=0.0, step=0.5, format="%.2f")
+    with tab_input:
+        st.subheader("入力（DA42用・固定項目）")
+        col_viz, col_form = st.columns([1.1, 1.4], vertical_alignment="top")
 
-    with right:
-        st.markdown("**バゲッジ・液体**")
-        nose_bag = st.number_input("NoseBaggage", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-        cockpit_bag = st.number_input("CockpitBaggage", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-        bag_ext = st.number_input("BaggageExtension", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-        deice = st.number_input("De-iceFluid", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+        with col_form:
+            st.markdown("**座席**")
+            front_l = st.number_input("FrontSeats Left", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+            front_r = st.number_input("FrontSeats Right", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+            rear_l = st.number_input("RearSeats Left", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+            rear_r = st.number_input("RearSeats Right", min_value=0.0, value=0.0, step=1.0, format="%.2f")
 
-        st.markdown("**表示単位**")
-        st.caption(f"重量: {unit_weight} / アーム: {unit_arm}")
+            st.markdown("**バゲッジ・液体**")
+            nose_bag = st.number_input("NoseBaggage", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+            cockpit_bag = st.number_input("CockpitBaggage", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+            bag_ext = st.number_input("BaggageExtension", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+            deice = st.number_input("De-iceFluid", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+
+            st.markdown("**燃料（重量換算）**")
+            main_fuel = st.number_input("MainFuel（搭載）", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+            taxi_burn = st.number_input("FuelConsumption FOR Taxi", min_value=0.0, value=0.0, step=0.5, format="%.2f")
+            flight_burn = st.number_input("FuelConsumption（離陸後〜着陸まで）", min_value=0.0, value=0.0, step=0.5, format="%.2f")
+
+            st.caption(f"単位: 重量={unit_weight}, アーム={unit_arm}")
+
+        with col_viz:
+            st.markdown("**上面図（現在値の見える化）**")
+            svg = render_top_view_svg(
+                {
+                    "front_l": front_l,
+                    "front_r": front_r,
+                    "rear_l": rear_l,
+                    "rear_r": rear_r,
+                    "nose_bag": nose_bag,
+                    "cockpit_bag": cockpit_bag,
+                    "bag_ext": bag_ext,
+                    "deice": deice,
+                    "main_fuel": main_fuel,
+                },
+                unit_weight=unit_weight,
+            )
+            st.markdown(svg, unsafe_allow_html=True)
 
     if bew_w <= 0 or bew_a <= 0:
         st.warning("`aircraft.toml` の basic_empty（BEWの重量とアーム）を入力してください。入力が無いと実機の結果になりません。")
@@ -180,41 +297,82 @@ def main() -> None:
     }
     results, totals = evaluate_components(components)
 
-    st.subheader("計算結果")
-    c1, c2, c3 = st.columns(3)
     zfm = points["ZFM"]
     tow = points["TOW"]
     lw = points["LW"]
-    c1.metric(f"Zero Fuel Mass (ZFM) [{unit_weight}]", f"{zfm.weight:,.2f}", help="燃料を除いた重量")
-    c2.metric(f"Takeoff Weight (TOW) [{unit_weight}]", f"{tow.weight:,.2f}", help="Taxi消費後の燃料を含む")
-    c3.metric(f"Landing Weight (LW) [{unit_weight}]", f"{lw.weight:,.2f}", help="飛行中の燃料消費後")
 
-    g1, g2, g3 = st.columns(3)
-    g1.metric(f"ZFM CG [{unit_arm}]", "—" if zfm.cg is None else f"{zfm.cg:,.1f}")
-    g2.metric(f"TOW CG [{unit_arm}]", "—" if tow.cg is None else f"{tow.cg:,.1f}")
-    g3.metric(f"LW CG [{unit_arm}]", "—" if lw.cg is None else f"{lw.cg:,.1f}")
+    with tab_input:
+        st.subheader("計算結果")
+        c1, c2, c3 = st.columns(3)
+        c1.metric(f"Zero Fuel Mass (ZFM) [{unit_weight}]", f"{zfm.weight:,.2f}", help="燃料を除いた重量")
+        c2.metric(f"Takeoff Weight (TOW) [{unit_weight}]", f"{tow.weight:,.2f}", help="Taxi消費後の燃料を含む")
+        c3.metric(f"Landing Weight (LW) [{unit_weight}]", f"{lw.weight:,.2f}", help="飛行中の燃料消費後")
 
-    if use_limits:
-        for label, p in [("ZFM", zfm), ("TOW", tow), ("LW", lw)]:
-            status = within_limits(p.cg, cg_min, cg_max)
-            if status and "外" in status:
-                st.error(f"{label}: {status}")
-            elif status:
-                st.success(f"{label}: {status}")
+        g1, g2, g3 = st.columns(3)
+        g1.metric(f"ZFM CG [{unit_arm}]", "—" if zfm.cg is None else f"{zfm.cg:,.1f}")
+        g2.metric(f"TOW CG [{unit_arm}]", "—" if tow.cg is None else f"{tow.cg:,.1f}")
+        g3.metric(f"LW CG [{unit_arm}]", "—" if lw.cg is None else f"{lw.cg:,.1f}")
 
-    st.subheader("内訳一覧")
-    out = pd.DataFrame(
-        [
-            {
-                "項目": r.name,
-                f"重量 [{unit_weight}]": r.weight,
-                f"アーム [{unit_arm}]": r.arm,
-                f"モーメント [{unit_weight}·{unit_arm}]": r.moment,
-            }
-            for r in results
-        ]
-    )
-    st.dataframe(out, use_container_width=True, hide_index=True)
+        if use_limits:
+            for label, p in [("ZFM", zfm), ("TOW", tow), ("LW", lw)]:
+                status = within_limits(p.cg, cg_min, cg_max)
+                if status and "外" in status:
+                    st.error(f"{label}: {status}")
+                elif status:
+                    st.success(f"{label}: {status}")
+
+    with tab_env:
+        st.subheader("CGエンベロープ（封筒）")
+        # 機体ごとの envelope を優先
+        env_default = cfg.get("envelope", {}) or {}
+        env_override = selected.get("envelope", {}) if isinstance(selected, dict) else {}
+        env = {**env_default, **(env_override or {})}
+        env_points = parse_points(env.get("points", []))
+
+        if not env_points:
+            st.warning("この機体のエンベロープ点が未入力です。`aircraft.toml` の `[aircraft.<TAIL>.envelope].points` に点を追加してください。")
+            st.code('points = [[2400, 1350], [2500, 1900], [2450, 2000]]', language="toml")
+        else:
+            xs = [p[0] for p in env_points] + [env_points[0][0]]
+            ys = [p[1] for p in env_points] + [env_points[0][1]]
+
+            fig = go.Figure()
+            fig.add_trace(
+                go.Scatter(
+                    x=xs,
+                    y=ys,
+                    mode="lines",
+                    name="Envelope",
+                    line=dict(color="#111827", width=2),
+                )
+            )
+            fig.add_trace(go.Scatter(x=[zfm.cg], y=[zfm.weight], mode="markers+text", name="ZFM", text=["ZFM"], textposition="top center", marker=dict(size=10)))
+            fig.add_trace(go.Scatter(x=[tow.cg], y=[tow.weight], mode="markers+text", name="TOW", text=["TOW"], textposition="top center", marker=dict(size=10)))
+            fig.add_trace(go.Scatter(x=[lw.cg], y=[lw.weight], mode="markers+text", name="LW", text=["LW"], textposition="top center", marker=dict(size=10)))
+
+            fig.update_layout(
+                xaxis_title=f"CG [{unit_arm}]",
+                yaxis_title=f"Weight [{unit_weight}]",
+                height=520,
+                margin=dict(l=10, r=10, t=30, b=10),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+    with tab_breakdown:
+        st.subheader("内訳一覧")
+        out = pd.DataFrame(
+            [
+                {
+                    "項目": r.name,
+                    f"重量 [{unit_weight}]": r.weight,
+                    f"アーム [{unit_arm}]": r.arm,
+                    f"モーメント [{unit_weight}·{unit_arm}]": r.moment,
+                }
+                for r in results
+            ]
+        )
+        st.dataframe(out, use_container_width=True, hide_index=True)
 
     with st.expander("計算の考え方（初心者向け）"):
         st.markdown(
