@@ -325,12 +325,12 @@ def render_top_view_svg(
     <style>
       .air {{ fill:#f3f4f6; stroke:#cbd5e1; stroke-width:2; }}
       .outline {{ fill:none; stroke:#94a3b8; stroke-width:2; }}
-      .seat {{ fill:#e5e7eb; stroke:#9ca3af; stroke-width:2; rx:12; }}
-      .bag  {{ fill:#e5e7eb; stroke:#9ca3af; stroke-width:2; rx:12; }}
-      .pill {{ fill:#16a34a; }}
-      .pillText {{ fill:white; font: 700 22px system-ui, -apple-system, Segoe UI, Roboto; }}
-      .label {{ fill:#111827; font: 600 14px system-ui, -apple-system, Segoe UI, Roboto; }}
-      .small {{ fill:#374151; font: 500 12px system-ui, -apple-system, Segoe UI, Roboto; }}
+      /* 添付イメージに寄せた「緑アウトライン」スタイル */
+      .seat {{ fill:none; stroke:#22c55e; stroke-width:3; rx:10; }}
+      .bag  {{ fill:none; stroke:#22c55e; stroke-width:3; rx:10; }}
+      .label {{ fill:#22c55e; font: 700 14px system-ui, -apple-system, Segoe UI, Roboto; }}
+      .value {{ fill:#22c55e; font: 800 18px system-ui, -apple-system, Segoe UI, Roboto; }}
+      .small {{ fill:#22c55e; font: 600 12px system-ui, -apple-system, Segoe UI, Roboto; }}
       .resize-handle {{ fill:#111827; opacity:0.55; cursor:nwse-resize; }}
       .main-rect {{ cursor:move; }}
     </style>
@@ -373,94 +373,84 @@ def render_top_view_svg(
   {(_group_open("front_l"))}
   <rect id="rect-front_l" class="seat main-rect" x="{L('front_l')['x']:.1f}" y="{L('front_l')['y']:.1f}" width="{L('front_l')['w']:.1f}" height="{L('front_l')['h']:.1f}"/>
   {_resize_handle("front_l", L('front_l')['x'], L('front_l')['y'], L('front_l')['w'], L('front_l')['h'])}
-  <text id="label-front_l" class="label" x="{(L('front_l')['x'] + L('front_l')['w']/2):.1f}" y="{(L('front_l')['y'] + L('front_l')['label_dy']):.1f}" text-anchor="middle">Front L</text>
-  <rect class="pill" x="{(L('front_l')['x'] + L('front_l')['pill_dx']):.1f}" y="{(L('front_l')['y'] + L('front_l')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
-  <text class="pillText" x="{(L('front_l')['x'] + L('front_l')['pill_dx'] + 25):.1f}" y="{(L('front_l')['y'] + L('front_l')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("front_l")}</text>
-  <text class="small" x="{(L('front_l')['x'] + L('front_l')['pill_dx'] + 25):.1f}" y="{(L('front_l')['y'] + L('front_l')['pill_dy'] + 49):.1f}" text-anchor="middle">{unit_weight}</text>
+  <text id="label-front_l" class="label" x="{(L('front_l')['x'] + 2):.1f}" y="{(L('front_l')['y'] - 6):.1f}" text-anchor="start">FRONT L</text>
+  <text class="value" x="{(L('front_l')['x'] + L('front_l')['w']/2):.1f}" y="{(L('front_l')['y'] + L('front_l')['h']/2 + 6):.1f}" text-anchor="middle">{v("front_l")}</text>
+  <text class="small" x="{(L('front_l')['x'] + L('front_l')['w']/2):.1f}" y="{(L('front_l')['y'] + L('front_l')['h']/2 + 26):.1f}" text-anchor="middle">{unit_weight}</text>
   {(_group_close())}
 
   {(_group_open("front_r"))}
   <rect id="rect-front_r" class="seat main-rect" x="{L('front_r')['x']:.1f}" y="{L('front_r')['y']:.1f}" width="{L('front_r')['w']:.1f}" height="{L('front_r')['h']:.1f}"/>
   {_resize_handle("front_r", L('front_r')['x'], L('front_r')['y'], L('front_r')['w'], L('front_r')['h'])}
-  <text id="label-front_r" class="label" x="{(L('front_r')['x'] + L('front_r')['w']/2):.1f}" y="{(L('front_r')['y'] + L('front_r')['label_dy']):.1f}" text-anchor="middle">Front R</text>
-  <rect class="pill" x="{(L('front_r')['x'] + L('front_r')['pill_dx']):.1f}" y="{(L('front_r')['y'] + L('front_r')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
-  <text class="pillText" x="{(L('front_r')['x'] + L('front_r')['pill_dx'] + 25):.1f}" y="{(L('front_r')['y'] + L('front_r')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("front_r")}</text>
-  <text class="small" x="{(L('front_r')['x'] + L('front_r')['pill_dx'] + 25):.1f}" y="{(L('front_r')['y'] + L('front_r')['pill_dy'] + 49):.1f}" text-anchor="middle">{unit_weight}</text>
+  <text id="label-front_r" class="label" x="{(L('front_r')['x'] + 2):.1f}" y="{(L('front_r')['y'] - 6):.1f}" text-anchor="start">FRONT R</text>
+  <text class="value" x="{(L('front_r')['x'] + L('front_r')['w']/2):.1f}" y="{(L('front_r')['y'] + L('front_r')['h']/2 + 6):.1f}" text-anchor="middle">{v("front_r")}</text>
+  <text class="small" x="{(L('front_r')['x'] + L('front_r')['w']/2):.1f}" y="{(L('front_r')['y'] + L('front_r')['h']/2 + 26):.1f}" text-anchor="middle">{unit_weight}</text>
   {(_group_close())}
 
   <!-- rear seats -->
   {(_group_open("rear_l"))}
   <rect id="rect-rear_l" class="seat main-rect" x="{L('rear_l')['x']:.1f}" y="{L('rear_l')['y']:.1f}" width="{L('rear_l')['w']:.1f}" height="{L('rear_l')['h']:.1f}"/>
   {_resize_handle("rear_l", L('rear_l')['x'], L('rear_l')['y'], L('rear_l')['w'], L('rear_l')['h'])}
-  <text id="label-rear_l" class="label" x="{(L('rear_l')['x'] + L('rear_l')['w']/2):.1f}" y="{(L('rear_l')['y'] + L('rear_l')['label_dy']):.1f}" text-anchor="middle">Rear L</text>
-  <rect class="pill" x="{(L('rear_l')['x'] + L('rear_l')['pill_dx']):.1f}" y="{(L('rear_l')['y'] + L('rear_l')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
-  <text class="pillText" x="{(L('rear_l')['x'] + L('rear_l')['pill_dx'] + 25):.1f}" y="{(L('rear_l')['y'] + L('rear_l')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("rear_l")}</text>
-  <text class="small" x="{(L('rear_l')['x'] + L('rear_l')['pill_dx'] + 25):.1f}" y="{(L('rear_l')['y'] + L('rear_l')['pill_dy'] + 49):.1f}" text-anchor="middle">{unit_weight}</text>
+  <text id="label-rear_l" class="label" x="{(L('rear_l')['x'] + 2):.1f}" y="{(L('rear_l')['y'] - 6):.1f}" text-anchor="start">REAR L</text>
+  <text class="value" x="{(L('rear_l')['x'] + L('rear_l')['w']/2):.1f}" y="{(L('rear_l')['y'] + L('rear_l')['h']/2 + 6):.1f}" text-anchor="middle">{v("rear_l")}</text>
+  <text class="small" x="{(L('rear_l')['x'] + L('rear_l')['w']/2):.1f}" y="{(L('rear_l')['y'] + L('rear_l')['h']/2 + 26):.1f}" text-anchor="middle">{unit_weight}</text>
   {(_group_close())}
 
   {(_group_open("rear_r"))}
   <rect id="rect-rear_r" class="seat main-rect" x="{L('rear_r')['x']:.1f}" y="{L('rear_r')['y']:.1f}" width="{L('rear_r')['w']:.1f}" height="{L('rear_r')['h']:.1f}"/>
   {_resize_handle("rear_r", L('rear_r')['x'], L('rear_r')['y'], L('rear_r')['w'], L('rear_r')['h'])}
-  <text id="label-rear_r" class="label" x="{(L('rear_r')['x'] + L('rear_r')['w']/2):.1f}" y="{(L('rear_r')['y'] + L('rear_r')['label_dy']):.1f}" text-anchor="middle">Rear R</text>
-  <rect class="pill" x="{(L('rear_r')['x'] + L('rear_r')['pill_dx']):.1f}" y="{(L('rear_r')['y'] + L('rear_r')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
-  <text class="pillText" x="{(L('rear_r')['x'] + L('rear_r')['pill_dx'] + 25):.1f}" y="{(L('rear_r')['y'] + L('rear_r')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("rear_r")}</text>
-  <text class="small" x="{(L('rear_r')['x'] + L('rear_r')['pill_dx'] + 25):.1f}" y="{(L('rear_r')['y'] + L('rear_r')['pill_dy'] + 49):.1f}" text-anchor="middle">{unit_weight}</text>
+  <text id="label-rear_r" class="label" x="{(L('rear_r')['x'] + 2):.1f}" y="{(L('rear_r')['y'] - 6):.1f}" text-anchor="start">REAR R</text>
+  <text class="value" x="{(L('rear_r')['x'] + L('rear_r')['w']/2):.1f}" y="{(L('rear_r')['y'] + L('rear_r')['h']/2 + 6):.1f}" text-anchor="middle">{v("rear_r")}</text>
+  <text class="small" x="{(L('rear_r')['x'] + L('rear_r')['w']/2):.1f}" y="{(L('rear_r')['y'] + L('rear_r')['h']/2 + 26):.1f}" text-anchor="middle">{unit_weight}</text>
   {(_group_close())}
 
   <!-- nose baggage -->
   {(_group_open("nose_bag"))}
   <rect id="rect-nose_bag" class="bag main-rect" x="{L('nose_bag')['x']:.1f}" y="{L('nose_bag')['y']:.1f}" width="{L('nose_bag')['w']:.1f}" height="{L('nose_bag')['h']:.1f}"/>
   {_resize_handle("nose_bag", L('nose_bag')['x'], L('nose_bag')['y'], L('nose_bag')['w'], L('nose_bag')['h'])}
-  <text id="label-nose_bag" class="label" x="{(L('nose_bag')['x'] + L('nose_bag')['w']/2):.1f}" y="{(L('nose_bag')['y'] + L('nose_bag')['label_dy']):.1f}" text-anchor="middle">Nose</text>
-  <rect class="pill" x="{(L('nose_bag')['x'] + L('nose_bag')['pill_dx']):.1f}" y="{(L('nose_bag')['y'] + L('nose_bag')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
-  <text class="pillText" x="{(L('nose_bag')['x'] + L('nose_bag')['pill_dx'] + 25):.1f}" y="{(L('nose_bag')['y'] + L('nose_bag')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("nose_bag")}</text>
+  <text id="label-nose_bag" class="label" x="{(L('nose_bag')['x'] + 2):.1f}" y="{(L('nose_bag')['y'] - 6):.1f}" text-anchor="start">NOSE</text>
+  <text class="value" x="{(L('nose_bag')['x'] + L('nose_bag')['w']/2):.1f}" y="{(L('nose_bag')['y'] + L('nose_bag')['h']/2 + 6):.1f}" text-anchor="middle">{v("nose_bag")}</text>
   {(_group_close())}
 
   <!-- de-ice (Nose baggage と Front seats の間) -->
   {(_group_open("deice_l"))}
   <rect id="rect-deice_l" class="bag main-rect" x="{L('deice_l')['x']:.1f}" y="{L('deice_l')['y']:.1f}" width="{L('deice_l')['w']:.1f}" height="{L('deice_l')['h']:.1f}"/>
   {_resize_handle("deice_l", L('deice_l')['x'], L('deice_l')['y'], L('deice_l')['w'], L('deice_l')['h'])}
-  <text id="label-deice_l" class="label" x="{(L('deice_l')['x'] + L('deice_l')['w']/2):.1f}" y="{(L('deice_l')['y'] + L('deice_l')['label_dy']):.1f}" text-anchor="middle">De-ice</text>
-  <rect class="pill" x="{(L('deice_l')['x'] + L('deice_l')['pill_dx']):.1f}" y="{(L('deice_l')['y'] + L('deice_l')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
-  <text class="pillText" x="{(L('deice_l')['x'] + L('deice_l')['pill_dx'] + 25):.1f}" y="{(L('deice_l')['y'] + L('deice_l')['pill_dy'] + 25):.1f}" text-anchor="middle">{v1("deice_l")}</text>
-  <text class="small" x="{(L('deice_l')['x'] + L('deice_l')['pill_dx'] + 25):.1f}" y="{(L('deice_l')['y'] + L('deice_l')['pill_dy'] + 49):.1f}" text-anchor="middle">{v1("deice_kg")} {unit_weight}</text>
+  <text id="label-deice_l" class="label" x="{(L('deice_l')['x'] + 2):.1f}" y="{(L('deice_l')['y'] - 6):.1f}" text-anchor="start">DEICE</text>
+  <text class="value" x="{(L('deice_l')['x'] + L('deice_l')['w']/2):.1f}" y="{(L('deice_l')['y'] + L('deice_l')['h']/2 + 2):.1f}" text-anchor="middle">{v1("deice_l")}</text>
+  <text class="small" x="{(L('deice_l')['x'] + L('deice_l')['w']/2):.1f}" y="{(L('deice_l')['y'] + L('deice_l')['h']/2 + 22):.1f}" text-anchor="middle">{v1("deice_kg")} {unit_weight}</text>
   {(_group_close())}
 
   <!-- cockpit baggage (Front/Rear の間の細長い枠) -->
   {(_group_open("cockpit_bag"))}
   <rect id="rect-cockpit_bag" class="bag main-rect" x="{L('cockpit_bag')['x']:.1f}" y="{L('cockpit_bag')['y']:.1f}" width="{L('cockpit_bag')['w']:.1f}" height="{L('cockpit_bag')['h']:.1f}"/>
   {_resize_handle("cockpit_bag", L('cockpit_bag')['x'], L('cockpit_bag')['y'], L('cockpit_bag')['w'], L('cockpit_bag')['h'])}
-  <text id="label-cockpit_bag" class="label" x="{(L('cockpit_bag')['x'] + L('cockpit_bag')['w']/2):.1f}" y="{(L('cockpit_bag')['y'] + L('cockpit_bag')['label_dy']):.1f}" text-anchor="middle">CockpitBaggage</text>
-  <rect class="pill" x="{(L('cockpit_bag')['x'] + L('cockpit_bag')['pill_dx']):.1f}" y="{(L('cockpit_bag')['y'] + L('cockpit_bag')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
-  <text class="pillText" x="{(L('cockpit_bag')['x'] + L('cockpit_bag')['pill_dx'] + 25):.1f}" y="{(L('cockpit_bag')['y'] + L('cockpit_bag')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("cockpit_bag")}</text>
+  <text id="label-cockpit_bag" class="label" x="{(L('cockpit_bag')['x'] + 2):.1f}" y="{(L('cockpit_bag')['y'] - 6):.1f}" text-anchor="start">BAGGAGE</text>
+  <text class="value" x="{(L('cockpit_bag')['x'] + L('cockpit_bag')['w']/2):.1f}" y="{(L('cockpit_bag')['y'] + L('cockpit_bag')['h']/2 + 7):.1f}" text-anchor="middle">{v("cockpit_bag")}</text>
   {(_group_close())}
 
   <!-- baggage extension -->
   {(_group_open("bag_ext"))}
   <rect id="rect-bag_ext" class="bag main-rect" x="{L('bag_ext')['x']:.1f}" y="{L('bag_ext')['y']:.1f}" width="{L('bag_ext')['w']:.1f}" height="{L('bag_ext')['h']:.1f}"/>
   {_resize_handle("bag_ext", L('bag_ext')['x'], L('bag_ext')['y'], L('bag_ext')['w'], L('bag_ext')['h'])}
-  <text id="label-bag_ext" class="label" x="{(L('bag_ext')['x'] + L('bag_ext')['w']/2):.1f}" y="{(L('bag_ext')['y'] + L('bag_ext')['label_dy']):.1f}" text-anchor="middle">BaggageExtension</text>
-  <rect class="pill" x="{(L('bag_ext')['x'] + L('bag_ext')['pill_dx']):.1f}" y="{(L('bag_ext')['y'] + L('bag_ext')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
-  <text class="pillText" x="{(L('bag_ext')['x'] + L('bag_ext')['pill_dx'] + 25):.1f}" y="{(L('bag_ext')['y'] + L('bag_ext')['pill_dy'] + 25):.1f}" text-anchor="middle">{v("bag_ext")}</text>
+  <text id="label-bag_ext" class="label" x="{(L('bag_ext')['x'] + 2):.1f}" y="{(L('bag_ext')['y'] - 6):.1f}" text-anchor="start">BAG EXT</text>
+  <text class="value" x="{(L('bag_ext')['x'] + L('bag_ext')['w']/2):.1f}" y="{(L('bag_ext')['y'] + L('bag_ext')['h']/2 + 6):.1f}" text-anchor="middle">{v("bag_ext")}</text>
   {(_group_close())}
 
   <!-- fuel (left wing / right wing) -->
   {(_group_open("fuel_l"))}
   <rect id="rect-fuel_l" class="bag main-rect" x="{L('fuel_l')['x']:.1f}" y="{L('fuel_l')['y']:.1f}" width="{L('fuel_l')['w']:.1f}" height="{L('fuel_l')['h']:.1f}"/>
   {_resize_handle("fuel_l", L('fuel_l')['x'], L('fuel_l')['y'], L('fuel_l')['w'], L('fuel_l')['h'])}
-  <text id="label-fuel_l" class="label" x="{(L('fuel_l')['x'] + L('fuel_l')['w']/2):.1f}" y="{(L('fuel_l')['y'] + L('fuel_l')['label_dy']):.1f}" text-anchor="middle">Fuel L</text>
-  <rect class="pill" x="{(L('fuel_l')['x'] + L('fuel_l')['pill_dx']):.1f}" y="{(L('fuel_l')['y'] + L('fuel_l')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
-  <text class="pillText" x="{(L('fuel_l')['x'] + L('fuel_l')['pill_dx'] + 25):.1f}" y="{(L('fuel_l')['y'] + L('fuel_l')['pill_dy'] + 25):.1f}" text-anchor="middle">{v1("fuel_l_gal")}</text>
-  <text class="small" x="{(L('fuel_l')['x'] + L('fuel_l')['pill_dx'] + 25):.1f}" y="{(L('fuel_l')['y'] + L('fuel_l')['pill_dy'] + 49):.1f}" text-anchor="middle">{v1("fuel_l_kg")} {unit_weight}</text>
+  <text id="label-fuel_l" class="label" x="{(L('fuel_l')['x'] + 2):.1f}" y="{(L('fuel_l')['y'] - 6):.1f}" text-anchor="start">FUEL L</text>
+  <text class="value" x="{(L('fuel_l')['x'] + L('fuel_l')['w']/2):.1f}" y="{(L('fuel_l')['y'] + L('fuel_l')['h']/2 + 2):.1f}" text-anchor="middle">{v1("fuel_l_gal")}</text>
+  <text class="small" x="{(L('fuel_l')['x'] + L('fuel_l')['w']/2):.1f}" y="{(L('fuel_l')['y'] + L('fuel_l')['h']/2 + 22):.1f}" text-anchor="middle">{v1("fuel_l_kg")} {unit_weight}</text>
   {(_group_close())}
 
   {(_group_open("fuel_r"))}
   <rect id="rect-fuel_r" class="bag main-rect" x="{L('fuel_r')['x']:.1f}" y="{L('fuel_r')['y']:.1f}" width="{L('fuel_r')['w']:.1f}" height="{L('fuel_r')['h']:.1f}"/>
   {_resize_handle("fuel_r", L('fuel_r')['x'], L('fuel_r')['y'], L('fuel_r')['w'], L('fuel_r')['h'])}
-  <text id="label-fuel_r" class="label" x="{(L('fuel_r')['x'] + L('fuel_r')['w']/2):.1f}" y="{(L('fuel_r')['y'] + L('fuel_r')['label_dy']):.1f}" text-anchor="middle">Fuel R</text>
-  <rect class="pill" x="{(L('fuel_r')['x'] + L('fuel_r')['pill_dx']):.1f}" y="{(L('fuel_r')['y'] + L('fuel_r')['pill_dy']):.1f}" width="50" height="34" rx="10"/>
-  <text class="pillText" x="{(L('fuel_r')['x'] + L('fuel_r')['pill_dx'] + 25):.1f}" y="{(L('fuel_r')['y'] + L('fuel_r')['pill_dy'] + 25):.1f}" text-anchor="middle">{v1("fuel_r_gal")}</text>
-  <text class="small" x="{(L('fuel_r')['x'] + L('fuel_r')['pill_dx'] + 25):.1f}" y="{(L('fuel_r')['y'] + L('fuel_r')['pill_dy'] + 49):.1f}" text-anchor="middle">{v1("fuel_r_kg")} {unit_weight}</text>
+  <text id="label-fuel_r" class="label" x="{(L('fuel_r')['x'] + 2):.1f}" y="{(L('fuel_r')['y'] - 6):.1f}" text-anchor="start">FUEL R</text>
+  <text class="value" x="{(L('fuel_r')['x'] + L('fuel_r')['w']/2):.1f}" y="{(L('fuel_r')['y'] + L('fuel_r')['h']/2 + 2):.1f}" text-anchor="middle">{v1("fuel_r_gal")}</text>
+  <text class="small" x="{(L('fuel_r')['x'] + L('fuel_r')['w']/2):.1f}" y="{(L('fuel_r')['y'] + L('fuel_r')['h']/2 + 22):.1f}" text-anchor="middle">{v1("fuel_r_kg")} {unit_weight}</text>
   {(_group_close())}
 </svg>
 </div>
