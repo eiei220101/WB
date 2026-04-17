@@ -158,19 +158,19 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
 
   <!-- rear seats -->
   {g_open("rear_l")}
-  <rect class="seat" x="190" y="470" width="65" height="85"/>
-  <text class="label" x="222" y="458" text-anchor="middle">Rear L</text>
-  <rect class="pill" x="198" y="500" width="50" height="34" rx="10"/>
-  <text class="pillText" x="223" y="525" text-anchor="middle">{v("rear_l")}</text>
-  <text class="small" x="223" y="548" text-anchor="middle">{unit_weight}</text>
+  <rect class="seat" x="190" y="505" width="65" height="85"/>
+  <text class="label" x="222" y="498" text-anchor="middle">Rear L</text>
+  <rect class="pill" x="198" y="535" width="50" height="34" rx="10"/>
+  <text class="pillText" x="223" y="560" text-anchor="middle">{v("rear_l")}</text>
+  <text class="small" x="223" y="583" text-anchor="middle">{unit_weight}</text>
   {g_close()}
 
   {g_open("rear_r")}
-  <rect class="seat" x="265" y="470" width="65" height="85"/>
-  <text class="label" x="298" y="458" text-anchor="middle">Rear R</text>
-  <rect class="pill" x="273" y="500" width="50" height="34" rx="10"/>
-  <text class="pillText" x="298" y="525" text-anchor="middle">{v("rear_r")}</text>
-  <text class="small" x="298" y="548" text-anchor="middle">{unit_weight}</text>
+  <rect class="seat" x="265" y="505" width="65" height="85"/>
+  <text class="label" x="298" y="498" text-anchor="middle">Rear R</text>
+  <rect class="pill" x="273" y="535" width="50" height="34" rx="10"/>
+  <text class="pillText" x="298" y="560" text-anchor="middle">{v("rear_r")}</text>
+  <text class="small" x="298" y="583" text-anchor="middle">{unit_weight}</text>
   {g_close()}
 
   <!-- nose baggage -->
@@ -200,10 +200,10 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
 
   <!-- baggage extension -->
   {g_open("bag_ext")}
-  <rect class="bag" x="170" y="620" width="180" height="55"/>
-  <text class="label" x="260" y="615" text-anchor="middle">BaggageExtension</text>
-  <rect class="pill" x="237" y="635" width="46" height="32" rx="10"/>
-  <text class="pillText" x="260" y="659" text-anchor="middle">{v("bag_ext")}</text>
+  <rect class="bag" x="170" y="675" width="180" height="55"/>
+  <text class="label" x="260" y="670" text-anchor="middle">BaggageExtension</text>
+  <rect class="pill" x="237" y="690" width="46" height="32" rx="10"/>
+  <text class="pillText" x="260" y="714" text-anchor="middle">{v("bag_ext")}</text>
   {g_close()}
 
   <!-- fuel (left wing / right wing) -->
