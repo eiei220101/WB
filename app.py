@@ -466,10 +466,14 @@ def main() -> None:
                 gridcolor="rgba(148,163,184,0.25)",
                 zeroline=False,
                 tickformat=".2f",
-                dtick=0.01,
                 tickmode="array",
                 tickvals=[2.35, 2.40, 2.45, 2.50],
                 ticktext=["<b>2.35</b>", "<b>2.40</b>", "<b>2.45</b>", "<b>2.50</b>"],
+                minor=dict(
+                    dtick=0.01,
+                    showgrid=True,
+                    gridcolor="rgba(148,163,184,0.12)",
+                ),
             )
             fig.update_yaxes(
                 showgrid=True,
