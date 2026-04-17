@@ -63,6 +63,16 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
     def v1(key: str) -> str:
         return f"{values.get(key, 0.0):.1f}"
 
+    def href(edit_key: str) -> str:
+        # クリックで ?edit=... を付けて Streamlit を再実行させる
+        return f"?edit={edit_key}#topview"
+
+    def a_open(edit_key: str) -> str:
+        return f'<a href="{href(edit_key)}" target="_top" style="cursor:pointer; text-decoration:none;">'
+
+    def a_close() -> str:
+        return "</a>"
+
     # DA42っぽいトップビュー（翼・胴体・エンジン・尾翼）に寄せた簡易シルエット。
     # Streamlit の markdown/HTML解釈差異で表示が真っ白になるケースがあるため、
     # components.html で確実に描画できるよう HTML として返す。
@@ -116,66 +126,88 @@ def render_top_view_svg(values: dict[str, float], unit_weight: str) -> str:
     C240 805, 215 792, 185 775 Z"/>
 
   <!-- cockpit seats -->
+  {a_open("front_l")}
   <rect class="seat" x="190" y="235" width="65" height="95"/>
-  <rect class="seat" x="265" y="235" width="65" height="95"/>
   <text class="label" x="222" y="229" text-anchor="middle">Front L</text>
-  <text class="label" x="298" y="229" text-anchor="middle">Front R</text>
   <rect class="pill" x="198" y="270" width="50" height="34" rx="10"/>
-  <rect class="pill" x="273" y="270" width="50" height="34" rx="10"/>
   <text class="pillText" x="223" y="295" text-anchor="middle">{v("front_l")}</text>
-  <text class="pillText" x="298" y="295" text-anchor="middle">{v("front_r")}</text>
   <text class="small" x="223" y="319" text-anchor="middle">{unit_weight}</text>
+  {a_close()}
+
+  {a_open("front_r")}
+  <rect class="seat" x="265" y="235" width="65" height="95"/>
+  <text class="label" x="298" y="229" text-anchor="middle">Front R</text>
+  <rect class="pill" x="273" y="270" width="50" height="34" rx="10"/>
+  <text class="pillText" x="298" y="295" text-anchor="middle">{v("front_r")}</text>
   <text class="small" x="298" y="319" text-anchor="middle">{unit_weight}</text>
+  {a_close()}
 
   <!-- rear seats -->
+  {a_open("rear_l")}
   <rect class="seat" x="190" y="470" width="65" height="85"/>
-  <rect class="seat" x="265" y="470" width="65" height="85"/>
   <text class="label" x="222" y="458" text-anchor="middle">Rear L</text>
-  <text class="label" x="298" y="458" text-anchor="middle">Rear R</text>
   <rect class="pill" x="198" y="500" width="50" height="34" rx="10"/>
-  <rect class="pill" x="273" y="500" width="50" height="34" rx="10"/>
   <text class="pillText" x="223" y="525" text-anchor="middle">{v("rear_l")}</text>
-  <text class="pillText" x="298" y="525" text-anchor="middle">{v("rear_r")}</text>
   <text class="small" x="223" y="548" text-anchor="middle">{unit_weight}</text>
+  {a_close()}
+
+  {a_open("rear_r")}
+  <rect class="seat" x="265" y="470" width="65" height="85"/>
+  <text class="label" x="298" y="458" text-anchor="middle">Rear R</text>
+  <rect class="pill" x="273" y="500" width="50" height="34" rx="10"/>
+  <text class="pillText" x="298" y="525" text-anchor="middle">{v("rear_r")}</text>
   <text class="small" x="298" y="548" text-anchor="middle">{unit_weight}</text>
+  {a_close()}
 
   <!-- nose baggage -->
+  {a_open("nose_bag")}
   <rect class="bag" x="225" y="65" width="70" height="55"/>
   <text class="label" x="260" y="60" text-anchor="middle">Nose</text>
   <rect class="pill" x="237" y="82" width="46" height="32" rx="10"/>
   <text class="pillText" x="260" y="106" text-anchor="middle">{v("nose_bag")}</text>
+  {a_close()}
 
   <!-- de-ice (Nose baggage と Front seats の間) -->
+  {a_open("deice_l")}
   <rect class="bag" x="210" y="130" width="100" height="70"/>
   <text class="label" x="260" y="125" text-anchor="middle">De-ice</text>
   <rect class="pill" x="235" y="154" width="50" height="34" rx="10"/>
   <text class="pillText" x="260" y="179" text-anchor="middle">{v1("deice_l")}</text>
   <text class="small" x="260" y="202" text-anchor="middle">{v1("deice_kg")} {unit_weight}</text>
+  {a_close()}
 
   <!-- cockpit baggage (Front/Rear の間の細長い枠) -->
+  {a_open("cockpit_bag")}
   <rect class="bag" x="165" y="395" width="190" height="40"/>
   <text class="label" x="260" y="390" text-anchor="middle">CockpitBaggage</text>
   <rect class="pill" x="237" y="403" width="46" height="28" rx="10"/>
   <text class="pillText" x="260" y="425" text-anchor="middle">{v("cockpit_bag")}</text>
+  {a_close()}
 
   <!-- baggage extension -->
+  {a_open("bag_ext")}
   <rect class="bag" x="170" y="620" width="180" height="55"/>
   <text class="label" x="260" y="615" text-anchor="middle">BaggageExtension</text>
   <rect class="pill" x="237" y="635" width="46" height="32" rx="10"/>
   <text class="pillText" x="260" y="659" text-anchor="middle">{v("bag_ext")}</text>
+  {a_close()}
 
   <!-- fuel (left wing / right wing) -->
+  {a_open("main_fuel_gal")}
   <rect class="bag" x="62" y="260" width="110" height="74"/>
   <text class="label" x="117" y="254" text-anchor="middle">Fuel L</text>
   <rect class="pill" x="90" y="284" width="54" height="34" rx="10"/>
   <text class="pillText" x="117" y="309" text-anchor="middle">{v1("fuel_l_gal")}</text>
   <text class="small" x="117" y="332" text-anchor="middle">{v1("fuel_l_kg")} {unit_weight}</text>
+  {a_close()}
 
+  {a_open("main_fuel_gal")}
   <rect class="bag" x="348" y="260" width="110" height="74"/>
   <text class="label" x="403" y="254" text-anchor="middle">Fuel R</text>
   <rect class="pill" x="376" y="284" width="54" height="34" rx="10"/>
   <text class="pillText" x="403" y="309" text-anchor="middle">{v1("fuel_r_gal")}</text>
   <text class="small" x="403" y="332" text-anchor="middle">{v1("fuel_r_kg")} {unit_weight}</text>
+  {a_close()}
 </svg>
 </div>
 """
@@ -218,6 +250,7 @@ def main() -> None:
 
     subtitle = f"{aircraft_name}" + (f" / {tail}" if tail else "")
     st.title(f"{subtitle} 重量・重心（W&B）")
+    st.markdown('<div id="topview"></div>', unsafe_allow_html=True)
     st.caption(
         "基準点（Datum）からの距離を「アーム」として入力します。"
         " モーメント = 重量 × アーム、重心アーム = 総モーメント ÷ 総重量 です。"
@@ -271,30 +304,44 @@ def main() -> None:
 
     tab_input, tab_env, tab_breakdown = st.tabs(["入力（上面図）", "エンベロープ", "内訳"])
 
+    # 上面図クリックで ?edit=... が付いたら、ここで受け取る
+    edit_key = st.query_params.get("edit")
+
     with tab_input:
         st.subheader("入力（DA42用・固定項目）")
         col_viz, col_form = st.columns([1.1, 1.4], vertical_alignment="top")
 
+        # クリック編集UI（サイドバー）
+        with st.sidebar:
+            st.subheader("上面図クリック編集")
+            if edit_key:
+                st.caption(f"選択中: `{edit_key}`（上面図の枠をクリックすると切り替わります）")
+                if st.button("選択解除"):
+                    st.query_params.pop("edit", None)
+                    st.rerun()
+            else:
+                st.caption("上面図の枠をクリックすると、ここでその項目を編集できます。")
+
         with col_form:
             st.markdown("**座席**")
-            front_l = st.number_input("FrontSeats Left", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-            front_r = st.number_input("FrontSeats Right", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-            rear_l = st.number_input("RearSeats Left", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-            rear_r = st.number_input("RearSeats Right", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+            front_l = st.number_input("FrontSeats Left", min_value=0.0, value=float(st.session_state.get("front_l", 0.0)), step=1.0, format="%.2f", key="front_l")
+            front_r = st.number_input("FrontSeats Right", min_value=0.0, value=float(st.session_state.get("front_r", 0.0)), step=1.0, format="%.2f", key="front_r")
+            rear_l = st.number_input("RearSeats Left", min_value=0.0, value=float(st.session_state.get("rear_l", 0.0)), step=1.0, format="%.2f", key="rear_l")
+            rear_r = st.number_input("RearSeats Right", min_value=0.0, value=float(st.session_state.get("rear_r", 0.0)), step=1.0, format="%.2f", key="rear_r")
 
             st.markdown("**バゲッジ・液体**")
-            nose_bag = st.number_input("NoseBaggage", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-            cockpit_bag = st.number_input("CockpitBaggage", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-            bag_ext = st.number_input("BaggageExtension", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-            deice_l = st.number_input("De-iceFluid（リットルで入力）", min_value=0.0, value=0.0, step=1.0, format="%.1f")
+            nose_bag = st.number_input("NoseBaggage", min_value=0.0, value=float(st.session_state.get("nose_bag", 0.0)), step=1.0, format="%.2f", key="nose_bag")
+            cockpit_bag = st.number_input("CockpitBaggage", min_value=0.0, value=float(st.session_state.get("cockpit_bag", 0.0)), step=1.0, format="%.2f", key="cockpit_bag")
+            bag_ext = st.number_input("BaggageExtension", min_value=0.0, value=float(st.session_state.get("bag_ext", 0.0)), step=1.0, format="%.2f", key="bag_ext")
+            deice_l = st.number_input("De-iceFluid（リットルで入力）", min_value=0.0, value=float(st.session_state.get("deice_l", 0.0)), step=1.0, format="%.1f", key="deice_l")
             deice_kg = deice_l * 1.1
 
             st.markdown("**燃料（重量換算）**")
             st.caption("燃料は **US gal** で入力（1 US gal = 3.028 kg）")
-            main_fuel_gal = st.number_input("MainFuel（搭載・ガロンで入力）", min_value=0.0, value=0.0, step=1.0, format="%.1f")
-            taxi_burn_gal = st.number_input("FuelConsumption FOR Taxi（ガロンで入力）", min_value=0.0, value=0.0, step=0.5, format="%.1f")
-            flight_burn_gal = st.number_input("FuelConsumption（目的地まで・ガロンで入力）", min_value=0.0, value=0.0, step=0.5, format="%.1f")
-            return_burn_gal = st.number_input("FuelConsumption（復路・ガロンで入力）", min_value=0.0, value=0.0, step=0.5, format="%.1f")
+            main_fuel_gal = st.number_input("MainFuel（搭載・ガロンで入力）", min_value=0.0, value=float(st.session_state.get("main_fuel_gal", 0.0)), step=1.0, format="%.1f", key="main_fuel_gal")
+            taxi_burn_gal = st.number_input("FuelConsumption FOR Taxi（ガロンで入力）", min_value=0.0, value=float(st.session_state.get("taxi_burn_gal", 0.0)), step=0.5, format="%.1f", key="taxi_burn_gal")
+            flight_burn_gal = st.number_input("FuelConsumption（目的地まで・ガロンで入力）", min_value=0.0, value=float(st.session_state.get("flight_burn_gal", 0.0)), step=0.5, format="%.1f", key="flight_burn_gal")
+            return_burn_gal = st.number_input("FuelConsumption（復路・ガロンで入力）", min_value=0.0, value=float(st.session_state.get("return_burn_gal", 0.0)), step=0.5, format="%.1f", key="return_burn_gal")
 
             fuel_kg_per_usg = 3.028
             main_fuel_kg = main_fuel_gal * fuel_kg_per_usg
@@ -304,10 +351,35 @@ def main() -> None:
 
             st.caption(f"単位: 重量={unit_weight}, アーム={unit_arm}")
 
+        # クリックで選択された項目を編集（サイドバー）
+        with st.sidebar:
+            if edit_key:
+                if edit_key == "front_l":
+                    st.number_input("FrontSeats Left", min_value=0.0, step=1.0, format="%.2f", key="front_l")
+                elif edit_key == "front_r":
+                    st.number_input("FrontSeats Right", min_value=0.0, step=1.0, format="%.2f", key="front_r")
+                elif edit_key == "rear_l":
+                    st.number_input("RearSeats Left", min_value=0.0, step=1.0, format="%.2f", key="rear_l")
+                elif edit_key == "rear_r":
+                    st.number_input("RearSeats Right", min_value=0.0, step=1.0, format="%.2f", key="rear_r")
+                elif edit_key == "nose_bag":
+                    st.number_input("NoseBaggage", min_value=0.0, step=1.0, format="%.2f", key="nose_bag")
+                elif edit_key == "cockpit_bag":
+                    st.number_input("CockpitBaggage", min_value=0.0, step=1.0, format="%.2f", key="cockpit_bag")
+                elif edit_key == "bag_ext":
+                    st.number_input("BaggageExtension", min_value=0.0, step=1.0, format="%.2f", key="bag_ext")
+                elif edit_key == "deice_l":
+                    st.number_input("De-iceFluid（リットルで入力）", min_value=0.0, step=1.0, format="%.1f", key="deice_l")
+                    st.caption("換算: 1 L = 1.1 kg")
+                elif edit_key == "main_fuel_gal":
+                    st.number_input("MainFuel（搭載・ガロンで入力）", min_value=0.0, step=1.0, format="%.1f", key="main_fuel_gal")
+                    st.caption("換算: 1 US gal = 3.028 kg")
+
         with col_viz:
             st.markdown("**上面図（現在値の見える化）**")
             fuel_half_gal = main_fuel_gal / 2.0
             fuel_half_kg = main_fuel_kg / 2.0
+            st.caption("枠をクリックすると、その項目を編集できます。")
             svg = render_top_view_svg(
                 {
                     "front_l": front_l,
