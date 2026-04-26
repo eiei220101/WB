@@ -1051,9 +1051,12 @@ def main() -> None:
         {"空港": "RJTU", "名称": "宇都宮飛行場", "距離 [NM]": 52.0},
         {"空港": "RJAH", "名称": "百里基地", "距離 [NM]": 63.0},
     ]
-    dvt_df = pd.DataFrame(divert)[["空港", "名称", "距離 [NM]"]]
+    dvt_df = pd.DataFrame(divert)
+    dvt_df["空港"] = dvt_df.apply(lambda r: f"{r['空港']} {r['名称']}", axis=1)
     dvt_df["GS120kt"] = dvt_df["距離 [NM]"].apply(lambda d: "OK" if float(d) <= max_nm_120 else "NG")
     dvt_df["GS140kt"] = dvt_df["距離 [NM]"].apply(lambda d: "OK" if float(d) <= max_nm_140 else "NG")
+    dvt_df["距離"] = dvt_df["距離 [NM]"].apply(lambda d: f"{float(d):.1f}NM")
+    dvt_df = dvt_df[["空港", "距離", "GS120kt", "GS140kt"]]
 
     def _okng_style(v: str) -> str:
         s = str(v)
