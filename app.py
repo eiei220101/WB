@@ -860,16 +860,20 @@ def main() -> None:
             for r in results
         ]
     )
-    out_styled = (
-        out.style.set_properties(**{"text-align": "center"})
-        .set_table_styles(
-            [
-                {"selector": "th", "props": [("text-align", "center")]},
-                {"selector": "td", "props": [("text-align", "center")]},
-            ]
-        )
+    st.markdown(
+        """
+        <style>
+        /* Streamlit DataFrame (grid) center alignment */
+        div[data-testid="stDataFrame"] div[role="columnheader"] > div,
+        div[data-testid="stDataFrame"] div[role="gridcell"] > div {
+          text-align: center !important;
+          justify-content: center !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
     )
-    st.dataframe(out_styled, use_container_width=True, hide_index=True)
+    st.dataframe(out, use_container_width=True, hide_index=True)
 
     st.divider()
     st.subheader("CGエンベロープ")
