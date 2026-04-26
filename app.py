@@ -960,29 +960,46 @@ def main() -> None:
     def _style_row(row: "pd.Series"):
         name = str(row.get("項目", ""))
         w = display_rows[row.name].get("weight")
-        styles: list[str] = []
-
-        # 太枠で囲う行
+        # 太枠で囲う行（外枠のみ）
         boxed = {
             "ZERO FUEL MASS",
             "TAKE OFF WEIGHT",
             "LDG Weight（目的地空港着陸時）",
             "LDG Weight（帰投時）",
         }
-        if name in boxed:
-            styles.append("border-top: 3px solid #000; border-bottom: 3px solid #000;")
-            styles.append("border-left: 3px solid #000; border-right: 3px solid #000;")
+        is_boxed = name in boxed
 
-        # 色付け（判定できる行だけ）
+        # 色付け（判定できる行だけ、行全体）
+        color_css = ""
         if isinstance(w, (int, float)):
             c = _row_color(name, float(w))
             if c:
-                styles.append(f"background-color: {c}; color: white; font-weight: 700;")
+                color_css = f"background-color: {c}; color: white; font-weight: 700;"
 
-        css = " ".join(styles).strip()
-        if not css:
+        # 列ごとに枠線を出し分け（行内の仕切りは太くしない）
+        cols = list(row.index)
+        if not cols:
+            return []
+        first_col = cols[0]
+        last_col = cols[-1]
+
+        per_cell: list[str] = []
+        for col in cols:
+            cell_css_parts: list[str] = []
+            if is_boxed:
+                cell_css_parts.append("border-top: 3px solid #000; border-bottom: 3px solid #000;")
+                if col == first_col:
+                    cell_css_parts.append("border-left: 3px solid #000;")
+                if col == last_col:
+                    cell_css_parts.append("border-right: 3px solid #000;")
+            if color_css:
+                cell_css_parts.append(color_css)
+            per_cell.append(" ".join(cell_css_parts).strip())
+
+        # 空文字だけだと効かないので、完全空なら空配列を返す
+        if all(not s for s in per_cell):
             return [""] * len(row)
-        return [css] * len(row)
+        return per_cell
 
     out_styled = (
         out.style.hide(axis="index")
