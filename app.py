@@ -831,17 +831,62 @@ def main() -> None:
     rear_a_l = float(arms.get("rear_seat_left", 0.0))
     rear_a_r = float(arms.get("rear_seat_right", 0.0))
 
-    load_components = {
-        "Basic Empty": (bew_w, bew_a),
-        "FrontSeat": (front_l + front_r, _combined_arm(front_l, front_a_l, front_r, front_a_r)),
-        "RearSeat": (rear_l + rear_r, _combined_arm(rear_l, rear_a_l, rear_r, rear_a_r)),
-        "Nose baggage": (nose_bag, arms.get("nose_baggage", 0.0)),
-        "Cockpit baggage": (cockpit_bag, arms.get("cockpit_baggage", 0.0)),
-        "Baggage extension": (bag_ext, arms.get("baggage_extension", 0.0)),
-        "De-ice fluid": (deice_kg, arms.get("deice_fluid", 0.0)),
-        "Main fuel (loaded)": (main_fuel_kg, arms.get("main_fuel", 0.0)),
-    }
-    results, totals = evaluate_components(load_components)
+    # 表示用（順番固定）の内訳を組み立てる
+    fuel_arm = float(arms.get("main_fuel", 0.0))
+    nose_arm = float(arms.get("nose_baggage", 0.0))
+    cockpit_arm = float(arms.get("cockpit_baggage", 0.0))
+    bag_ext_arm = float(arms.get("baggage_extension", 0.0))
+    deice_arm = float(arms.get("deice_fluid", 0.0))
+
+    front_w = float(front_l + front_r)
+    rear_w = float(rear_l + rear_r)
+    front_arm = _combined_arm(front_l, front_a_l, front_r, front_a_r)
+    rear_arm = _combined_arm(rear_l, rear_a_l, rear_r, rear_a_r)
+
+    def _moment(w: float, a: float) -> float:
+        return float(w) * float(a)
+
+    def _row(name: str, w: float, a: float) -> dict:
+        return {"name": name, "weight": float(w), "arm": float(a), "moment": _moment(w, a)}
+
+    def _total(name: str, rows: list[dict]) -> dict:
+        tw = sum(float(r["weight"]) for r in rows)
+        tm = sum(float(r["moment"]) for r in rows)
+        a = (tm / tw) if tw > 0 else 0.0
+        return {"name": name, "weight": tw, "arm": a, "moment": tm}
+
+    base_rows = [
+        _row("Basic Empty", bew_w, bew_a),
+        _row("FrontSeats", front_w, front_arm),
+        _row("RearSeats", rear_w, rear_arm),
+        _row("Nose baggage", nose_bag, nose_arm),
+        _row("Cockpit baggage", cockpit_bag, cockpit_arm),
+        _row("Baggage extension", bag_ext, bag_ext_arm),
+        _row("De-ice fluid", deice_kg, deice_arm),
+    ]
+    zfm_row = _total("ZERO FUEL MASS", base_rows)
+
+    main_fuel_row = _row("Main fuel (loaded)", main_fuel_kg, fuel_arm)
+    taxi_run_row = _row("TAXI-RUN", -taxi_burn_kg, fuel_arm)
+
+    takeoff_fuel_remain = max(main_fuel_kg - taxi_burn_kg, 0.0)
+    tow_row = _total("TAKE OFF WEIGHT", base_rows + [_row("Fuel remaining (T/O)", takeoff_fuel_remain, fuel_arm)])
+
+    out_fuel_cons_row = _row("FUEL Consumption 行き", -flight_burn_kg, fuel_arm)
+    landing1_fuel_remain = max(takeoff_fuel_remain - flight_burn_kg, 0.0)
+    ldg1_row = _total("LDG Weight 目的地空港着陸時", base_rows + [_row("Fuel remaining (LDG1)", landing1_fuel_remain, fuel_arm)])
+
+    return_fuel_cons_row = _row("FUEL Consumption 帰り", -return_burn_kg, fuel_arm)
+    landing2_fuel_remain = max(landing1_fuel_remain - return_burn_kg, 0.0)
+    ldg2_row = _total("LDG Weight（復路後）", base_rows + [_row("Fuel remaining (LDG2)", landing2_fuel_remain, fuel_arm)])
+
+    display_rows = (
+        base_rows
+        + [zfm_row]
+        + [main_fuel_row, taxi_run_row, tow_row]
+        + [out_fuel_cons_row, ldg1_row]
+        + [return_fuel_cons_row, ldg2_row]
+    )
 
     zfm = points["ZFM"]
     tow = points["TOW"]
@@ -850,15 +895,12 @@ def main() -> None:
 
     st.subheader("内訳一覧")
     out = pd.DataFrame(
-        [
-            {
-                "項目": r.name,
-                f"アーム [{unit_arm_disp}]": disp_arm(r.arm),
-                f"重量 [{unit_weight}]": r.weight,
-                f"モーメント [{unit_weight}·{unit_arm_disp}]": r.moment * arm_scale,
-            }
-            for r in results
-        ]
+        {
+            "項目": [r["name"] for r in display_rows],
+            f"アーム [{unit_arm_disp}]": [disp_arm(r["arm"]) for r in display_rows],
+            f"重量 [{unit_weight}]": [r["weight"] for r in display_rows],
+            f"モーメント [{unit_weight}·{unit_arm_disp}]": [r["moment"] * arm_scale for r in display_rows],
+        }
     )
     st.markdown(
         """
