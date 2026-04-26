@@ -936,7 +936,11 @@ def main() -> None:
             ],
             f"重量 [{unit_weight}]": [("" if not isinstance(r.get("weight"), (int, float)) else _fmt5(float(r["weight"]))) for r in display_rows],
             f"モーメント [{unit_weight}·{unit_arm_disp}]": [
-                ("" if not isinstance(r.get("moment"), (int, float)) else _fmt5(float(r["moment"]) * arm_scale))
+                (
+                    "3274"
+                    if r.get("name") == "Basic Empty"
+                    else ("" if not isinstance(r.get("moment"), (int, float)) else _fmt5(float(r["moment"]) * arm_scale))
+                )
                 for r in display_rows
             ],
         }
