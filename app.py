@@ -623,13 +623,22 @@ def main() -> None:
 
         unit_weight = str(cfg.get("units", {}).get("weight", "kg"))
         unit_arm = str(cfg.get("units", {}).get("arm", "mm"))
+        # 画面表示は「m」に統一（内部計算は従来通り mm ベースのまま）
+        arm_scale = 0.001 if unit_arm.strip().lower() == "mm" else 1.0
+        unit_arm_disp = "m" if arm_scale == 0.001 else unit_arm
+
+        def disp_arm(x: float) -> float:
+            return float(x) * arm_scale
+
+        def undisp_arm(x: float) -> float:
+            return float(x) / arm_scale if arm_scale != 0 else float(x)
 
         st.subheader("基本空重（BEW）")
         sel_be = selected.get("basic_empty", {}) if isinstance(selected, dict) else {}
         bew_w = num(sel_be.get("weight", cfg.get("basic_empty", {}).get("weight", 0.0)))
         bew_a = num(sel_be.get("arm", cfg.get("basic_empty", {}).get("arm", 0.0)))
         st.write(f"- 重量: **{bew_w:,.2f} {unit_weight}**")
-        st.write(f"- アーム: **{bew_a:,.1f} {unit_arm}**")
+        st.write(f"- アーム: **{disp_arm(bew_a):,.3f} {unit_arm_disp}**")
 
         # limits: 機体ごとの上書きを優先
         lim_default = cfg.get("limits", {}) or {}
@@ -640,8 +649,10 @@ def main() -> None:
         cg_max = num(lim.get("cg_max", 0.0)) if use_limits else None
         use_limits = st.checkbox("固定CG範囲で判定する", value=use_limits)
         if use_limits:
-            cg_min = st.number_input("CG最小", value=float(cg_min or 0.0), format="%.3f")
-            cg_max = st.number_input("CG最大", value=float(cg_max or 0.0), format="%.3f")
+            cg_min_ui = st.number_input("CG最小", value=float(disp_arm(cg_min or 0.0)), format="%.3f")
+            cg_max_ui = st.number_input("CG最大", value=float(disp_arm(cg_max or 0.0)), format="%.3f")
+            cg_min = undisp_arm(cg_min_ui)
+            cg_max = undisp_arm(cg_max_ui)
 
         st.subheader("重量制限（任意）")
         mzfm = num(lim.get("mzfm", 0.0)) or None
