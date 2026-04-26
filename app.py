@@ -22,11 +22,14 @@ except ModuleNotFoundError:  # pragma: no cover
 
 try:
     from reportlab.lib.pagesizes import A4
+    from reportlab.lib.pagesizes import landscape
     from reportlab.lib import colors
     from reportlab.lib.units import mm
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
     from reportlab.graphics.shapes import Drawing, Line, String, PolyLine, Circle
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 except Exception:  # pragma: no cover
     A4 = None  # type: ignore[assignment]
 
@@ -1136,11 +1139,11 @@ def main() -> None:
                 return pad_b + (y_kg - ymin) / (ymax - ymin) * dh
 
             d = Drawing(w, h)
-            # 枠と軸
-            d.add(Line(pad_l, pad_b, pad_l + dw, pad_b, strokeColor=colors.white, strokeWidth=1))
-            d.add(Line(pad_l, pad_b, pad_l, pad_b + dh, strokeColor=colors.white, strokeWidth=1))
-            d.add(String(pad_l + dw / 2, 2 * mm, "Center of Gravity Position [m]", fillColor=colors.white, fontSize=7, textAnchor="middle"))
-            d.add(String(2 * mm, pad_b + dh / 2, "Flight Mass [kg]", fillColor=colors.white, fontSize=7, textAnchor="middle", angle=90))
+            # 枠と軸（PDFは白地なので黒で描画）
+            d.add(Line(pad_l, pad_b, pad_l + dw, pad_b, strokeColor=colors.black, strokeWidth=1))
+            d.add(Line(pad_l, pad_b, pad_l, pad_b + dh, strokeColor=colors.black, strokeWidth=1))
+            d.add(String(pad_l + dw / 2, 2 * mm, "Center of Gravity Position [m]", fillColor=colors.black, fontSize=7, textAnchor="middle"))
+            d.add(String(2 * mm, pad_b + dh / 2, "Flight Mass [kg]", fillColor=colors.black, fontSize=7, textAnchor="middle", angle=90))
 
             # エンベロープ
             if env_points_mm:
@@ -1160,14 +1163,31 @@ def main() -> None:
                 x = xmap(cg_mm / 1000.0)
                 y = ymap(wt)
                 d.add(Circle(x, y, 2.0, fillColor=colors.yellow, strokeColor=colors.yellow))
-                d.add(String(x + 3, y + 1, k, fillColor=colors.white, fontSize=7))
+                d.add(String(x + 3, y + 1, k, fillColor=colors.black, fontSize=7))
 
             return d
 
         def _make_pdf_bytes() -> bytes:
             buf = io.BytesIO()
-            doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=14 * mm, rightMargin=14 * mm, topMargin=12 * mm, bottomMargin=12 * mm)
+            # 日本語フォント（CID）を登録して文字化けを防ぐ
+            try:
+                pdfmetrics.registerFont(UnicodeCIDFont("HeiseiKakuGo-W5"))
+                jp_font = "HeiseiKakuGo-W5"
+            except Exception:
+                jp_font = "Helvetica"
+
+            doc = SimpleDocTemplate(
+                buf,
+                pagesize=landscape(A4),
+                leftMargin=14 * mm,
+                rightMargin=14 * mm,
+                topMargin=12 * mm,
+                bottomMargin=12 * mm,
+            )
             styles = getSampleStyleSheet()
+            for k in ["Title", "Normal", "Italic"]:
+                if k in styles.byName:
+                    styles[k].fontName = jp_font
 
             story: list = []
 
@@ -1179,7 +1199,7 @@ def main() -> None:
 
             hdr_tbl = Table(
                 [["ACFT Type", acft_type, "Ident", ident]],
-                colWidths=[22 * mm, 60 * mm, 18 * mm, 60 * mm],
+                colWidths=[22 * mm, 80 * mm, 18 * mm, 80 * mm],
             )
             hdr_tbl.setStyle(
                 TableStyle(
@@ -1189,6 +1209,7 @@ def main() -> None:
                         ("BACKGROUND", (2, 0), (2, 0), colors.lightgrey),
                         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("FONTNAME", (0, 0), (-1, -1), jp_font),
                     ]
                 )
             )
@@ -1220,6 +1241,7 @@ def main() -> None:
                         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                         ("FONTSIZE", (0, 0), (-1, -1), 8),
+                        ("FONTNAME", (0, 0), (-1, -1), jp_font),
                     ]
                 )
             )
@@ -1239,7 +1261,8 @@ def main() -> None:
             }
             env_draw = _build_envelope_drawing(env_points_mm=env_points_mm, points_mm=point_map)
 
-            main_row = Table([[wb_tbl, env_draw]], colWidths=[140 * mm, 56 * mm])
+            # 横ページに合わせて幅を拡張
+            main_row = Table([[wb_tbl, env_draw]], colWidths=[165 * mm, 95 * mm])
             main_row.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
             story.append(main_row)
 
@@ -1256,6 +1279,7 @@ def main() -> None:
                         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
                         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                         ("FONTSIZE", (0, 0), (-1, -1), 8),
+                        ("FONTNAME", (0, 0), (-1, -1), jp_font),
                     ]
                 )
             )
@@ -1280,6 +1304,7 @@ def main() -> None:
                         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                         ("FONTSIZE", (0, 0), (-1, -1), 9),
+                        ("FONTNAME", (0, 0), (-1, -1), jp_font),
                     ]
                 )
             )
