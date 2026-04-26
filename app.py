@@ -1014,6 +1014,25 @@ def main() -> None:
     st.table(out_styled)
 
     st.divider()
+    st.subheader("福島帰投時燃料")
+
+    remain_gal = max(main_fuel_gal - taxi_burn_gal - flight_burn_gal - return_burn_gal, 0.0)
+
+    def _fmt_hm_from_hours(hours: float) -> str:
+        mins = int(max(0.0, float(hours)) * 60.0)
+        h = mins // 60
+        m = mins % 60
+        return f"{h}時間{m}分"
+
+    endurance_10 = _fmt_hm_from_hours(remain_gal / 10.0)
+    endurance_166 = _fmt_hm_from_hours(remain_gal / 16.6)
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("福島帰投時残燃料 [US gal]", f"{remain_gal:.1f}")
+    c2.metric("10.0 GAL/hr", endurance_10)
+    c3.metric("16.6 GAL/hr", endurance_166)
+
+    st.divider()
     st.subheader("CGエンベロープ")
     # 機体ごとの envelope を優先
     env_default = cfg.get("envelope", {}) or {}
