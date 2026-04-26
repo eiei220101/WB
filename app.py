@@ -667,7 +667,7 @@ def main() -> None:
 
     arms = {k: num(v) for k, v in (cfg.get("arms_mm", {}) or {}).items()}
 
-    tab_input, tab_env, tab_breakdown = st.tabs(["入力（上面図）", "エンベロープ", "内訳"])
+    tab_input, tab_breakdown = st.tabs(["入力（上面図）", "内訳"])
 
     # 上面図クリックで ?edit=... が付いたら、ここで受け取る
     edit_key = st.query_params.get("edit")
@@ -888,7 +888,22 @@ def main() -> None:
                 elif status:
                     st.success(f"{label}: {status}")
 
-    with tab_env:
+    with tab_breakdown:
+        st.subheader("内訳一覧")
+        out = pd.DataFrame(
+            [
+                {
+                    "項目": r.name,
+                    f"アーム [{unit_arm_disp}]": disp_arm(r.arm),
+                    f"重量 [{unit_weight}]": r.weight,
+                    f"モーメント [{unit_weight}·{unit_arm_disp}]": r.moment * arm_scale,
+                }
+                for r in results
+            ]
+        )
+        st.dataframe(out, use_container_width=True, hide_index=True)
+
+        st.divider()
         st.subheader("CGエンベロープ")
         # 機体ごとの envelope を優先
         env_default = cfg.get("envelope", {}) or {}
@@ -1088,21 +1103,6 @@ def main() -> None:
             left_pad, center, right_pad = st.columns([1, 3, 1])
             with center:
                 st.plotly_chart(fig, use_container_width=False)
-
-    with tab_breakdown:
-        st.subheader("内訳一覧")
-        out = pd.DataFrame(
-            [
-                {
-                    "項目": r.name,
-                    f"アーム [{unit_arm_disp}]": disp_arm(r.arm),
-                    f"重量 [{unit_weight}]": r.weight,
-                    f"モーメント [{unit_weight}·{unit_arm_disp}]": r.moment * arm_scale,
-                }
-                for r in results
-            ]
-        )
-        st.dataframe(out, use_container_width=True, hide_index=True)
 
     with st.expander("計算の考え方（初心者向け）"):
         st.markdown(
