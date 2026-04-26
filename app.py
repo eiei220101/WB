@@ -1227,20 +1227,37 @@ def main() -> None:
             doc.build(story)
             return buf.getvalue()
 
-        def _make_pdf_bytes_with_template() -> bytes:
+        st.subheader("PDF出力")
+        tpl_file = st.file_uploader(
+            "1ページ目テンプレPDF（このPDFの1ページ目をそのまま差し込みます）",
+            type=["pdf"],
+            key="pdf_template_upload",
+        )
+
+        def _make_pdf_bytes_with_template() -> tuple[bytes, bool]:
             """
             1ページ目: 指定テンプレPDFの1ページ目をそのまま使用
             2ページ目: アプリで生成（DVT候補）
             """
-            # ユーザー指定パス（ローカル実行向け）。存在しない場合は生成PDFのみを返す。
-            template_path = Path(r"c:\Users\石川瑛一朗\Downloads\56DA 重量重心のコピー.pdf")
             page2 = _make_page2_pdf_bytes()
 
-            if PdfReader is None or PdfWriter is None or (not template_path.exists()):
-                return page2
+            if PdfReader is None or PdfWriter is None:
+                return page2, False
 
             try:
-                r_tpl = PdfReader(str(template_path))
+                tpl_bytes: bytes | None = None
+                if tpl_file is not None:
+                    tpl_bytes = tpl_file.getvalue()
+                else:
+                    # ローカル実行向けフォールバック（存在すれば使用）
+                    template_path = Path(r"c:\Users\石川瑛一朗\Downloads\56DA 重量重心のコピー.pdf")
+                    if template_path.exists():
+                        tpl_bytes = template_path.read_bytes()
+
+                if not tpl_bytes:
+                    return page2, False
+
+                r_tpl = PdfReader(io.BytesIO(tpl_bytes))
                 r_p2 = PdfReader(io.BytesIO(page2))
                 w = PdfWriter()
                 if r_tpl.pages:
@@ -1249,11 +1266,13 @@ def main() -> None:
                     w.add_page(p)
                 out = io.BytesIO()
                 w.write(out)
-                return out.getvalue()
+                return out.getvalue(), True
             except Exception:
-                return page2
+                return page2, False
 
-        pdf_bytes = _make_pdf_bytes_with_template()
+        pdf_bytes, used_template = _make_pdf_bytes_with_template()
+        if not used_template:
+            st.info("テンプレPDFが未指定/未読込のため、DVTページのみをPDF化しています。テンプレPDFをアップロードすると2ページ構成になります。")
         st.download_button(
             "PDFをダウンロード（2ページ）",
             data=pdf_bytes,
