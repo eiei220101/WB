@@ -880,12 +880,32 @@ def main() -> None:
     landing2_fuel_remain = max(landing1_fuel_remain - return_burn_kg, 0.0)
     ldg2_row = _total("LDG Weight（帰投時）", base_rows + [_row("Fuel remaining (LDG2)", landing2_fuel_remain, fuel_arm)])
 
+    # 追加情報（福島帰投時の残燃量と、燃費別の飛行可能時間）
+    def _fmt_hm(hours: float) -> str:
+        mins = int(max(0.0, float(hours)) * 60.0)
+        h = mins // 60
+        m = mins % 60
+        return f"{h}時間{m}分"
+
+    remain_gal_fukushima = landing2_fuel_remain / fuel_kg_per_usg if fuel_kg_per_usg > 0 else 0.0
+    endurance_10 = _fmt_hm(remain_gal_fukushima / 10.0 if 10.0 > 0 else 0.0)
+    endurance_166 = _fmt_hm(remain_gal_fukushima / 16.6 if 16.6 > 0 else 0.0)
+
+    spacer_row = {"name": "", "weight": "", "arm": "", "moment": ""}
+    info_row = {
+        "name": f"福島帰投時 残燃量: {remain_gal_fukushima:.1f} US gal / 10.0 GAL/hr: {endurance_10} / 16.6 GAL/hr: {endurance_166}",
+        "weight": "",
+        "arm": "",
+        "moment": "",
+    }
+
     display_rows = (
         base_rows
         + [zfm_row]
         + [main_fuel_row, taxi_run_row, tow_row]
         + [out_fuel_cons_row, ldg1_row]
         + [return_fuel_cons_row, ldg2_row]
+        + [spacer_row, info_row]
     )
 
     zfm = points["ZFM"]
@@ -896,10 +916,16 @@ def main() -> None:
     st.subheader("内訳一覧")
     out = pd.DataFrame(
         {
-            "項目": [r["name"] for r in display_rows],
-            f"アーム [{unit_arm_disp}]": [disp_arm(r["arm"]) for r in display_rows],
-            f"重量 [{unit_weight}]": [r["weight"] for r in display_rows],
-            f"モーメント [{unit_weight}·{unit_arm_disp}]": [r["moment"] * arm_scale for r in display_rows],
+            "項目": [r.get("name", "") for r in display_rows],
+            f"アーム [{unit_arm_disp}]": [
+                ("" if not isinstance(r.get("arm"), (int, float)) else disp_arm(float(r["arm"])))
+                for r in display_rows
+            ],
+            f"重量 [{unit_weight}]": [("" if not isinstance(r.get("weight"), (int, float)) else float(r["weight"])) for r in display_rows],
+            f"モーメント [{unit_weight}·{unit_arm_disp}]": [
+                ("" if not isinstance(r.get("moment"), (int, float)) else float(r["moment"]) * arm_scale)
+                for r in display_rows
+            ],
         }
     )
     st.markdown(
