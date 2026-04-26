@@ -861,11 +861,15 @@ def main() -> None:
         ]
     )
     out_styled = (
-        out.style.hide(axis="index")
-        .set_properties(**{"text-align": "center"})
-        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+        out.style.set_properties(**{"text-align": "center"})
+        .set_table_styles(
+            [
+                {"selector": "th", "props": [("text-align", "center")]},
+                {"selector": "td", "props": [("text-align", "center")]},
+            ]
+        )
     )
-    st.dataframe(out_styled, use_container_width=True)
+    st.dataframe(out_styled, use_container_width=True, hide_index=True)
 
     st.divider()
     st.subheader("CGエンベロープ")
