@@ -13,11 +13,22 @@ import base64
 from pathlib import Path
 import traceback
 import json
+import io
 
 try:
     import tomllib  # py3.11+
 except ModuleNotFoundError:  # pragma: no cover
     tomllib = None  # type: ignore[assignment]
+
+try:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+    from reportlab.graphics.shapes import Drawing, Line, String, PolyLine, Circle
+except Exception:  # pragma: no cover
+    A4 = None  # type: ignore[assignment]
 
 # --- ページ設定（見やすさ） ---
 st.set_page_config(
@@ -1092,6 +1103,200 @@ def main() -> None:
     )
     st.caption("RJSFからの各距離・無風状態")
     st.table(dvt_styled)
+
+    # --- PDF 出力（2ページ） ---
+    if A4 is None:
+        st.warning("PDF出力には `reportlab` が必要です（requirements に追加済み）。")
+    else:
+        def _build_envelope_drawing(*, env_points_mm: list[tuple[float, float]], points_mm: dict[str, tuple[float, float]]):
+            # 右上の簡易プロット（CG[m] vs Weight[kg]）
+            w, h = 110 * mm, 75 * mm
+            pad_l, pad_b, pad_r, pad_t = 12 * mm, 10 * mm, 6 * mm, 8 * mm
+            dw = w - pad_l - pad_r
+            dh = h - pad_b - pad_t
+
+            # 範囲（envがある場合はそれに合わせる。無い場合は適当）
+            if env_points_mm:
+                xs_m = [x / 1000.0 for x, _ in env_points_mm]
+                ys = [y for _, y in env_points_mm]
+                xmin, xmax = min(xs_m), max(xs_m)
+                ymin, ymax = min(ys), max(ys)
+            else:
+                xmin, xmax = 2.35, 2.50
+                ymin, ymax = 1250.0, 1800.0
+
+            # 余白
+            xmin, xmax = xmin - 0.01, xmax + 0.01
+            ymin, ymax = ymin - 20.0, ymax + 20.0
+
+            def xmap(x_m: float) -> float:
+                return pad_l + (x_m - xmin) / (xmax - xmin) * dw
+
+            def ymap(y_kg: float) -> float:
+                return pad_b + (y_kg - ymin) / (ymax - ymin) * dh
+
+            d = Drawing(w, h)
+            # 枠と軸
+            d.add(Line(pad_l, pad_b, pad_l + dw, pad_b, strokeColor=colors.white, strokeWidth=1))
+            d.add(Line(pad_l, pad_b, pad_l, pad_b + dh, strokeColor=colors.white, strokeWidth=1))
+            d.add(String(pad_l + dw / 2, 2 * mm, "Center of Gravity Position [m]", fillColor=colors.white, fontSize=7, textAnchor="middle"))
+            d.add(String(2 * mm, pad_b + dh / 2, "Flight Mass [kg]", fillColor=colors.white, fontSize=7, textAnchor="middle", angle=90))
+
+            # エンベロープ
+            if env_points_mm:
+                poly = [(xmap(x / 1000.0), ymap(y)) for x, y in env_points_mm]
+                if poly:
+                    poly2 = poly + [poly[0]]
+                    d.add(PolyLine(poly2, strokeColor=colors.red, strokeWidth=2, fillColor=None))
+
+            # 参考線（固定）
+            for y, label in [(1785.0, "T/O Weight"), (1700.0, "LDG Weight")]:
+                yy = ymap(y)
+                d.add(Line(pad_l, yy, pad_l + dw, yy, strokeColor=colors.red, strokeWidth=1))
+                d.add(String(pad_l + 2 * mm, yy + 1 * mm, label, fillColor=colors.red, fontSize=7))
+
+            # 点（ZFM/TOW/LW1/LW2）
+            for k, (cg_mm, wt) in points_mm.items():
+                x = xmap(cg_mm / 1000.0)
+                y = ymap(wt)
+                d.add(Circle(x, y, 2.0, fillColor=colors.yellow, strokeColor=colors.yellow))
+                d.add(String(x + 3, y + 1, k, fillColor=colors.white, fontSize=7))
+
+            return d
+
+        def _make_pdf_bytes() -> bytes:
+            buf = io.BytesIO()
+            doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=14 * mm, rightMargin=14 * mm, topMargin=12 * mm, bottomMargin=12 * mm)
+            styles = getSampleStyleSheet()
+
+            story: list = []
+
+            # Page 1
+            acft_type = str(selected.get("model", "") or "DA42")
+            ident = str(tail or "")
+            story.append(Paragraph("W&B / 離着陸距離・性能確認シート", styles["Title"]))
+            story.append(Spacer(1, 3 * mm))
+
+            hdr_tbl = Table(
+                [["ACFT Type", acft_type, "Ident", ident]],
+                colWidths=[22 * mm, 60 * mm, 18 * mm, 60 * mm],
+            )
+            hdr_tbl.setStyle(
+                TableStyle(
+                    [
+                        ("GRID", (0, 0), (-1, -1), 0.8, colors.black),
+                        ("BACKGROUND", (0, 0), (0, 0), colors.lightgrey),
+                        ("BACKGROUND", (2, 0), (2, 0), colors.lightgrey),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ]
+                )
+            )
+            story.append(hdr_tbl)
+            story.append(Spacer(1, 4 * mm))
+
+            # 左：内訳テーブル（画像を参考にした並び）
+            cols = ["項目", "Level arm [m]", f"Mass [{unit_weight}]", f"Moment [{unit_weight}m]"]
+            table_data = [cols]
+            for r in display_rows:
+                name = str(r.get("name", ""))
+                a = r.get("arm")
+                wgt = r.get("weight")
+                mom = r.get("moment")
+                arm_m = "" if not isinstance(a, (int, float)) else f"{disp_arm(float(a)):.3f}"
+                mass_s = "" if not isinstance(wgt, (int, float)) else f"{float(wgt):.1f}"
+                if name == "Basic Empty":
+                    moment_s = str(selected.get("basic_empty", {}).get("moment_kgm", 3274.0))
+                else:
+                    moment_s = "" if not isinstance(mom, (int, float)) else f"{float(mom) * arm_scale:.1f}"
+                table_data.append([name, arm_m, mass_s, moment_s])
+
+            wb_tbl = Table(table_data, colWidths=[52 * mm, 26 * mm, 28 * mm, 32 * mm])
+            wb_tbl.setStyle(
+                TableStyle(
+                    [
+                        ("GRID", (0, 0), (-1, -1), 0.6, colors.black),
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ]
+                )
+            )
+
+            # 右：エンベロープ
+            env_default = cfg.get("envelope", {}) or {}
+            env_override = selected.get("envelope", {}) if isinstance(selected, dict) else {}
+            env_cfg = {**env_default, **(env_override or {})}
+            env_points = parse_points(env_cfg.get("points", []))
+            env_points_mm = [(float(cg), float(wt)) for (cg, wt) in env_points]
+
+            point_map = {
+                "ZFM": (float(zfm.cg or 0.0), float(zfm.weight)),
+                "TOW": (float(tow.cg or 0.0), float(tow.weight)),
+                "LW1": (float(lw1.cg or 0.0), float(lw1.weight)),
+                "LW2": (float(lw2.cg or 0.0), float(lw2.weight)),
+            }
+            env_draw = _build_envelope_drawing(env_points_mm=env_points_mm, points_mm=point_map)
+
+            main_row = Table([[wb_tbl, env_draw]], colWidths=[140 * mm, 56 * mm])
+            main_row.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
+            story.append(main_row)
+
+            story.append(Spacer(1, 6 * mm))
+            perf_tbl = Table(
+                [["離着陸距離及び性能", "", "", ""], ["気温", "", "気圧高度(QNH)", ""], ["離陸距離", "", "グランドロール", ""], ["着陸距離", "", "グランドロール", ""], ["TwoENG CLIMB", "", "OneENG CLIMB", ""], ["ACGD DIST", "", "ACSTOP DIST", ""]],
+                colWidths=[35 * mm, 45 * mm, 35 * mm, 45 * mm],
+            )
+            perf_tbl.setStyle(
+                TableStyle(
+                    [
+                        ("GRID", (0, 0), (-1, -1), 0.6, colors.black),
+                        ("SPAN", (0, 0), (-1, 0)),
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 8),
+                    ]
+                )
+            )
+            story.append(perf_tbl)
+
+            # Page 2
+            story.append(PageBreak())
+            story.append(Paragraph("DVT候補（10.0 GAL/hr）", styles["Title"]))
+            story.append(Spacer(1, 3 * mm))
+            story.append(Paragraph(f"福島帰投時残燃料: {remain_gal:.1f} US gal", styles["Normal"]))
+            story.append(Paragraph(f"GS120 到達可能距離: {max_nm_120:.1f} NM / GS140 到達可能距離: {max_nm_140:.1f} NM", styles["Normal"]))
+            story.append(Spacer(1, 3 * mm))
+
+            # dvt_df は表示用に整形済み（空港/距離/GS120kt/GS140kt）
+            dvt_data = [["空港", "距離", "GS120kt", "GS140kt"]] + dvt_df.values.tolist()
+            dvt_tbl = Table(dvt_data, colWidths=[70 * mm, 25 * mm, 45 * mm, 45 * mm])
+            dvt_tbl.setStyle(
+                TableStyle(
+                    [
+                        ("GRID", (0, 0), (-1, -1), 0.6, colors.black),
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ]
+                )
+            )
+            story.append(Paragraph("RJSFからの各距離・無風状態", styles["Italic"]))
+            story.append(Spacer(1, 2 * mm))
+            story.append(dvt_tbl)
+
+            doc.build(story)
+            return buf.getvalue()
+
+        pdf_bytes = _make_pdf_bytes()
+        st.download_button(
+            "PDFをダウンロード（2ページ）",
+            data=pdf_bytes,
+            file_name=f"DA42_WB_{tail or 'export'}.pdf",
+            mime="application/pdf",
+        )
 
     st.divider()
     st.subheader("CGエンベロープ")
