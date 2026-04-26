@@ -1024,13 +1024,36 @@ def main() -> None:
         m = mins % 60
         return f"{h}時間{m}分"
 
-    endurance_10 = _fmt_hm_from_hours(remain_gal / 10.0)
+    endurance_hours_10 = remain_gal / 10.0
+    endurance_10 = _fmt_hm_from_hours(endurance_hours_10)
     endurance_166 = _fmt_hm_from_hours(remain_gal / 16.6)
 
     c1, c2, c3 = st.columns(3)
     c1.metric("福島帰投時残燃料 [US gal]", f"{remain_gal:.1f}")
     c2.metric("10.0 GAL/hr", endurance_10)
     c3.metric("16.6 GAL/hr", endurance_166)
+
+    st.subheader("DVT候補（10.0 GAL/hr）")
+    max_nm_120 = max(0.0, endurance_hours_10) * 120.0
+    max_nm_140 = max(0.0, endurance_hours_10) * 140.0
+    d1, d2 = st.columns(2)
+    d1.metric("GS 120 kt 到達可能距離 [NM]", f"{max_nm_120:.1f}")
+    d2.metric("GS 140 kt 到達可能距離 [NM]", f"{max_nm_140:.1f}")
+
+    divert = [
+        {"空港": "RJSS", "距離 [NM]": 61.0},
+        {"空港": "RJSN", "距離 [NM]": 77.0},
+        {"空港": "RJST", "距離 [NM]": 80.0},
+        {"空港": "RJTU", "距離 [NM]": 52.0},
+        {"空港": "RJSC", "距離 [NM]": 71.0},
+        {"空港": "RJAH", "距離 [NM]": 63.0},
+        {"空港": "RJSY", "距離 [NM]": 100.0},
+    ]
+    dvt_df = pd.DataFrame(divert)
+    dvt_df["GS120kt"] = dvt_df["距離 [NM]"].apply(lambda d: "OK" if float(d) <= max_nm_120 else "NG")
+    dvt_df["GS140kt"] = dvt_df["距離 [NM]"].apply(lambda d: "OK" if float(d) <= max_nm_140 else "NG")
+    st.caption("距離は RJSF 起点（指定値）です。")
+    st.dataframe(dvt_df, use_container_width=True, hide_index=True)
 
     st.divider()
     st.subheader("CGエンベロープ")
