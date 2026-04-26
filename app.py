@@ -1041,19 +1041,36 @@ def main() -> None:
     d2.metric("GS 140 kt 到達可能距離 [NM]", f"{max_nm_140:.1f}")
 
     divert = [
-        {"空港": "RJSS", "距離 [NM]": 61.0},
-        {"空港": "RJSN", "距離 [NM]": 77.0},
-        {"空港": "RJST", "距離 [NM]": 80.0},
-        {"空港": "RJTU", "距離 [NM]": 52.0},
-        {"空港": "RJSC", "距離 [NM]": 71.0},
-        {"空港": "RJAH", "距離 [NM]": 63.0},
-        {"空港": "RJSY", "距離 [NM]": 100.0},
+        {"空港": "RJSS", "名称": "仙台空港", "距離 [NM]": 61.0},
+        {"空港": "RJSN", "名称": "新潟空港", "距離 [NM]": 77.0},
+        {"空港": "RJSC", "名称": "山形空港", "距離 [NM]": 71.0},
+        {"空港": "RJSY", "名称": "庄内空港", "距離 [NM]": 100.0},
+        {"空港": "RJSI", "名称": "花巻空港", "距離 [NM]": 136.0},
+        {"空港": "RJSK", "名称": "秋田空港", "距離 [NM]": 143.0},
+        {"空港": "RJST", "名称": "松島基地", "距離 [NM]": 80.0},
+        {"空港": "RJTU", "名称": "宇都宮飛行場", "距離 [NM]": 52.0},
+        {"空港": "RJAH", "名称": "百里基地", "距離 [NM]": 63.0},
     ]
-    dvt_df = pd.DataFrame(divert)
+    dvt_df = pd.DataFrame(divert)[["空港", "名称", "距離 [NM]"]]
     dvt_df["GS120kt"] = dvt_df["距離 [NM]"].apply(lambda d: "OK" if float(d) <= max_nm_120 else "NG")
     dvt_df["GS140kt"] = dvt_df["距離 [NM]"].apply(lambda d: "OK" if float(d) <= max_nm_140 else "NG")
+
+    def _okng_style(v: str) -> str:
+        s = str(v)
+        if s == "OK":
+            return "background-color: #bbf7d0; color: #065f46; font-weight: 700;"
+        if s == "NG":
+            return "background-color: #fecaca; color: #7f1d1d; font-weight: 700;"
+        return ""
+
+    dvt_styled = (
+        dvt_df.style.hide(axis="index")
+        .set_properties(**{"text-align": "center"})
+        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+        .map(_okng_style, subset=["GS120kt", "GS140kt"])
+    )
     st.caption("距離は RJSF 起点（指定値）です。")
-    st.dataframe(dvt_df, use_container_width=True, hide_index=True)
+    st.table(dvt_styled)
 
     st.divider()
     st.subheader("CGエンベロープ")
