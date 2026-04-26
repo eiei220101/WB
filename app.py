@@ -746,9 +746,17 @@ def main() -> None:
             st.markdown("**座席**")
             st.number_input("Front seat L", min_value=0.0, step=1.0, format="%.1f", key="front_l")
             _inst_map = {"山口教官": 72.0, "羽山教官": 73.0, "増本教官": 83.0}
-            front_r_mode = st.selectbox("Front seat R", ["手入力", "山口教官", "羽山教官", "増本教官"], key="front_r_mode")
-            if front_r_mode == "手入力":
-                v = st.number_input("Front seat R（手入力）", min_value=0.0, step=1.0, format="%.1f", value=_ss_num("front_r"), key="front_r_manual")
+            front_r_mode = st.selectbox("Front seat R", ["体重を入力", "山口教官", "羽山教官", "増本教官"], key="front_r_mode")
+            if front_r_mode == "体重を入力":
+                v = st.number_input(
+                    "Front seat R（体重）",
+                    min_value=0.0,
+                    step=1.0,
+                    format="%.1f",
+                    value=_ss_num("front_r"),
+                    key="front_r_manual",
+                    label_visibility="collapsed",
+                )
                 st.session_state["front_r"] = float(v)
             else:
                 st.session_state["front_r"] = float(_inst_map.get(front_r_mode, 0.0))
@@ -885,11 +893,11 @@ def main() -> None:
     takeoff_fuel_remain = max(main_fuel_kg - taxi_burn_kg, 0.0)
     tow_row = _total("TAKE OFF WEIGHT", base_rows + [_row("Fuel remaining (T/O)", takeoff_fuel_remain, fuel_arm)])
 
-    out_fuel_cons_row = _row("FUEL Consumption 行き", -flight_burn_kg, fuel_arm)
+    out_fuel_cons_row = _row("FUEL Consumption（行き）", -flight_burn_kg, fuel_arm)
     landing1_fuel_remain = max(takeoff_fuel_remain - flight_burn_kg, 0.0)
-    ldg1_row = _total("LDG Weight 目的地空港着陸時", base_rows + [_row("Fuel remaining (LDG1)", landing1_fuel_remain, fuel_arm)])
+    ldg1_row = _total("LDG Weight（目的地空港着陸時）", base_rows + [_row("Fuel remaining (LDG1)", landing1_fuel_remain, fuel_arm)])
 
-    return_fuel_cons_row = _row("FUEL Consumption 帰り", -return_burn_kg, fuel_arm)
+    return_fuel_cons_row = _row("FUEL Consumption（帰り）", -return_burn_kg, fuel_arm)
     landing2_fuel_remain = max(landing1_fuel_remain - return_burn_kg, 0.0)
     ldg2_row = _total("LDG Weight（帰投時）", base_rows + [_row("Fuel remaining (LDG2)", landing2_fuel_remain, fuel_arm)])
 
@@ -909,7 +917,8 @@ def main() -> None:
     st.subheader("内訳一覧")
     def _fmt5(x) -> str:
         try:
-            return f"{float(x):.5f}"
+            s = f"{float(x):.5f}"
+            return s.rstrip("0").rstrip(".")
         except Exception:
             return ""
 
@@ -943,8 +952,7 @@ def main() -> None:
     # 行数に応じて高さを確保し、内訳一覧でスクロールが出ないようにする
     _row_h_px = 36
     _header_h_px = 40
-    _pad_px = 12
-    _height_px = int(_header_h_px + _pad_px + _row_h_px * len(out))
+    _height_px = int(_header_h_px + _row_h_px * len(out))
     st.dataframe(out, use_container_width=True, hide_index=True, height=_height_px)
 
     st.divider()
