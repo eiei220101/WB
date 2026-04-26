@@ -666,6 +666,11 @@ def main() -> None:
             )
 
     arms = {k: num(v) for k, v in (cfg.get("arms_mm", {}) or {}).items()}
+    # rear seats のアームが未設定（0）の場合は 3.25m (=3250mm) を採用
+    if float(arms.get("rear_seat_left", 0.0) or 0.0) == 0.0:
+        arms["rear_seat_left"] = 3250.0
+    if float(arms.get("rear_seat_right", 0.0) or 0.0) == 0.0:
+        arms["rear_seat_right"] = 3250.0
 
     st.subheader("入力")
     st.caption("燃料は **US gal** で入力（1 US gal = 3.028 kg）。De-ice は **L** 入力（1 L = 1.1 kg）。")
@@ -1056,6 +1061,32 @@ def main() -> None:
         # 参考の制限線（入力がある場合のみ）
         shapes = []
         ann = []
+
+        # 指定の参考線（常に表示）
+        for y, title in [(1785.0, "T/O Weight"), (1700.0, "LDG Weight")]:
+            shapes.append(
+                dict(
+                    type="line",
+                    xref="paper",
+                    x0=0,
+                    x1=1,
+                    y0=y,
+                    y1=y,
+                    line=dict(color="#ef4444", width=2, dash="solid"),
+                )
+            )
+            ann.append(
+                dict(
+                    xref="paper",
+                    x=0.02,
+                    y=y,
+                    text=title,
+                    showarrow=False,
+                    font=dict(color="#ef4444", size=14),
+                    yanchor="bottom",
+                )
+            )
+
         if mlw and mlw > 0:
             shapes.append(
                 dict(
