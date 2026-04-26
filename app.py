@@ -926,6 +926,17 @@ def main() -> None:
         except Exception:
             return ""
 
+    # 制限値（固定）
+    LIMIT_TOW = 1785.0
+    LIMIT_LDG = 1700.0
+
+    def _row_color(name: str, weight: float) -> str | None:
+        if name == "TAKE OFF WEIGHT":
+            return "#16a34a" if weight <= LIMIT_TOW else "#dc2626"
+        if name == "LDG Weight（帰投時）":
+            return "#16a34a" if weight <= LIMIT_LDG else "#dc2626"
+        return None
+
     out = pd.DataFrame(
         {
             "項目": [r.get("name", "") for r in display_rows],
@@ -944,24 +955,26 @@ def main() -> None:
             ],
         }
     )
-    st.markdown(
-        """
-        <style>
-        /* Streamlit DataFrame (grid) center alignment */
-        div[data-testid="stDataFrame"] div[role="columnheader"] > div,
-        div[data-testid="stDataFrame"] div[role="gridcell"] > div {
-          text-align: center !important;
-          justify-content: center !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
+
+    # 行ごとの色付け（TOW/LDGの制限判定）＋中央揃え
+    def _style_row(row: "pd.Series"):
+        name = str(row.get("項目", ""))
+        w = display_rows[row.name].get("weight")
+        if not isinstance(w, (int, float)):
+            return [""] * len(row)
+        c = _row_color(name, float(w))
+        if not c:
+            return [""] * len(row)
+        return [f"background-color: {c}; color: white; font-weight: 700;"] * len(row)
+
+    out_styled = (
+        out.style.hide(axis="index")
+        .set_properties(**{"text-align": "center"})
+        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+        .apply(_style_row, axis=1)
     )
-    # 行数に応じて高さを確保し、内訳一覧でスクロールが出ないようにする
-    _row_h_px = 36
-    _header_h_px = 40
-    _height_px = int(_header_h_px + _row_h_px * len(out))
-    st.dataframe(out, use_container_width=True, hide_index=True, height=_height_px)
+    # スクロールさせず、スタイルが確実に効く表示（table）
+    st.table(out_styled)
 
     st.divider()
     st.subheader("CGエンベロープ")
