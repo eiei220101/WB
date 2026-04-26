@@ -804,23 +804,22 @@ def main() -> None:
             elif status:
                 st.success(f"{label}: {status}")
 
-    with tab_breakdown:
-        st.subheader("内訳一覧")
-        out = pd.DataFrame(
-            [
-                {
-                    "項目": r.name,
-                    f"アーム [{unit_arm_disp}]": disp_arm(r.arm),
-                    f"重量 [{unit_weight}]": r.weight,
-                    f"モーメント [{unit_weight}·{unit_arm_disp}]": r.moment * arm_scale,
-                }
-                for r in results
-            ]
-        )
-        st.dataframe(out, use_container_width=True, hide_index=True)
+    st.subheader("内訳一覧")
+    out = pd.DataFrame(
+        [
+            {
+                "項目": r.name,
+                f"アーム [{unit_arm_disp}]": disp_arm(r.arm),
+                f"重量 [{unit_weight}]": r.weight,
+                f"モーメント [{unit_weight}·{unit_arm_disp}]": r.moment * arm_scale,
+            }
+            for r in results
+        ]
+    )
+    st.dataframe(out, use_container_width=True, hide_index=True)
 
-        st.divider()
-        st.subheader("CGエンベロープ")
+    st.divider()
+    st.subheader("CGエンベロープ")
         # 機体ごとの envelope を優先
         env_default = cfg.get("envelope", {}) or {}
         env_override = selected.get("envelope", {}) if isinstance(selected, dict) else {}
