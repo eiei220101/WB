@@ -820,12 +820,21 @@ def main() -> None:
     )
 
     # 内訳（ZFM/TOW/LWそれぞれで共通の“入力値”を表示したいので、現在の搭載項目を一覧化）
+    def _combined_arm(w1: float, a1: float, w2: float, a2: float) -> float:
+        tw = float(w1) + float(w2)
+        if tw <= 0:
+            return 0.0
+        return (float(w1) * float(a1) + float(w2) * float(a2)) / tw
+
+    front_a_l = float(arms.get("front_seat_left", 0.0))
+    front_a_r = float(arms.get("front_seat_right", 0.0))
+    rear_a_l = float(arms.get("rear_seat_left", 0.0))
+    rear_a_r = float(arms.get("rear_seat_right", 0.0))
+
     load_components = {
         "Basic Empty": (bew_w, bew_a),
-        "Front seat L": (front_l, arms.get("front_seat_left", 0.0)),
-        "Front seat R": (front_r, arms.get("front_seat_right", 0.0)),
-        "Rear seat L": (rear_l, arms.get("rear_seat_left", 0.0)),
-        "Rear seat R": (rear_r, arms.get("rear_seat_right", 0.0)),
+        "FrontSeat": (front_l + front_r, _combined_arm(front_l, front_a_l, front_r, front_a_r)),
+        "RearSeat": (rear_l + rear_r, _combined_arm(rear_l, rear_a_l, rear_r, rear_a_r)),
         "Nose baggage": (nose_bag, arms.get("nose_baggage", 0.0)),
         "Cockpit baggage": (cockpit_bag, arms.get("cockpit_baggage", 0.0)),
         "Baggage extension": (bag_ext, arms.get("baggage_extension", 0.0)),
