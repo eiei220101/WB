@@ -960,12 +960,29 @@ def main() -> None:
     def _style_row(row: "pd.Series"):
         name = str(row.get("項目", ""))
         w = display_rows[row.name].get("weight")
-        if not isinstance(w, (int, float)):
+        styles: list[str] = []
+
+        # 太枠で囲う行
+        boxed = {
+            "ZERO FUEL MASS",
+            "TAKE OFF WEIGHT",
+            "LDG Weight（目的地空港着陸時）",
+            "LDG Weight（帰投時）",
+        }
+        if name in boxed:
+            styles.append("border-top: 3px solid #000; border-bottom: 3px solid #000;")
+            styles.append("border-left: 3px solid #000; border-right: 3px solid #000;")
+
+        # 色付け（判定できる行だけ）
+        if isinstance(w, (int, float)):
+            c = _row_color(name, float(w))
+            if c:
+                styles.append(f"background-color: {c}; color: white; font-weight: 700;")
+
+        css = " ".join(styles).strip()
+        if not css:
             return [""] * len(row)
-        c = _row_color(name, float(w))
-        if not c:
-            return [""] * len(row)
-        return [f"background-color: {c}; color: white; font-weight: 700;"] * len(row)
+        return [css] * len(row)
 
     out_styled = (
         out.style.hide(axis="index")
