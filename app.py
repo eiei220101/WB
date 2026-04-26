@@ -667,50 +667,109 @@ def main() -> None:
 
     arms = {k: num(v) for k, v in (cfg.get("arms_mm", {}) or {}).items()}
 
-    st.subheader("入力（内訳表で直接編集）")
-    st.caption("内訳の表で値を編集すると自動で再計算します。燃料は US gal 入力（1 US gal = 3.028 kg）。")
+    st.subheader("入力")
+    st.caption("燃料は **US gal** で入力（1 US gal = 3.028 kg）。De-ice は **L** 入力（1 L = 1.1 kg）。")
 
     fuel_kg_per_usg = 3.028
 
     def _ss_num(key: str, default: float = 0.0) -> float:
         return float(st.session_state.get(key, default) or 0.0)
 
-    # 入力用の編集テーブル
-    input_rows = [
-        {"key": "front_l", "項目": "Front seat L", "入力値": _ss_num("front_l"), "単位": unit_weight},
-        {"key": "front_r", "項目": "Front seat R", "入力値": _ss_num("front_r"), "単位": unit_weight},
-        {"key": "rear_l", "項目": "Rear seat L", "入力値": _ss_num("rear_l"), "単位": unit_weight},
-        {"key": "rear_r", "項目": "Rear seat R", "入力値": _ss_num("rear_r"), "単位": unit_weight},
-        {"key": "nose_bag", "項目": "Nose baggage", "入力値": _ss_num("nose_bag"), "単位": unit_weight},
-        {"key": "cockpit_bag", "項目": "Cockpit baggage", "入力値": _ss_num("cockpit_bag"), "単位": unit_weight},
-        {"key": "bag_ext", "項目": "Baggage extension", "入力値": _ss_num("bag_ext"), "単位": unit_weight},
-        {"key": "deice_l", "項目": "De-ice fluid", "入力値": _ss_num("deice_l"), "単位": "L"},
-        {"key": "main_fuel_gal", "項目": "Main fuel (loaded)", "入力値": _ss_num("main_fuel_gal"), "単位": "US gal"},
-        {"key": "taxi_burn_gal", "項目": "Taxi burn", "入力値": _ss_num("taxi_burn_gal"), "単位": "US gal"},
-        {"key": "flight_burn_gal", "項目": "Flight burn", "入力値": _ss_num("flight_burn_gal"), "単位": "US gal"},
-        {"key": "return_burn_gal", "項目": "Return burn", "入力値": _ss_num("return_burn_gal"), "単位": "US gal"},
-    ]
+    c_mode, c_reset = st.columns([3, 1], vertical_alignment="bottom")
+    with c_mode:
+        input_mode = st.radio("入力方法", ["フォーム（おすすめ）", "表（一覧で編集）"], horizontal=True, key="input_mode")
+    with c_reset:
+        if st.button("入力をリセット"):
+            for k in [
+                "front_l",
+                "front_r",
+                "rear_l",
+                "rear_r",
+                "nose_bag",
+                "cockpit_bag",
+                "bag_ext",
+                "deice_l",
+                "main_fuel_gal",
+                "taxi_burn_gal",
+                "flight_burn_gal",
+                "return_burn_gal",
+            ]:
+                st.session_state[k] = 0.0
+            st.rerun()
 
-    in_df = pd.DataFrame(input_rows)
-    edited = st.data_editor(
-        in_df,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "key": st.column_config.TextColumn("key", disabled=True),
-            "項目": st.column_config.TextColumn("項目", disabled=True),
-            "入力値": st.column_config.NumberColumn("入力値"),
-            "単位": st.column_config.TextColumn("単位", disabled=True),
-        },
-        key="input_table",
-    )
+    if input_mode == "表（一覧で編集）":
+        input_rows = [
+            {"key": "front_l", "カテゴリ": "座席", "項目": "Front seat L", "入力値": _ss_num("front_l"), "単位": unit_weight},
+            {"key": "front_r", "カテゴリ": "座席", "項目": "Front seat R", "入力値": _ss_num("front_r"), "単位": unit_weight},
+            {"key": "rear_l", "カテゴリ": "座席", "項目": "Rear seat L", "入力値": _ss_num("rear_l"), "単位": unit_weight},
+            {"key": "rear_r", "カテゴリ": "座席", "項目": "Rear seat R", "入力値": _ss_num("rear_r"), "単位": unit_weight},
+            {"key": "nose_bag", "カテゴリ": "バゲッジ", "項目": "Nose baggage", "入力値": _ss_num("nose_bag"), "単位": unit_weight},
+            {"key": "cockpit_bag", "カテゴリ": "バゲッジ", "項目": "Cockpit baggage", "入力値": _ss_num("cockpit_bag"), "単位": unit_weight},
+            {"key": "bag_ext", "カテゴリ": "バゲッジ", "項目": "Baggage extension", "入力値": _ss_num("bag_ext"), "単位": unit_weight},
+            {"key": "deice_l", "カテゴリ": "液体", "項目": "De-ice fluid", "入力値": _ss_num("deice_l"), "単位": "L"},
+            {"key": "main_fuel_gal", "カテゴリ": "燃料", "項目": "Main fuel (loaded)", "入力値": _ss_num("main_fuel_gal"), "単位": "US gal"},
+            {"key": "taxi_burn_gal", "カテゴリ": "燃料", "項目": "Taxi burn", "入力値": _ss_num("taxi_burn_gal"), "単位": "US gal"},
+            {"key": "flight_burn_gal", "カテゴリ": "燃料", "項目": "Flight burn", "入力値": _ss_num("flight_burn_gal"), "単位": "US gal"},
+            {"key": "return_burn_gal", "カテゴリ": "燃料", "項目": "Return burn", "入力値": _ss_num("return_burn_gal"), "単位": "US gal"},
+        ]
 
-    # 編集結果を session_state に反映
-    for _, r in edited.iterrows():
-        try:
-            st.session_state[str(r["key"])] = float(r["入力値"] or 0.0)
-        except Exception:
-            st.session_state[str(r["key"])] = 0.0
+        in_df = pd.DataFrame(input_rows)
+        edited = st.data_editor(
+            in_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "key": st.column_config.TextColumn("key", disabled=True),
+                "カテゴリ": st.column_config.TextColumn("カテゴリ", disabled=True),
+                "項目": st.column_config.TextColumn("項目", disabled=True),
+                "入力値": st.column_config.NumberColumn("入力値", min_value=0.0, step=1.0),
+                "単位": st.column_config.TextColumn("単位", disabled=True),
+            },
+            key="input_table",
+        )
+
+        for _, r in edited.iterrows():
+            try:
+                st.session_state[str(r["key"])] = max(0.0, float(r["入力値"] or 0.0))
+            except Exception:
+                st.session_state[str(r["key"])] = 0.0
+
+    else:
+        col1, col2 = st.columns(2, vertical_alignment="top")
+        with col1:
+            st.markdown("**座席**")
+            st.number_input("Front seat L", min_value=0.0, step=1.0, format="%.1f", key="front_l")
+            st.number_input("Front seat R", min_value=0.0, step=1.0, format="%.1f", key="front_r")
+            st.number_input("Rear seat L", min_value=0.0, step=1.0, format="%.1f", key="rear_l")
+            st.number_input("Rear seat R", min_value=0.0, step=1.0, format="%.1f", key="rear_r")
+
+            st.markdown("**バゲッジ**")
+            st.number_input("Nose baggage", min_value=0.0, step=1.0, format="%.1f", key="nose_bag")
+            st.number_input("Cockpit baggage", min_value=0.0, step=1.0, format="%.1f", key="cockpit_bag")
+            st.number_input("Baggage extension", min_value=0.0, step=1.0, format="%.1f", key="bag_ext")
+
+        with col2:
+            st.markdown("**De-ice / 液体**")
+            st.number_input("De-ice fluid [L]", min_value=0.0, step=1.0, format="%.1f", key="deice_l")
+            st.caption(f"換算: {_ss_num('deice_l'):.1f} L → {_ss_num('deice_l') * 1.1:.1f} {unit_weight}")
+
+            st.markdown("**燃料（US gal）**")
+            st.number_input("Main fuel loaded [US gal]", min_value=0.0, step=1.0, format="%.1f", key="main_fuel_gal")
+            st.number_input("Taxi burn [US gal]", min_value=0.0, step=0.5, format="%.1f", key="taxi_burn_gal")
+            st.number_input("Flight burn [US gal]", min_value=0.0, step=0.5, format="%.1f", key="flight_burn_gal")
+            st.number_input("Return burn [US gal]", min_value=0.0, step=0.5, format="%.1f", key="return_burn_gal")
+
+            mf = _ss_num("main_fuel_gal")
+            tb = _ss_num("taxi_burn_gal")
+            fb = _ss_num("flight_burn_gal")
+            rb = _ss_num("return_burn_gal")
+            takeoff_remain = max(mf - tb, 0.0)
+            landing1_remain = max(takeoff_remain - fb, 0.0)
+            landing2_remain = max(landing1_remain - rb, 0.0)
+            st.caption(
+                f"換算: {mf:.1f} gal → {mf * fuel_kg_per_usg:.1f} {unit_weight} / "
+                f"T/O残 {takeoff_remain:.1f} gal / LDG1残 {landing1_remain:.1f} gal / LDG2残 {landing2_remain:.1f} gal"
+            )
 
     front_l = _ss_num("front_l")
     front_r = _ss_num("front_r")
