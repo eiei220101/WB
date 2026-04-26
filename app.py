@@ -1228,15 +1228,10 @@ def main() -> None:
             return buf.getvalue()
 
         st.subheader("PDF出力")
-        tpl_file = st.file_uploader(
-            "1ページ目テンプレPDF（このPDFの1ページ目をそのまま差し込みます）",
-            type=["pdf"],
-            key="pdf_template_upload",
-        )
 
         def _make_pdf_bytes_with_template() -> tuple[bytes, bool]:
             """
-            1ページ目: 指定テンプレPDFの1ページ目をそのまま使用
+            1ページ目: テンプレPDFの1ページ目をそのまま使用（レイアウト完全一致）
             2ページ目: アプリで生成（DVT候補）
             """
             page2 = _make_page2_pdf_bytes()
@@ -1246,8 +1241,10 @@ def main() -> None:
 
             try:
                 tpl_bytes: bytes | None = None
-                if tpl_file is not None:
-                    tpl_bytes = tpl_file.getvalue()
+                # リポジトリ内のテンプレを優先（Cloudでも動く）
+                repo_template = (Path(__file__).resolve().parent / "assets" / "wb_template.pdf")
+                if repo_template.exists():
+                    tpl_bytes = repo_template.read_bytes()
                 else:
                     # ローカル実行向けフォールバック（存在すれば使用）
                     template_path = Path(r"c:\Users\石川瑛一朗\Downloads\56DA 重量重心のコピー.pdf")
@@ -1272,7 +1269,7 @@ def main() -> None:
 
         pdf_bytes, used_template = _make_pdf_bytes_with_template()
         if not used_template:
-            st.info("テンプレPDFが未指定/未読込のため、DVTページのみをPDF化しています。テンプレPDFをアップロードすると2ページ構成になります。")
+            st.warning("テンプレPDFが見つからないため、DVTページのみをPDF化しています。`assets/wb_template.pdf` を配置すると2ページ構成になります。")
         st.download_button(
             "PDFをダウンロード（2ページ）",
             data=pdf_bytes,
