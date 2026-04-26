@@ -675,6 +675,11 @@ def main() -> None:
     def _ss_num(key: str, default: float = 0.0) -> float:
         return float(st.session_state.get(key, default) or 0.0)
 
+    # 使いやすい初期値（未入力時のみ）
+    st.session_state.setdefault("taxi_burn_gal", 1.0)
+    st.session_state.setdefault("deice_l", 22.0)
+    st.session_state.setdefault("main_fuel_gal", 50.0)
+
     c_mode, c_reset = st.columns([3, 1], vertical_alignment="bottom")
     with c_mode:
         input_mode = st.radio("入力方法", ["フォーム（おすすめ）", "表（一覧で編集）"], horizontal=True, key="input_mode")
@@ -693,6 +698,7 @@ def main() -> None:
                 "taxi_burn_gal",
                 "flight_burn_gal",
                 "return_burn_gal",
+                "front_r_mode",
             ]:
                 st.session_state[k] = 0.0
             st.rerun()
@@ -739,7 +745,14 @@ def main() -> None:
         with col1:
             st.markdown("**座席**")
             st.number_input("Front seat L", min_value=0.0, step=1.0, format="%.1f", key="front_l")
-            st.number_input("Front seat R", min_value=0.0, step=1.0, format="%.1f", key="front_r")
+            _inst_map = {"山口教官": 72.0, "羽山教官": 73.0, "増本教官": 83.0}
+            front_r_mode = st.selectbox("Front seat R", ["手入力", "山口教官", "羽山教官", "増本教官"], key="front_r_mode")
+            if front_r_mode == "手入力":
+                v = st.number_input("Front seat R（手入力）", min_value=0.0, step=1.0, format="%.1f", value=_ss_num("front_r"), key="front_r_manual")
+                st.session_state["front_r"] = float(v)
+            else:
+                st.session_state["front_r"] = float(_inst_map.get(front_r_mode, 0.0))
+                st.caption(f"{front_r_mode}: **{st.session_state['front_r']:.1f} {unit_weight}**")
             st.number_input("Rear seat L", min_value=0.0, step=1.0, format="%.1f", key="rear_l")
             st.number_input("Rear seat R", min_value=0.0, step=1.0, format="%.1f", key="rear_r")
 
@@ -880,32 +893,12 @@ def main() -> None:
     landing2_fuel_remain = max(landing1_fuel_remain - return_burn_kg, 0.0)
     ldg2_row = _total("LDG Weight（帰投時）", base_rows + [_row("Fuel remaining (LDG2)", landing2_fuel_remain, fuel_arm)])
 
-    # 追加情報（福島帰投時の残燃量と、燃費別の飛行可能時間）
-    def _fmt_hm(hours: float) -> str:
-        mins = int(max(0.0, float(hours)) * 60.0)
-        h = mins // 60
-        m = mins % 60
-        return f"{h}時間{m}分"
-
-    remain_gal_fukushima = landing2_fuel_remain / fuel_kg_per_usg if fuel_kg_per_usg > 0 else 0.0
-    endurance_10 = _fmt_hm(remain_gal_fukushima / 10.0 if 10.0 > 0 else 0.0)
-    endurance_166 = _fmt_hm(remain_gal_fukushima / 16.6 if 16.6 > 0 else 0.0)
-
-    spacer_row = {"name": "", "weight": "", "arm": "", "moment": ""}
-    info_row = {
-        "name": f"福島帰投時 残燃量: {remain_gal_fukushima:.1f} US gal / 10.0 GAL/hr: {endurance_10} / 16.6 GAL/hr: {endurance_166}",
-        "weight": "",
-        "arm": "",
-        "moment": "",
-    }
-
     display_rows = (
         base_rows
         + [zfm_row]
         + [main_fuel_row, taxi_run_row, tow_row]
         + [out_fuel_cons_row, ldg1_row]
         + [return_fuel_cons_row, ldg2_row]
-        + [spacer_row, info_row]
     )
 
     zfm = points["ZFM"]
@@ -914,16 +907,22 @@ def main() -> None:
     lw2 = points["LW2"]
 
     st.subheader("内訳一覧")
+    def _fmt5(x) -> str:
+        try:
+            return f"{float(x):.5f}"
+        except Exception:
+            return ""
+
     out = pd.DataFrame(
         {
             "項目": [r.get("name", "") for r in display_rows],
             f"アーム [{unit_arm_disp}]": [
-                ("" if not isinstance(r.get("arm"), (int, float)) else disp_arm(float(r["arm"])))
+                ("" if not isinstance(r.get("arm"), (int, float)) else _fmt5(disp_arm(float(r["arm"]))))
                 for r in display_rows
             ],
-            f"重量 [{unit_weight}]": [("" if not isinstance(r.get("weight"), (int, float)) else float(r["weight"])) for r in display_rows],
+            f"重量 [{unit_weight}]": [("" if not isinstance(r.get("weight"), (int, float)) else _fmt5(float(r["weight"]))) for r in display_rows],
             f"モーメント [{unit_weight}·{unit_arm_disp}]": [
-                ("" if not isinstance(r.get("moment"), (int, float)) else float(r["moment"]) * arm_scale)
+                ("" if not isinstance(r.get("moment"), (int, float)) else _fmt5(float(r["moment"]) * arm_scale))
                 for r in display_rows
             ],
         }
@@ -945,7 +944,7 @@ def main() -> None:
     _row_h_px = 36
     _header_h_px = 40
     _pad_px = 12
-    _height_px = int(_header_h_px + _pad_px + _row_h_px * (len(out) + 1))
+    _height_px = int(_header_h_px + _pad_px + _row_h_px * len(out))
     st.dataframe(out, use_container_width=True, hide_index=True, height=_height_px)
 
     st.divider()
