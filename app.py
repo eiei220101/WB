@@ -1095,9 +1095,9 @@ def main() -> None:
             [
                 {
                     "項目": r.name,
-                    f"アーム [{unit_arm}]": r.arm,
+                    f"アーム [{unit_arm_disp}]": disp_arm(r.arm),
                     f"重量 [{unit_weight}]": r.weight,
-                    f"モーメント [{unit_weight}·{unit_arm}]": r.moment,
+                    f"モーメント [{unit_weight}·{unit_arm_disp}]": r.moment * arm_scale,
                 }
                 for r in results
             ]
