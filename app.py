@@ -602,8 +602,7 @@ def main() -> None:
             tail = ""
             selected = {}
 
-    subtitle = f"{aircraft_name}" + (f" / {tail}" if tail else "")
-    st.title(f"{subtitle} 重量・重心（W&B）")
+    st.title("DA42 WB")
     st.markdown('<div id="topview"></div>', unsafe_allow_html=True)
     st.caption(
         "基準点（Datum）からの距離を「アーム」として入力します。"
