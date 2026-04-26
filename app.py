@@ -31,6 +31,7 @@ try:
     from reportlab.graphics.shapes import Drawing, Line, String, PolyLine, Circle
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+    from reportlab.pdfgen import canvas as rl_canvas
 except Exception:  # pragma: no cover
     A4 = None  # type: ignore[assignment]
 
@@ -1258,7 +1259,119 @@ def main() -> None:
                 r_p2 = PdfReader(io.BytesIO(page2))
                 w = PdfWriter()
                 if r_tpl.pages:
-                    w.add_page(r_tpl.pages[0])
+                    # 1ページ目テンプレに、計算結果を上書き描画して反映
+                    base_page = r_tpl.pages[0]
+
+                    def _make_page1_overlay_pdf_bytes(page_w: float, page_h: float) -> bytes:
+                        """
+                        テンプレの上に値を描画するオーバーレイPDF（同一ページサイズ）。
+                        レイアウトはテンプレと同一、数値だけを反映する。
+                        """
+                        obuf = io.BytesIO()
+                        c = rl_canvas.Canvas(obuf, pagesize=(page_w, page_h))
+
+                        # 日本語フォント
+                        try:
+                            pdfmetrics.registerFont(UnicodeCIDFont("HeiseiKakuGo-W5"))
+                            fnt = "HeiseiKakuGo-W5"
+                        except Exception:
+                            fnt = "Helvetica"
+
+                        def draw_center(x: float, y: float, text: str, size: int = 10):
+                            c.setFont(fnt, size)
+                            c.drawCentredString(x, y, text)
+
+                        def draw_right(x: float, y: float, text: str, size: int = 10):
+                            c.setFont(fnt, size)
+                            c.drawRightString(x, y, text)
+
+                        # --- ここから座標（テンプレに合わせた目安） ---
+                        # ※ テンプレが固定なら、必要に応じて微調整していく
+                        acft_type = str(selected.get("model", "") or "DA42")
+                        ident = str(tail or "")
+
+                        # ヘッダ値
+                        draw_center(260, page_h - 82, acft_type, 11)
+                        draw_center(440, page_h - 82, ident, 11)
+
+                        # 左の表（列中心 x）
+                        x_item = 145
+                        x_arm = 265
+                        x_mass = 355
+                        x_mom = 465
+
+                        # 行（テンプレの順に）
+                        rows_for_pdf = [
+                            ("Empty mass actual", disp_arm(bew_a), bew_w, float(selected.get("basic_empty", {}).get("moment_kgm", 3274.0))),
+                            ("Front seats", disp_arm(front_arm), front_w, None),
+                            ("Rear seats", 3.25, rear_w, None),
+                            ("Nose baggage", disp_arm(nose_arm), float(nose_bag), None),
+                            ("Cockpit baggage", disp_arm(cockpit_arm), float(cockpit_bag), None),
+                            ("Baggage extension", disp_arm(bag_ext_arm), float(bag_ext), None),
+                            ("De-ice fluid", disp_arm(deice_arm), float(deice_kg), None),
+                            ("ZERO FUEL MASS", disp_arm(zfm_row["arm"]), float(zfm_row["weight"]), float(zfm_row["moment"]) * arm_scale),
+                            ("Main Fuel", disp_arm(fuel_arm), float(main_fuel_kg), float(main_fuel_row["moment"]) * arm_scale),
+                            ("TAXI-RUN", disp_arm(fuel_arm), float(taxi_run_row["weight"]), float(taxi_run_row["moment"]) * arm_scale),
+                            ("TKOF weight", disp_arm(tow_row["arm"]), float(tow_row["weight"]), float(tow_row["moment"]) * arm_scale),
+                            ("Fuel consumption", disp_arm(fuel_arm), float(out_fuel_cons_row["weight"]), float(out_fuel_cons_row["moment"]) * arm_scale),
+                            ("LDG weight", disp_arm(ldg1_row["arm"]), float(ldg1_row["weight"]), float(ldg1_row["moment"]) * arm_scale),
+                            ("Fuel consumption", disp_arm(fuel_arm), float(return_fuel_cons_row["weight"]), float(return_fuel_cons_row["moment"]) * arm_scale),
+                            ("LDG weight", disp_arm(ldg2_row["arm"]), float(ldg2_row["weight"]), float(ldg2_row["moment"]) * arm_scale),
+                        ]
+
+                        y0 = page_h - 165  # 1行目の中心y
+                        dy = 22.5
+                        for i, (name, arm_m, mass_kg, mom_kgm) in enumerate(rows_for_pdf):
+                            y = y0 - dy * i
+                            draw_center(x_item, y, str(name), 9)
+                            draw_center(x_arm, y, f"{float(arm_m):.3f}", 9)
+                            draw_center(x_mass, y, f"{float(mass_kg):.1f}", 9)
+                            if mom_kgm is None:
+                                draw_center(x_mom, y, "", 9)
+                            else:
+                                # 例: 3274.0 など
+                                draw_center(x_mom, y, f"{float(mom_kgm):.1f}", 9)
+
+                        # 右上CG図に点を打つ（テンプレのグラフ枠に合わせた目安）
+                        # グラフ領域（左下/右上）
+                        gx0, gy0 = 360, page_h - 305
+                        gx1, gy1 = 560, page_h - 130
+                        xmin, xmax = 2.35, 2.50
+                        ymin, ymax = 1450.0, 2000.0
+
+                        def gx(x_m: float) -> float:
+                            return gx0 + (x_m - xmin) / (xmax - xmin) * (gx1 - gx0)
+
+                        def gy(y_kg: float) -> float:
+                            return gy0 + (y_kg - ymin) / (ymax - ymin) * (gy1 - gy0)
+
+                        pts = {
+                            "ZFM": (float(zfm.cg or 0.0) / 1000.0, float(zfm.weight)),
+                            "TOW": (float(tow.cg or 0.0) / 1000.0, float(tow.weight)),
+                            "LW1": (float(lw1.cg or 0.0) / 1000.0, float(lw1.weight)),
+                            "LW2": (float(lw2.cg or 0.0) / 1000.0, float(lw2.weight)),
+                        }
+                        c.setFillColorRGB(1, 0.7, 0)  # orange/yellow
+                        for label, (x_m, y_kg) in pts.items():
+                            if x_m <= 0 or y_kg <= 0:
+                                continue
+                            x = gx(x_m)
+                            y = gy(y_kg)
+                            c.circle(x, y, 3, stroke=0, fill=1)
+                            c.setFillColorRGB(0, 0, 0)
+                            c.setFont(fnt, 7)
+                            c.drawString(x + 4, y + 2, label)
+                            c.setFillColorRGB(1, 0.7, 0)
+
+                        c.showPage()
+                        c.save()
+                        return obuf.getvalue()
+
+                    mb = base_page.mediabox
+                    ov_bytes = _make_page1_overlay_pdf_bytes(float(mb.width), float(mb.height))
+                    ov_page = PdfReader(io.BytesIO(ov_bytes)).pages[0]
+                    base_page.merge_page(ov_page)
+                    w.add_page(base_page)
                 for p in r_p2.pages:
                     w.add_page(p)
                 out = io.BytesIO()
