@@ -933,7 +933,7 @@ def main() -> None:
     def _row_color(name: str, weight: float) -> str | None:
         if name == "TAKE OFF WEIGHT":
             return "#16a34a" if weight <= LIMIT_TOW else "#dc2626"
-        if name == "LDG Weight（帰投時）":
+        if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"}:
             return "#16a34a" if weight <= LIMIT_LDG else "#dc2626"
         return None
 
