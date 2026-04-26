@@ -878,7 +878,7 @@ def main() -> None:
 
     return_fuel_cons_row = _row("FUEL Consumption 帰り", -return_burn_kg, fuel_arm)
     landing2_fuel_remain = max(landing1_fuel_remain - return_burn_kg, 0.0)
-    ldg2_row = _total("LDG Weight（復路後）", base_rows + [_row("Fuel remaining (LDG2)", landing2_fuel_remain, fuel_arm)])
+    ldg2_row = _total("LDG Weight（帰投時）", base_rows + [_row("Fuel remaining (LDG2)", landing2_fuel_remain, fuel_arm)])
 
     display_rows = (
         base_rows
