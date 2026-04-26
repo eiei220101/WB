@@ -820,204 +820,204 @@ def main() -> None:
 
     st.divider()
     st.subheader("CGエンベロープ")
-        # 機体ごとの envelope を優先
-        env_default = cfg.get("envelope", {}) or {}
-        env_override = selected.get("envelope", {}) if isinstance(selected, dict) else {}
-        env = {**env_default, **(env_override or {})}
-        env_points = parse_points(env.get("points", []))
+    # 機体ごとの envelope を優先
+    env_default = cfg.get("envelope", {}) or {}
+    env_override = selected.get("envelope", {}) if isinstance(selected, dict) else {}
+    env = {**env_default, **(env_override or {})}
+    env_points = parse_points(env.get("points", []))
 
-        if not env_points:
-            st.warning("この機体のエンベロープ点が未入力です。`aircraft.toml` の `[aircraft.<TAIL>.envelope].points` に点を追加してください。")
-            st.code('points = [[2400, 1350], [2500, 1900], [2450, 2000]]', language="toml")
-        else:
-            # 表示は m にしたい（例: 2350mm -> 2.35）
-            env_points_m = [(cg / 1000.0, wt) for (cg, wt) in env_points]
-            xs = [p[0] for p in env_points_m] + [env_points_m[0][0]]
-            ys = [p[1] for p in env_points] + [env_points[0][1]]
+    if not env_points:
+        st.warning("この機体のエンベロープ点が未入力です。`aircraft.toml` の `[aircraft.<TAIL>.envelope].points` に点を追加してください。")
+        st.code('points = [[2400, 1350], [2500, 1900], [2450, 2000]]', language="toml")
+    else:
+        # 表示は m にしたい（例: 2350mm -> 2.35）
+        env_points_m = [(cg / 1000.0, wt) for (cg, wt) in env_points]
+        xs = [p[0] for p in env_points_m] + [env_points_m[0][0]]
+        ys = [p[1] for p in env_points] + [env_points[0][1]]
 
-            fig = go.Figure()
-            fig.add_trace(
-                go.Scatter(
-                    x=xs,
-                    y=ys,
-                    mode="lines",
-                    name="",
-                    line=dict(color="#ef4444", width=3),
-                    showlegend=False,
-                )
-            )
-
-            zx, zy = _safe_point_xy(zfm)
-            tx, ty = _safe_point_xy(tow)
-            l1x, l1y = _safe_point_xy(lw1)
-            l2x, l2y = _safe_point_xy(lw2)
-            fig.add_trace(
-                go.Scatter(
-                    x=[None if zx is None else zx / 1000.0],
-                    y=[zy],
-                    mode="markers+text",
-                    name="ZFW",
-                    text=["ZFW"],
-                    textposition="bottom right",
-                    marker=dict(size=10, color="#60a5fa"),
-                )
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x=[None if tx is None else tx / 1000.0],
-                    y=[ty],
-                    mode="markers+text",
-                    name="TOW",
-                    text=["TOW"],
-                    textposition="bottom right",
-                    marker=dict(size=10, color="#f87171"),
-                )
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x=[None if l1x is None else l1x / 1000.0],
-                    y=[l1y],
-                    mode="markers+text",
-                    name="LW1",
-                    text=["LW1"],
-                    textposition="bottom right",
-                    marker=dict(size=10, color="#34d399"),
-                )
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x=[None if l2x is None else l2x / 1000.0],
-                    y=[l2y],
-                    mode="markers+text",
-                    name="LW2",
-                    text=["LW2"],
-                    textposition="bottom right",
-                    marker=dict(size=10, color="#fbbf24"),
-                )
-            )
-
-            # 点を直線で結ぶ（ZFW -> TOW -> LW1 -> LW2）
-            path_x = []
-            path_y = []
-            for x_mm, y in [(zx, zy), (tx, ty), (l1x, l1y), (l2x, l2y)]:
-                if x_mm is None or y is None:
-                    continue
-                path_x.append(x_mm / 1000.0)
-                path_y.append(y)
-            if len(path_x) >= 2:
-                fig.add_trace(
-                    go.Scatter(
-                        x=path_x,
-                        y=path_y,
-                        mode="lines",
-                        line=dict(color="rgba(226,232,240,0.9)", width=2),
-                        showlegend=False,
-                        hoverinfo="skip",
-                    )
-                )
-
-            # 参考の制限線（入力がある場合のみ）
-            shapes = []
-            ann = []
-            if mlw and mlw > 0:
-                shapes.append(
-                    dict(
-                        type="line",
-                        xref="paper",
-                        x0=0,
-                        x1=1,
-                        y0=mlw,
-                        y1=mlw,
-                        line=dict(color="#ef4444", width=2, dash="solid"),
-                    )
-                )
-                ann.append(
-                    dict(
-                        xref="paper",
-                        x=0.02,
-                        y=mlw,
-                        text=f"MAX LDW {mlw:.0f}{unit_weight}",
-                        showarrow=False,
-                        font=dict(color="#ef4444", size=14),
-                        yanchor="bottom",
-                    )
-                )
-            if mtow and mtow > 0:
-                shapes.append(
-                    dict(
-                        type="line",
-                        xref="paper",
-                        x0=0,
-                        x1=1,
-                        y0=mtow,
-                        y1=mtow,
-                        line=dict(color="#ef4444", width=1, dash="dot"),
-                    )
-                )
-                ann.append(
-                    dict(
-                        xref="paper",
-                        x=0.02,
-                        y=mtow,
-                        text=f"MAX TOW {mtow:.0f}{unit_weight}",
-                        showarrow=False,
-                        font=dict(color="#ef4444", size=12),
-                        yanchor="bottom",
-                    )
-                )
-
-            fig.update_layout(
-                template="plotly_dark",
-                xaxis_title="CG [m]",
-                yaxis_title=f"Weight [{unit_weight}]",
-                height=520,
-                width=1020,
-                margin=dict(l=60, r=20, t=30, b=50),
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=xs,
+                y=ys,
+                mode="lines",
+                name="",
+                line=dict(color="#ef4444", width=3),
                 showlegend=False,
-                paper_bgcolor="#0b1220",
-                plot_bgcolor="#0b1220",
-                shapes=shapes,
-                annotations=ann,
             )
-            fig.update_xaxes(
+        )
+
+        zx, zy = _safe_point_xy(zfm)
+        tx, ty = _safe_point_xy(tow)
+        l1x, l1y = _safe_point_xy(lw1)
+        l2x, l2y = _safe_point_xy(lw2)
+        fig.add_trace(
+            go.Scatter(
+                x=[None if zx is None else zx / 1000.0],
+                y=[zy],
+                mode="markers+text",
+                name="ZFW",
+                text=["ZFW"],
+                textposition="bottom right",
+                marker=dict(size=10, color="#60a5fa"),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=[None if tx is None else tx / 1000.0],
+                y=[ty],
+                mode="markers+text",
+                name="TOW",
+                text=["TOW"],
+                textposition="bottom right",
+                marker=dict(size=10, color="#f87171"),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=[None if l1x is None else l1x / 1000.0],
+                y=[l1y],
+                mode="markers+text",
+                name="LW1",
+                text=["LW1"],
+                textposition="bottom right",
+                marker=dict(size=10, color="#34d399"),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=[None if l2x is None else l2x / 1000.0],
+                y=[l2y],
+                mode="markers+text",
+                name="LW2",
+                text=["LW2"],
+                textposition="bottom right",
+                marker=dict(size=10, color="#fbbf24"),
+            )
+        )
+
+        # 点を直線で結ぶ（ZFW -> TOW -> LW1 -> LW2）
+        path_x = []
+        path_y = []
+        for x_mm, y in [(zx, zy), (tx, ty), (l1x, l1y), (l2x, l2y)]:
+            if x_mm is None or y is None:
+                continue
+            path_x.append(x_mm / 1000.0)
+            path_y.append(y)
+        if len(path_x) >= 2:
+            fig.add_trace(
+                go.Scatter(
+                    x=path_x,
+                    y=path_y,
+                    mode="lines",
+                    line=dict(color="rgba(226,232,240,0.9)", width=2),
+                    showlegend=False,
+                    hoverinfo="skip",
+                )
+            )
+
+        # 参考の制限線（入力がある場合のみ）
+        shapes = []
+        ann = []
+        if mlw and mlw > 0:
+            shapes.append(
+                dict(
+                    type="line",
+                    xref="paper",
+                    x0=0,
+                    x1=1,
+                    y0=mlw,
+                    y1=mlw,
+                    line=dict(color="#ef4444", width=2, dash="solid"),
+                )
+            )
+            ann.append(
+                dict(
+                    xref="paper",
+                    x=0.02,
+                    y=mlw,
+                    text=f"MAX LDW {mlw:.0f}{unit_weight}",
+                    showarrow=False,
+                    font=dict(color="#ef4444", size=14),
+                    yanchor="bottom",
+                )
+            )
+        if mtow and mtow > 0:
+            shapes.append(
+                dict(
+                    type="line",
+                    xref="paper",
+                    x0=0,
+                    x1=1,
+                    y0=mtow,
+                    y1=mtow,
+                    line=dict(color="#ef4444", width=1, dash="dot"),
+                )
+            )
+            ann.append(
+                dict(
+                    xref="paper",
+                    x=0.02,
+                    y=mtow,
+                    text=f"MAX TOW {mtow:.0f}{unit_weight}",
+                    showarrow=False,
+                    font=dict(color="#ef4444", size=12),
+                    yanchor="bottom",
+                )
+            )
+
+        fig.update_layout(
+            template="plotly_dark",
+            xaxis_title="CG [m]",
+            yaxis_title=f"Weight [{unit_weight}]",
+            height=520,
+            width=1020,
+            margin=dict(l=60, r=20, t=30, b=50),
+            showlegend=False,
+            paper_bgcolor="#0b1220",
+            plot_bgcolor="#0b1220",
+            shapes=shapes,
+            annotations=ann,
+        )
+        fig.update_xaxes(
+            showgrid=True,
+            gridcolor="rgba(148,163,184,0.25)",
+            zeroline=False,
+            tickformat=".2f",
+            tickmode="array",
+            tickvals=[2.35, 2.40, 2.45, 2.50],
+            ticktext=["<b>2.35</b>", "<b>2.40</b>", "<b>2.45</b>", "<b>2.50</b>"],
+            minor=dict(
+                dtick=0.01,
                 showgrid=True,
-                gridcolor="rgba(148,163,184,0.25)",
-                zeroline=False,
-                tickformat=".2f",
-                tickmode="array",
-                tickvals=[2.35, 2.40, 2.45, 2.50],
-                ticktext=["<b>2.35</b>", "<b>2.40</b>", "<b>2.45</b>", "<b>2.50</b>"],
-                minor=dict(
-                    dtick=0.01,
-                    showgrid=True,
-                    gridcolor="rgba(148,163,184,0.12)",
-                ),
-            )
-            fig.update_yaxes(
-                showgrid=True,
-                gridcolor="rgba(148,163,184,0.25)",
-                zeroline=False,
-                dtick=20,
-                tickmode="array",
-                tickvals=[1250, 1300, 1350, 1400, 1450, 1500, 1550, 1600, 1650, 1700, 1750, 1800],
-                ticktext=[
-                    "<b>1250</b>",
-                    "<b>1300</b>",
-                    "<b>1350</b>",
-                    "<b>1400</b>",
-                    "<b>1450</b>",
-                    "<b>1500</b>",
-                    "<b>1550</b>",
-                    "<b>1600</b>",
-                    "<b>1650</b>",
-                    "<b>1700</b>",
-                    "<b>1750</b>",
-                    "<b>1800</b>",
-                ],
-            )
-            left_pad, center, right_pad = st.columns([1, 3, 1])
-            with center:
-                st.plotly_chart(fig, use_container_width=False)
+                gridcolor="rgba(148,163,184,0.12)",
+            ),
+        )
+        fig.update_yaxes(
+            showgrid=True,
+            gridcolor="rgba(148,163,184,0.25)",
+            zeroline=False,
+            dtick=20,
+            tickmode="array",
+            tickvals=[1250, 1300, 1350, 1400, 1450, 1500, 1550, 1600, 1650, 1700, 1750, 1800],
+            ticktext=[
+                "<b>1250</b>",
+                "<b>1300</b>",
+                "<b>1350</b>",
+                "<b>1400</b>",
+                "<b>1450</b>",
+                "<b>1500</b>",
+                "<b>1550</b>",
+                "<b>1600</b>",
+                "<b>1650</b>",
+                "<b>1700</b>",
+                "<b>1750</b>",
+                "<b>1800</b>",
+            ],
+        )
+        left_pad, center, right_pad = st.columns([1, 3, 1])
+        with center:
+            st.plotly_chart(fig, use_container_width=False)
 
     with st.expander("計算の考え方（初心者向け）"):
         st.markdown(
