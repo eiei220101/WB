@@ -14,6 +14,7 @@ from pathlib import Path
 import traceback
 import json
 import io
+from pathlib import Path
 
 try:
     import tomllib  # py3.11+
@@ -32,6 +33,12 @@ try:
     from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 except Exception:  # pragma: no cover
     A4 = None  # type: ignore[assignment]
+
+try:
+    from pypdf import PdfReader, PdfWriter
+except Exception:  # pragma: no cover
+    PdfReader = None  # type: ignore[assignment]
+    PdfWriter = None  # type: ignore[assignment]
 
 # --- ページ設定（見やすさ） ---
 st.set_page_config(
@@ -1167,7 +1174,7 @@ def main() -> None:
 
             return d
 
-        def _make_pdf_bytes() -> bytes:
+        def _make_page2_pdf_bytes() -> bytes:
             buf = io.BytesIO()
             # 日本語フォント（CID）を登録して文字化けを防ぐ
             try:
@@ -1191,102 +1198,7 @@ def main() -> None:
 
             story: list = []
 
-            # Page 1
-            acft_type = str(selected.get("model", "") or "DA42")
-            ident = str(tail or "")
-            story.append(Paragraph("W&B / 離着陸距離・性能確認シート", styles["Title"]))
-            story.append(Spacer(1, 3 * mm))
-
-            hdr_tbl = Table(
-                [["ACFT Type", acft_type, "Ident", ident]],
-                colWidths=[22 * mm, 80 * mm, 18 * mm, 80 * mm],
-            )
-            hdr_tbl.setStyle(
-                TableStyle(
-                    [
-                        ("GRID", (0, 0), (-1, -1), 0.8, colors.black),
-                        ("BACKGROUND", (0, 0), (0, 0), colors.lightgrey),
-                        ("BACKGROUND", (2, 0), (2, 0), colors.lightgrey),
-                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                        ("FONTNAME", (0, 0), (-1, -1), jp_font),
-                    ]
-                )
-            )
-            story.append(hdr_tbl)
-            story.append(Spacer(1, 4 * mm))
-
-            # 左：内訳テーブル（画像を参考にした並び）
-            cols = ["項目", "Level arm [m]", f"Mass [{unit_weight}]", f"Moment [{unit_weight}m]"]
-            table_data = [cols]
-            for r in display_rows:
-                name = str(r.get("name", ""))
-                a = r.get("arm")
-                wgt = r.get("weight")
-                mom = r.get("moment")
-                arm_m = "" if not isinstance(a, (int, float)) else f"{disp_arm(float(a)):.3f}"
-                mass_s = "" if not isinstance(wgt, (int, float)) else f"{float(wgt):.1f}"
-                if name == "Basic Empty":
-                    moment_s = str(selected.get("basic_empty", {}).get("moment_kgm", 3274.0))
-                else:
-                    moment_s = "" if not isinstance(mom, (int, float)) else f"{float(mom) * arm_scale:.1f}"
-                table_data.append([name, arm_m, mass_s, moment_s])
-
-            wb_tbl = Table(table_data, colWidths=[52 * mm, 26 * mm, 28 * mm, 32 * mm])
-            wb_tbl.setStyle(
-                TableStyle(
-                    [
-                        ("GRID", (0, 0), (-1, -1), 0.6, colors.black),
-                        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                        ("FONTSIZE", (0, 0), (-1, -1), 8),
-                        ("FONTNAME", (0, 0), (-1, -1), jp_font),
-                    ]
-                )
-            )
-
-            # 右：エンベロープ
-            env_default = cfg.get("envelope", {}) or {}
-            env_override = selected.get("envelope", {}) if isinstance(selected, dict) else {}
-            env_cfg = {**env_default, **(env_override or {})}
-            env_points = parse_points(env_cfg.get("points", []))
-            env_points_mm = [(float(cg), float(wt)) for (cg, wt) in env_points]
-
-            point_map = {
-                "ZFM": (float(zfm.cg or 0.0), float(zfm.weight)),
-                "TOW": (float(tow.cg or 0.0), float(tow.weight)),
-                "LW1": (float(lw1.cg or 0.0), float(lw1.weight)),
-                "LW2": (float(lw2.cg or 0.0), float(lw2.weight)),
-            }
-            env_draw = _build_envelope_drawing(env_points_mm=env_points_mm, points_mm=point_map)
-
-            # 横ページに合わせて幅を拡張
-            main_row = Table([[wb_tbl, env_draw]], colWidths=[165 * mm, 95 * mm])
-            main_row.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
-            story.append(main_row)
-
-            story.append(Spacer(1, 6 * mm))
-            perf_tbl = Table(
-                [["離着陸距離及び性能", "", "", ""], ["気温", "", "気圧高度(QNH)", ""], ["離陸距離", "", "グランドロール", ""], ["着陸距離", "", "グランドロール", ""], ["TwoENG CLIMB", "", "OneENG CLIMB", ""], ["ACGD DIST", "", "ACSTOP DIST", ""]],
-                colWidths=[35 * mm, 45 * mm, 35 * mm, 45 * mm],
-            )
-            perf_tbl.setStyle(
-                TableStyle(
-                    [
-                        ("GRID", (0, 0), (-1, -1), 0.6, colors.black),
-                        ("SPAN", (0, 0), (-1, 0)),
-                        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                        ("FONTSIZE", (0, 0), (-1, -1), 8),
-                        ("FONTNAME", (0, 0), (-1, -1), jp_font),
-                    ]
-                )
-            )
-            story.append(perf_tbl)
-
-            # Page 2
-            story.append(PageBreak())
+            # Page 2 (DVT情報)
             story.append(Paragraph("DVT候補（10.0 GAL/hr）", styles["Title"]))
             story.append(Spacer(1, 3 * mm))
             story.append(Paragraph(f"福島帰投時残燃料: {remain_gal:.1f} US gal", styles["Normal"]))
@@ -1315,7 +1227,33 @@ def main() -> None:
             doc.build(story)
             return buf.getvalue()
 
-        pdf_bytes = _make_pdf_bytes()
+        def _make_pdf_bytes_with_template() -> bytes:
+            """
+            1ページ目: 指定テンプレPDFの1ページ目をそのまま使用
+            2ページ目: アプリで生成（DVT候補）
+            """
+            # ユーザー指定パス（ローカル実行向け）。存在しない場合は生成PDFのみを返す。
+            template_path = Path(r"c:\Users\石川瑛一朗\Downloads\56DA 重量重心のコピー.pdf")
+            page2 = _make_page2_pdf_bytes()
+
+            if PdfReader is None or PdfWriter is None or (not template_path.exists()):
+                return page2
+
+            try:
+                r_tpl = PdfReader(str(template_path))
+                r_p2 = PdfReader(io.BytesIO(page2))
+                w = PdfWriter()
+                if r_tpl.pages:
+                    w.add_page(r_tpl.pages[0])
+                for p in r_p2.pages:
+                    w.add_page(p)
+                out = io.BytesIO()
+                w.write(out)
+                return out.getvalue()
+            except Exception:
+                return page2
+
+        pdf_bytes = _make_pdf_bytes_with_template()
         st.download_button(
             "PDFをダウンロード（2ページ）",
             data=pdf_bytes,
