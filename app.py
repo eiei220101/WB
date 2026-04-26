@@ -780,30 +780,6 @@ def main() -> None:
     lw1 = points["LW1"]
     lw2 = points["LW2"]
 
-    st.subheader("計算結果")
-    c1, c2, c3 = st.columns(3)
-    c1.metric(f"Zero Fuel Weight (ZFW) [{unit_weight}]", f"{zfm.weight:,.2f}", help="燃料を除いた重量")
-    c2.metric(f"Takeoff Weight (TOW) [{unit_weight}]", f"{tow.weight:,.2f}", help="Taxi消費後の燃料を含む")
-    c3.metric(f"Landing Weight 1 (LW1) [{unit_weight}]", f"{lw1.weight:,.2f}", help="目的地到着時（燃料消費後）")
-
-    g1, g2, g3 = st.columns(3)
-    g1.metric(f"ZFM CG [{unit_arm_disp}]", "—" if zfm.cg is None else f"{disp_arm(zfm.cg):,.3f}")
-    g2.metric(f"TOW CG [{unit_arm_disp}]", "—" if tow.cg is None else f"{disp_arm(tow.cg):,.3f}")
-    g3.metric(f"LW1 CG [{unit_arm_disp}]", "—" if lw1.cg is None else f"{disp_arm(lw1.cg):,.3f}")
-
-    h1, h2, h3 = st.columns(3)
-    h1.metric(f"LW2 [{unit_weight}]", f"{lw2.weight:,.2f}", help="復路消費後（帰投想定）")
-    h2.metric(f"LW2 CG [{unit_arm_disp}]", "—" if lw2.cg is None else f"{disp_arm(lw2.cg):,.3f}")
-    h3.write("")
-
-    if use_limits:
-        for label, p in [("ZFW", zfm), ("TOW", tow), ("LW1", lw1), ("LW2", lw2)]:
-            status = within_limits(p.cg, cg_min, cg_max)
-            if status and "外" in status:
-                st.error(f"{label}: {status}")
-            elif status:
-                st.success(f"{label}: {status}")
-
     st.subheader("内訳一覧")
     out = pd.DataFrame(
         [
