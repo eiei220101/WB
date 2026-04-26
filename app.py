@@ -929,8 +929,11 @@ def main() -> None:
     # 制限値（固定）
     LIMIT_TOW = 1785.0
     LIMIT_LDG = 1700.0
+    LIMIT_ZFM = 1650.0
 
     def _row_color(name: str, weight: float) -> str | None:
+        if name == "ZERO FUEL MASS":
+            return "#16a34a" if weight <= LIMIT_ZFM else "#dc2626"
         if name == "TAKE OFF WEIGHT":
             return "#16a34a" if weight <= LIMIT_TOW else "#dc2626"
         if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"}:
