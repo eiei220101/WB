@@ -1059,10 +1059,16 @@ def main() -> None:
         m = mins % 60
         return f"{h}時間{m}分"
 
+    # DVT時の到着重量は「福島帰投時（LDG Weight（帰投時））」から消費分を差し引く
+    ldg_w_at_fukushima = float(ldg2_row.get("weight", 0.0) or 0.0)
+
     def _ok_with_time(dist_nm: float, gs_kt: float, max_nm: float) -> str:
         if dist_nm <= max_nm:
             minutes = (dist_nm / gs_kt) * 60.0 if gs_kt > 0 else 0.0
-            return f"OK（{_fmt_hm_from_minutes(minutes)}）"
+            fuel_used_gal = max(0.0, (minutes / 60.0) * 10.0)
+            fuel_used_kg = fuel_used_gal * fuel_kg_per_usg
+            ldg_w = max(0.0, ldg_w_at_fukushima - fuel_used_kg)
+            return f"OK（{_fmt_hm_from_minutes(minutes)} / {fuel_used_gal:.1f}gal / LDG W {ldg_w:.1f}kg）"
         return "NG"
 
     dvt_df["GS120kt"] = dvt_df["距離 [NM]"].apply(lambda d: _ok_with_time(float(d), 120.0, max_nm_120))
