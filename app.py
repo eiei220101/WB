@@ -915,7 +915,12 @@ def main() -> None:
         """,
         unsafe_allow_html=True,
     )
-    st.dataframe(out, use_container_width=True, hide_index=True)
+    # 行数に応じて高さを確保し、内訳一覧でスクロールが出ないようにする
+    _row_h_px = 36
+    _header_h_px = 40
+    _pad_px = 12
+    _height_px = int(_header_h_px + _pad_px + _row_h_px * (len(out) + 1))
+    st.dataframe(out, use_container_width=True, hide_index=True, height=_height_px)
 
     st.divider()
     st.subheader("CGエンベロープ")
