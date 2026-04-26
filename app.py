@@ -1053,14 +1053,26 @@ def main() -> None:
     ]
     dvt_df = pd.DataFrame(divert)
     dvt_df["空港"] = dvt_df.apply(lambda r: f"{r['空港']} {r['名称']}", axis=1)
-    dvt_df["GS120kt"] = dvt_df["距離 [NM]"].apply(lambda d: "OK" if float(d) <= max_nm_120 else "NG")
-    dvt_df["GS140kt"] = dvt_df["距離 [NM]"].apply(lambda d: "OK" if float(d) <= max_nm_140 else "NG")
+    def _fmt_hm_from_minutes(total_minutes: float) -> str:
+        mins = int(max(0.0, float(total_minutes)))
+        h = mins // 60
+        m = mins % 60
+        return f"{h}時間{m}分"
+
+    def _ok_with_time(dist_nm: float, gs_kt: float, max_nm: float) -> str:
+        if dist_nm <= max_nm:
+            minutes = (dist_nm / gs_kt) * 60.0 if gs_kt > 0 else 0.0
+            return f"OK（{_fmt_hm_from_minutes(minutes)}）"
+        return "NG"
+
+    dvt_df["GS120kt"] = dvt_df["距離 [NM]"].apply(lambda d: _ok_with_time(float(d), 120.0, max_nm_120))
+    dvt_df["GS140kt"] = dvt_df["距離 [NM]"].apply(lambda d: _ok_with_time(float(d), 140.0, max_nm_140))
     dvt_df["距離"] = dvt_df["距離 [NM]"].apply(lambda d: f"{float(d):.1f}NM")
     dvt_df = dvt_df[["空港", "距離", "GS120kt", "GS140kt"]]
 
     def _okng_style(v: str) -> str:
         s = str(v)
-        if s == "OK":
+        if s.startswith("OK"):
             return "background-color: #bbf7d0; color: #065f46; font-weight: 700;"
         if s == "NG":
             return "background-color: #fecaca; color: #7f1d1d; font-weight: 700;"
