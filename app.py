@@ -860,7 +860,12 @@ def main() -> None:
             for r in results
         ]
     )
-    st.dataframe(out, use_container_width=True, hide_index=True)
+    out_styled = (
+        out.style.hide(axis="index")
+        .set_properties(**{"text-align": "center"})
+        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+    )
+    st.dataframe(out_styled, use_container_width=True)
 
     st.divider()
     st.subheader("CGエンベロープ")
