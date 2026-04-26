@@ -1072,7 +1072,7 @@ def main() -> None:
         .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
         .map(_okng_style, subset=["GS120kt", "GS140kt"])
     )
-    st.caption("距離は RJSF 起点（指定値）です。")
+    st.caption("RJSFからの各距離・無風状態")
     st.table(dvt_styled)
 
     st.divider()
