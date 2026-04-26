@@ -667,156 +667,73 @@ def main() -> None:
 
     arms = {k: num(v) for k, v in (cfg.get("arms_mm", {}) or {}).items()}
 
-    tab_input, tab_breakdown = st.tabs(["入力（上面図）", "内訳"])
+    st.subheader("入力（内訳表で直接編集）")
+    st.caption("内訳の表で値を編集すると自動で再計算します。燃料は US gal 入力（1 US gal = 3.028 kg）。")
 
-    # 上面図クリックで ?edit=... が付いたら、ここで受け取る
-    edit_key = st.query_params.get("edit")
-    lx = st.query_params.get("lx")
-    ly = st.query_params.get("ly")
-    lw = st.query_params.get("lw")
-    lh = st.query_params.get("lh")
+    fuel_kg_per_usg = 3.028
 
-    if "topview_layout" not in st.session_state:
-        st.session_state.topview_layout = json.loads(json.dumps(DEFAULT_TOPVIEW_LAYOUT))
+    def _ss_num(key: str, default: float = 0.0) -> float:
+        return float(st.session_state.get(key, default) or 0.0)
 
-    # SVG側ドラッグ/リサイズの結果を取り込む
-    if edit_key and lx and ly and lw and lh:
+    # 入力用の編集テーブル
+    input_rows = [
+        {"key": "front_l", "項目": "Front seat L", "入力値": _ss_num("front_l"), "単位": unit_weight},
+        {"key": "front_r", "項目": "Front seat R", "入力値": _ss_num("front_r"), "単位": unit_weight},
+        {"key": "rear_l", "項目": "Rear seat L", "入力値": _ss_num("rear_l"), "単位": unit_weight},
+        {"key": "rear_r", "項目": "Rear seat R", "入力値": _ss_num("rear_r"), "単位": unit_weight},
+        {"key": "nose_bag", "項目": "Nose baggage", "入力値": _ss_num("nose_bag"), "単位": unit_weight},
+        {"key": "cockpit_bag", "項目": "Cockpit baggage", "入力値": _ss_num("cockpit_bag"), "単位": unit_weight},
+        {"key": "bag_ext", "項目": "Baggage extension", "入力値": _ss_num("bag_ext"), "単位": unit_weight},
+        {"key": "deice_l", "項目": "De-ice fluid", "入力値": _ss_num("deice_l"), "単位": "L"},
+        {"key": "main_fuel_gal", "項目": "Main fuel (loaded)", "入力値": _ss_num("main_fuel_gal"), "単位": "US gal"},
+        {"key": "taxi_burn_gal", "項目": "Taxi burn", "入力値": _ss_num("taxi_burn_gal"), "単位": "US gal"},
+        {"key": "flight_burn_gal", "項目": "Flight burn", "入力値": _ss_num("flight_burn_gal"), "単位": "US gal"},
+        {"key": "return_burn_gal", "項目": "Return burn", "入力値": _ss_num("return_burn_gal"), "単位": "US gal"},
+    ]
+
+    in_df = pd.DataFrame(input_rows)
+    edited = st.data_editor(
+        in_df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "key": st.column_config.TextColumn("key", disabled=True),
+            "項目": st.column_config.TextColumn("項目", disabled=True),
+            "入力値": st.column_config.NumberColumn("入力値"),
+            "単位": st.column_config.TextColumn("単位", disabled=True),
+        },
+        key="input_table",
+    )
+
+    # 編集結果を session_state に反映
+    for _, r in edited.iterrows():
         try:
-            k = str(edit_key)
-            cur = dict(st.session_state.topview_layout.get(k, DEFAULT_TOPVIEW_LAYOUT.get(k, {})))
-            cur.update({"x": float(lx), "y": float(ly), "w": float(lw), "h": float(lh)})
-            st.session_state.topview_layout[k] = cur
+            st.session_state[str(r["key"])] = float(r["入力値"] or 0.0)
         except Exception:
-            pass
-        for qk in ["lx", "ly", "lw", "lh"]:
-            st.query_params.pop(qk, None)
-        st.rerun()
+            st.session_state[str(r["key"])] = 0.0
 
-    with tab_input:
-        st.subheader("入力（DA42用・固定項目）")
-        col_viz, col_form = st.columns([1.1, 1.4], vertical_alignment="top")
+    front_l = _ss_num("front_l")
+    front_r = _ss_num("front_r")
+    rear_l = _ss_num("rear_l")
+    rear_r = _ss_num("rear_r")
+    nose_bag = _ss_num("nose_bag")
+    cockpit_bag = _ss_num("cockpit_bag")
+    bag_ext = _ss_num("bag_ext")
 
-        # クリック編集UI（サイドバー）
-        with st.sidebar:
-            st.subheader("上面図クリック編集")
-            if edit_key:
-                st.caption(f"選択中: `{edit_key}`（上面図の枠をクリックすると切り替わります）")
-                if st.button("選択解除"):
-                    st.query_params.pop("edit", None)
-                    st.rerun()
-            else:
-                st.caption("上面図の枠をクリックすると、ここでその項目を編集できます。")
+    deice_l = _ss_num("deice_l")
+    deice_kg = deice_l * 1.1
 
-            st.divider()
-            topview_edit_mode = st.checkbox("配置編集モード（枠/ハンドル表示）", value=False)
-            st.subheader("上面図レイアウト調整")
-            st.caption("普段は値だけ表示してスッキリ。編集モードONで枠をドラッグ＆リサイズできます。")
+    main_fuel_gal = _ss_num("main_fuel_gal")
+    taxi_burn_gal = _ss_num("taxi_burn_gal")
+    flight_burn_gal = _ss_num("flight_burn_gal")
+    return_burn_gal = _ss_num("return_burn_gal")
 
-            if topview_edit_mode:
-                keys = list(DEFAULT_TOPVIEW_LAYOUT.keys())
-                sel_layout_key = st.selectbox("調整する枠", keys, index=0)
-                cur = dict(st.session_state.topview_layout.get(sel_layout_key, DEFAULT_TOPVIEW_LAYOUT[sel_layout_key]))
+    main_fuel_kg = main_fuel_gal * fuel_kg_per_usg
+    taxi_burn_kg = taxi_burn_gal * fuel_kg_per_usg
+    flight_burn_kg = flight_burn_gal * fuel_kg_per_usg
+    return_burn_kg = return_burn_gal * fuel_kg_per_usg
 
-                x = st.number_input("x", value=float(cur.get("x", 0.0)), step=1.0)
-                y = st.number_input("y", value=float(cur.get("y", 0.0)), step=1.0)
-                w = st.number_input("w", value=float(cur.get("w", 80.0)), step=1.0, min_value=40.0)
-                h = st.number_input("h", value=float(cur.get("h", 60.0)), step=1.0, min_value=30.0)
-
-                st.session_state.topview_layout[sel_layout_key] = {**cur, "x": float(x), "y": float(y), "w": float(w), "h": float(h)}
-
-            c_reset, c_copy = st.columns(2)
-            with c_reset:
-                if st.button("レイアウトを初期化"):
-                    st.session_state.topview_layout = json.loads(json.dumps(DEFAULT_TOPVIEW_LAYOUT))
-                    st.rerun()
-            with c_copy:
-                st.download_button(
-                    "レイアウトを書き出し(JSON)",
-                    data=json.dumps(st.session_state.topview_layout, ensure_ascii=False, indent=2),
-                    file_name="topview_layout.json",
-                    mime="application/json",
-                )
-
-        with col_form:
-            st.markdown("**座席**")
-            front_l = st.number_input("FrontSeats Left", min_value=0.0, value=float(st.session_state.get("front_l", 0.0)), step=1.0, format="%.2f", key="front_l")
-            front_r = st.number_input("FrontSeats Right", min_value=0.0, value=float(st.session_state.get("front_r", 0.0)), step=1.0, format="%.2f", key="front_r")
-            rear_l = st.number_input("RearSeats Left", min_value=0.0, value=float(st.session_state.get("rear_l", 0.0)), step=1.0, format="%.2f", key="rear_l")
-            rear_r = st.number_input("RearSeats Right", min_value=0.0, value=float(st.session_state.get("rear_r", 0.0)), step=1.0, format="%.2f", key="rear_r")
-
-            st.markdown("**バゲッジ・液体**")
-            nose_bag = st.number_input("NoseBaggage", min_value=0.0, value=float(st.session_state.get("nose_bag", 0.0)), step=1.0, format="%.2f", key="nose_bag")
-            cockpit_bag = st.number_input("CockpitBaggage", min_value=0.0, value=float(st.session_state.get("cockpit_bag", 0.0)), step=1.0, format="%.2f", key="cockpit_bag")
-            bag_ext = st.number_input("BaggageExtension", min_value=0.0, value=float(st.session_state.get("bag_ext", 0.0)), step=1.0, format="%.2f", key="bag_ext")
-            deice_l = st.number_input("De-iceFluid（リットルで入力）", min_value=0.0, value=float(st.session_state.get("deice_l", 0.0)), step=1.0, format="%.1f", key="deice_l")
-            deice_kg = deice_l * 1.1
-
-            st.markdown("**燃料（重量換算）**")
-            st.caption("燃料は **US gal** で入力（1 US gal = 3.028 kg）")
-            main_fuel_gal = st.number_input("MainFuel（搭載・ガロンで入力）", min_value=0.0, value=float(st.session_state.get("main_fuel_gal", 0.0)), step=1.0, format="%.1f", key="main_fuel_gal")
-            taxi_burn_gal = st.number_input("FuelConsumption FOR Taxi（ガロンで入力）", min_value=0.0, value=float(st.session_state.get("taxi_burn_gal", 0.0)), step=0.5, format="%.1f", key="taxi_burn_gal")
-            flight_burn_gal = st.number_input("FuelConsumption（目的地まで・ガロンで入力）", min_value=0.0, value=float(st.session_state.get("flight_burn_gal", 0.0)), step=0.5, format="%.1f", key="flight_burn_gal")
-            return_burn_gal = st.number_input("FuelConsumption（復路・ガロンで入力）", min_value=0.0, value=float(st.session_state.get("return_burn_gal", 0.0)), step=0.5, format="%.1f", key="return_burn_gal")
-
-            fuel_kg_per_usg = 3.028
-            main_fuel_kg = main_fuel_gal * fuel_kg_per_usg
-            taxi_burn_kg = taxi_burn_gal * fuel_kg_per_usg
-            flight_burn_kg = flight_burn_gal * fuel_kg_per_usg
-            return_burn_kg = return_burn_gal * fuel_kg_per_usg
-
-            st.caption(f"単位: 重量={unit_weight}, アーム={unit_arm}")
-
-        # クリックで選択された項目を編集（サイドバー）
-        with st.sidebar:
-            if edit_key:
-                if edit_key == "front_l":
-                    st.number_input("FrontSeats Left", min_value=0.0, step=1.0, format="%.2f", key="front_l")
-                elif edit_key == "front_r":
-                    st.number_input("FrontSeats Right", min_value=0.0, step=1.0, format="%.2f", key="front_r")
-                elif edit_key == "rear_l":
-                    st.number_input("RearSeats Left", min_value=0.0, step=1.0, format="%.2f", key="rear_l")
-                elif edit_key == "rear_r":
-                    st.number_input("RearSeats Right", min_value=0.0, step=1.0, format="%.2f", key="rear_r")
-                elif edit_key == "nose_bag":
-                    st.number_input("NoseBaggage", min_value=0.0, step=1.0, format="%.2f", key="nose_bag")
-                elif edit_key == "cockpit_bag":
-                    st.number_input("CockpitBaggage", min_value=0.0, step=1.0, format="%.2f", key="cockpit_bag")
-                elif edit_key == "bag_ext":
-                    st.number_input("BaggageExtension", min_value=0.0, step=1.0, format="%.2f", key="bag_ext")
-                elif edit_key == "deice_l":
-                    st.number_input("De-iceFluid（リットルで入力）", min_value=0.0, step=1.0, format="%.1f", key="deice_l")
-                    st.caption("換算: 1 L = 1.1 kg")
-                elif edit_key == "main_fuel_gal":
-                    st.number_input("MainFuel（搭載・ガロンで入力）", min_value=0.0, step=1.0, format="%.1f", key="main_fuel_gal")
-                    st.caption("換算: 1 US gal = 3.028 kg")
-
-        with col_viz:
-            st.markdown("**上面図（現在値の見える化）**")
-            fuel_half_gal = main_fuel_gal / 2.0
-            fuel_half_kg = main_fuel_kg / 2.0
-            st.caption("枠をクリックすると、その項目を編集できます。")
-            svg = render_top_view_svg(
-                {
-                    "front_l": front_l,
-                    "front_r": front_r,
-                    "rear_l": rear_l,
-                    "rear_r": rear_r,
-                    "nose_bag": nose_bag,
-                    "cockpit_bag": cockpit_bag,
-                    "bag_ext": bag_ext,
-                    "deice_l": deice_l,
-                    "deice_kg": deice_kg,
-                    "fuel_l_gal": fuel_half_gal,
-                    "fuel_r_gal": fuel_half_gal,
-                    "fuel_l_kg": fuel_half_kg,
-                    "fuel_r_kg": fuel_half_kg,
-                },
-                unit_weight=unit_weight,
-                edit_mode=topview_edit_mode,
-                layout=st.session_state.topview_layout,
-                background_png_data_uri=None,
-            )
-            components.html(svg, height=720)
+    st.caption(f"単位: 重量={unit_weight}, アーム={unit_arm_disp}")
 
     if bew_w <= 0 or bew_a <= 0:
         st.warning("`aircraft.toml` の basic_empty（BEWの重量とアーム）を入力してください。入力が無いと実機の結果になりません。")
@@ -863,30 +780,29 @@ def main() -> None:
     lw1 = points["LW1"]
     lw2 = points["LW2"]
 
-    with tab_input:
-        st.subheader("計算結果")
-        c1, c2, c3 = st.columns(3)
-        c1.metric(f"Zero Fuel Weight (ZFW) [{unit_weight}]", f"{zfm.weight:,.2f}", help="燃料を除いた重量")
-        c2.metric(f"Takeoff Weight (TOW) [{unit_weight}]", f"{tow.weight:,.2f}", help="Taxi消費後の燃料を含む")
-        c3.metric(f"Landing Weight 1 (LW1) [{unit_weight}]", f"{lw1.weight:,.2f}", help="目的地到着時（燃料消費後）")
+    st.subheader("計算結果")
+    c1, c2, c3 = st.columns(3)
+    c1.metric(f"Zero Fuel Weight (ZFW) [{unit_weight}]", f"{zfm.weight:,.2f}", help="燃料を除いた重量")
+    c2.metric(f"Takeoff Weight (TOW) [{unit_weight}]", f"{tow.weight:,.2f}", help="Taxi消費後の燃料を含む")
+    c3.metric(f"Landing Weight 1 (LW1) [{unit_weight}]", f"{lw1.weight:,.2f}", help="目的地到着時（燃料消費後）")
 
-        g1, g2, g3 = st.columns(3)
-        g1.metric(f"ZFM CG [{unit_arm}]", "—" if zfm.cg is None else f"{zfm.cg:,.1f}")
-        g2.metric(f"TOW CG [{unit_arm}]", "—" if tow.cg is None else f"{tow.cg:,.1f}")
-        g3.metric(f"LW1 CG [{unit_arm}]", "—" if lw1.cg is None else f"{lw1.cg:,.1f}")
+    g1, g2, g3 = st.columns(3)
+    g1.metric(f"ZFM CG [{unit_arm_disp}]", "—" if zfm.cg is None else f"{disp_arm(zfm.cg):,.3f}")
+    g2.metric(f"TOW CG [{unit_arm_disp}]", "—" if tow.cg is None else f"{disp_arm(tow.cg):,.3f}")
+    g3.metric(f"LW1 CG [{unit_arm_disp}]", "—" if lw1.cg is None else f"{disp_arm(lw1.cg):,.3f}")
 
-        h1, h2, h3 = st.columns(3)
-        h1.metric(f"LW2 [{unit_weight}]", f"{lw2.weight:,.2f}", help="復路消費後（帰投想定）")
-        h2.metric(f"LW2 CG [{unit_arm}]", "—" if lw2.cg is None else f"{lw2.cg:,.1f}")
-        h3.write("")
+    h1, h2, h3 = st.columns(3)
+    h1.metric(f"LW2 [{unit_weight}]", f"{lw2.weight:,.2f}", help="復路消費後（帰投想定）")
+    h2.metric(f"LW2 CG [{unit_arm_disp}]", "—" if lw2.cg is None else f"{disp_arm(lw2.cg):,.3f}")
+    h3.write("")
 
-        if use_limits:
-            for label, p in [("ZFW", zfm), ("TOW", tow), ("LW1", lw1), ("LW2", lw2)]:
-                status = within_limits(p.cg, cg_min, cg_max)
-                if status and "外" in status:
-                    st.error(f"{label}: {status}")
-                elif status:
-                    st.success(f"{label}: {status}")
+    if use_limits:
+        for label, p in [("ZFW", zfm), ("TOW", tow), ("LW1", lw1), ("LW2", lw2)]:
+            status = within_limits(p.cg, cg_min, cg_max)
+            if status and "外" in status:
+                st.error(f"{label}: {status}")
+            elif status:
+                st.success(f"{label}: {status}")
 
     with tab_breakdown:
         st.subheader("内訳一覧")
