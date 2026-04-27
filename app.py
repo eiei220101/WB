@@ -1197,7 +1197,7 @@ def main() -> None:
         ann = []
 
         # 指定の参考線（常に表示）
-        for y, title in [(1785.0, "T/O Weight"), (1700.0, "LDG Weight")]:
+        for y, title in [(1999.0, "T/O・LDG Weight")]:
             shapes.append(
                 dict(
                     type="line",
