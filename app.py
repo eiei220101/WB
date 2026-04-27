@@ -974,11 +974,18 @@ def main() -> None:
     def _style_row(row: "pd.Series"):
         name = str(row.get("項目", ""))
         w = display_rows[row.name].get("weight")
-        # 太枠は付けない
-        is_boxed = False
+        # 以前は制限行を太枠で囲っていたが、太枠は付けない（見た目は従来のまま）
+        special = {
+            "ZERO FUEL MASS",
+            "TAKE OFF WEIGHT",
+            "LDG Weight（目的地空港着陸時）",
+            "LDG Weight（帰投時）",
+        }
+        is_special = name in special
 
         # 色付けは行わない（制限値は「制限[kg]」列で明記）
         color_css = ""
+        emphasis_css = "font-weight: 700;" if is_special else ""
 
         # 列ごとに枠線を出し分け（行内の仕切りは太くしない）
         cols = list(row.index)
@@ -990,14 +997,10 @@ def main() -> None:
         per_cell: list[str] = []
         for col in cols:
             cell_css_parts: list[str] = []
-            if is_boxed:
-                cell_css_parts.append("border-top: 3px solid #000; border-bottom: 3px solid #000;")
-                if col == first_col:
-                    cell_css_parts.append("border-left: 3px solid #000;")
-                if col == last_col:
-                    cell_css_parts.append("border-right: 3px solid #000;")
             if color_css:
                 cell_css_parts.append(color_css)
+            if emphasis_css:
+                cell_css_parts.append(emphasis_css)
             per_cell.append(" ".join(cell_css_parts).strip())
 
         # 空文字だけだと効かないので、完全空なら空配列を返す
