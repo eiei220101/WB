@@ -1013,6 +1013,8 @@ def main() -> None:
                 cell_css_parts.append(color_css)
             if emphasis_css:
                 cell_css_parts.append(emphasis_css)
+            if col == "制限 [kg]" and str(row.get(col, "")).strip():
+                cell_css_parts.append("color: #dc2626; font-weight: 800;")
             per_cell.append(" ".join(cell_css_parts).strip())
 
         # 空文字だけだと効かないので、完全空なら空配列を返す
