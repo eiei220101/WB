@@ -1008,7 +1008,8 @@ def main() -> None:
         per_cell: list[str] = []
         for col in cols:
             cell_css_parts: list[str] = []
-            if color_css:
+            # 制限値のセル自体は色付けしない
+            if color_css and col != "制限 [kg]":
                 cell_css_parts.append(color_css)
             if emphasis_css:
                 cell_css_parts.append(emphasis_css)
