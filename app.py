@@ -1197,7 +1197,13 @@ def main() -> None:
         ann = []
 
         # 指定の参考線（常に表示）
-        for y, title in [(1999.0, "T/O・LDG Weight")]:
+        # JA56DA: 1999kg、JA52/53DA: 1785kg(T/O) と 1700kg(LDG)
+        if tail == "JA56DA":
+            ref_lines = [(1999.0, "T/O・LDG Weight")]
+        else:
+            ref_lines = [(1785.0, "T/O Weight"), (1700.0, "LDG Weight")]
+
+        for y, title in ref_lines:
             shapes.append(
                 dict(
                     type="line",
