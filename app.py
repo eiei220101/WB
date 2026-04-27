@@ -939,14 +939,7 @@ def main() -> None:
         LIMIT_LDG = 1700.0
         LIMIT_ZFM = 1650.0
 
-    def _row_color(name: str, weight: float) -> str | None:
-        if name == "ZERO FUEL MASS":
-            return "#16a34a" if weight <= LIMIT_ZFM else "#dc2626"
-        if name == "TAKE OFF WEIGHT":
-            return "#16a34a" if weight <= LIMIT_TOW else "#dc2626"
-        if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"}:
-            return "#16a34a" if weight <= LIMIT_LDG else "#dc2626"
-        return None
+    # NOTE: 表では制限値の色付け（緑/赤）は行わない（制限値は列で明記のみ）
 
     def _limit_text(name: str) -> str:
         if name == "ZERO FUEL MASS":
@@ -981,21 +974,11 @@ def main() -> None:
     def _style_row(row: "pd.Series"):
         name = str(row.get("項目", ""))
         w = display_rows[row.name].get("weight")
-        # 太枠で囲う行（外枠のみ）
-        boxed = {
-            "ZERO FUEL MASS",
-            "TAKE OFF WEIGHT",
-            "LDG Weight（目的地空港着陸時）",
-            "LDG Weight（帰投時）",
-        }
-        is_boxed = name in boxed
+        # 太枠は付けない
+        is_boxed = False
 
-        # 色付け（判定できる行だけ、行全体）
+        # 色付けは行わない（制限値は「制限[kg]」列で明記）
         color_css = ""
-        if isinstance(w, (int, float)):
-            c = _row_color(name, float(w))
-            if c:
-                color_css = f"background-color: {c}; color: white; font-weight: 700;"
 
         # 列ごとに枠線を出し分け（行内の仕切りは太くしない）
         cols = list(row.index)
