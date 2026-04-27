@@ -1037,24 +1037,25 @@ def main() -> None:
     # スクロールさせず、スタイルが確実に効く表示（table）
     st.table(out_styled)
 
-    st.divider()
-    st.subheader("燃料換算")
-    st.caption("入力した燃料重量が、何 US gal / 何時間何分分かを表示します。")
+    if tail != "JA56DA":
+        st.divider()
+        st.subheader("燃料換算")
+        st.caption("入力した燃料重量が、何 US gal / 何時間何分分かを表示します。")
 
-    fuel_kg = st.number_input("燃料重量 [kg]", min_value=0.0, step=1.0, format="%.1f", key="fuel_convert_kg")
-    fuel_gal = (fuel_kg / fuel_kg_per_usg) if fuel_kg_per_usg > 0 else 0.0
+        fuel_kg = st.number_input("燃料重量 [kg]", min_value=0.0, step=1.0, format="%.1f", key="fuel_convert_kg")
+        fuel_gal = (fuel_kg / fuel_kg_per_usg) if fuel_kg_per_usg > 0 else 0.0
 
-    def _hm(hours: float) -> str:
-        mins = int(max(0.0, float(hours)) * 60.0)
-        return f"{mins // 60}時間{mins % 60}分"
+        def _hm(hours: float) -> str:
+            mins = int(max(0.0, float(hours)) * 60.0)
+            return f"{mins // 60}時間{mins % 60}分"
 
-    h10 = _hm(fuel_gal / 10.0) if 10.0 > 0 else "0時間0分"
-    h166 = _hm(fuel_gal / 16.6) if 16.6 > 0 else "0時間0分"
+        h10 = _hm(fuel_gal / 10.0) if 10.0 > 0 else "0時間0分"
+        h166 = _hm(fuel_gal / 16.6) if 16.6 > 0 else "0時間0分"
 
-    fc1, fc2, fc3 = st.columns(3)
-    fc1.metric("換算燃料 [US gal]", f"{fuel_gal:.1f}")
-    fc2.metric("10.0 GAL/hr", h10)
-    fc3.metric("16.6 GAL/hr", h166)
+        fc1, fc2, fc3 = st.columns(3)
+        fc1.metric("換算燃料 [US gal]", f"{fuel_gal:.1f}")
+        fc2.metric("10.0 GAL/hr", h10)
+        fc3.metric("16.6 GAL/hr", h166)
 
     st.divider()
     st.subheader("福島帰投時燃料")
