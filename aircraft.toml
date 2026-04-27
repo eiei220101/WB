@@ -113,14 +113,18 @@ mtow = 1999.0
 mlw = 1999.0
 
 [aircraft.JA56DA.envelope]
-# NOTE:
-# -VI の正式な封筒点が未提供の場合でも、アプリが実用できるように暫定点を入れておく。
-# 必要があれば、実機資料（POH/AFM）の点で差し替えてください。
+# -VI Flight CG limits (入力いただいた制限値を points 化)
+# - CG[m] を mm に換算して記載
+# - If MÄM 42-678 is carried out:
+#   Most forward flight CG at max take-off mass 1999kg is 2.434m (=2434mm)
+#   ※ 本pointsは「2.418m at 1900kg」のラインで作成（必要なら差し替え）
 points = [
-  [2350, 1250],
+  # Most forward flight CG
+  [2350, 1450],
   [2350, 1468],
-  [2400, 1785],
-  [2490, 1785],
-  [2490, 1600],
-  [2420, 1250],
+  [2418, 1900],
+  # Most rearward flight CG
+  [2480, 1999],
+  [2480, 1700],
+  [2454, 1450],
 ]
