@@ -965,7 +965,6 @@ def main() -> None:
                 for r in display_rows
             ],
             f"重量 [{unit_weight}]": [("" if not isinstance(r.get("weight"), (int, float)) else _fmt5(float(r["weight"]))) for r in display_rows],
-            "制限 [kg]": [_limit_text(str(r.get("name", ""))) for r in display_rows],
             f"モーメント [{unit_weight}·{unit_arm_disp}]": [
                 (
                     "3274"
@@ -974,6 +973,7 @@ def main() -> None:
                 )
                 for r in display_rows
             ],
+            "制限 [kg]": [_limit_text(str(r.get("name", ""))) for r in display_rows],
         }
     )
 
