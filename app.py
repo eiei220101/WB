@@ -1227,7 +1227,8 @@ def main() -> None:
                 )
             )
 
-        if mlw and mlw > 0:
+        # JA56DA は固定の「T/O・LDG Weight」だけ表示したいので、limits由来の線は出さない
+        if tail != "JA56DA" and mlw and mlw > 0:
             shapes.append(
                 dict(
                     type="line",
@@ -1250,7 +1251,7 @@ def main() -> None:
                     yanchor="bottom",
                 )
             )
-        if mtow and mtow > 0:
+        if tail != "JA56DA" and mtow and mtow > 0:
             shapes.append(
                 dict(
                     type="line",
