@@ -619,7 +619,6 @@ def main() -> None:
             st.write(f"- 型式: **{model}**")
         if notes:
             st.write(f"- メモ: **{notes}**")
-        st.info("アームやBEWは `aircraft.toml` を編集して更新します。")
 
         unit_weight = str(cfg.get("units", {}).get("weight", "kg"))
         unit_arm = str(cfg.get("units", {}).get("arm", "mm"))
@@ -654,7 +653,7 @@ def main() -> None:
             cg_min = undisp_arm(cg_min_ui)
             cg_max = undisp_arm(cg_max_ui)
 
-        st.subheader("重量制限（任意）")
+        st.subheader("重量制限")
         mzfm = num(lim.get("mzfm", 0.0)) or None
         mtow = num(lim.get("mtow", 0.0)) or None
         mlw = num(lim.get("mlw", 0.0)) or None
