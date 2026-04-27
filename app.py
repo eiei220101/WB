@@ -939,7 +939,14 @@ def main() -> None:
         LIMIT_LDG = 1700.0
         LIMIT_ZFM = 1650.0
 
-    # NOTE: 表では制限値の色付け（緑/赤）は行わない（制限値は列で明記のみ）
+    def _row_color(name: str, weight: float) -> str | None:
+        if name == "ZERO FUEL MASS":
+            return "#16a34a" if weight <= LIMIT_ZFM else "#dc2626"
+        if name == "TAKE OFF WEIGHT":
+            return "#16a34a" if weight <= LIMIT_TOW else "#dc2626"
+        if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"}:
+            return "#16a34a" if weight <= LIMIT_LDG else "#dc2626"
+        return None
 
     def _limit_text(name: str) -> str:
         if name == "ZERO FUEL MASS":
@@ -983,8 +990,12 @@ def main() -> None:
         }
         is_special = name in special
 
-        # 色付けは行わない（制限値は「制限[kg]」列で明記）
+        # 色付け（判定できる行だけ、行全体）
         color_css = ""
+        if isinstance(w, (int, float)) and is_special:
+            c = _row_color(name, float(w))
+            if c:
+                color_css = f"background-color: {c}; color: white;"
         emphasis_css = "font-weight: 700;" if is_special else ""
 
         # 列ごとに枠線を出し分け（行内の仕切りは太くしない）
