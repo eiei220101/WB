@@ -881,8 +881,15 @@ def main() -> None:
         a = (tm / tw) if tw > 0 else 0.0
         return {"name": name, "weight": tw, "arm": a, "moment": tm}
 
+    # Basic Empty は設定値の moment_kgm（表示固定値）を ZFW の合算にも使う
+    bew_moment_kgm = selected.get("basic_empty", {}).get("moment_kgm") if isinstance(selected, dict) else None
+    if isinstance(bew_moment_kgm, (int, float)) and arm_scale != 0:
+        bew_moment_internal = float(bew_moment_kgm) / arm_scale  # kg·m -> kg·mm
+    else:
+        bew_moment_internal = _moment(bew_w, bew_a)
+
     base_rows = [
-        _row("Basic Empty", bew_w, bew_a),
+        {"name": "Basic Empty", "weight": float(bew_w), "arm": float(bew_a), "moment": float(bew_moment_internal)},
         _row("FrontSeats", front_w, front_arm),
         _row("RearSeats", rear_w, rear_arm),
         _row("Nose baggage", nose_bag, nose_arm),
