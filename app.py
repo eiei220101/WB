@@ -928,9 +928,16 @@ def main() -> None:
             return ""
 
     # 制限値（固定）
-    LIMIT_TOW = 1785.0
-    LIMIT_LDG = 1700.0
-    LIMIT_ZFM = 1650.0
+    # 52/53DA: ZFM=1650, TOW=1785, LDG=1700
+    # 56DA:    ZFM=1835, TOW/LDG=1999
+    if tail == "JA56DA":
+        LIMIT_ZFM = 1835.0
+        LIMIT_TOW = 1999.0
+        LIMIT_LDG = 1999.0
+    else:
+        LIMIT_TOW = 1785.0
+        LIMIT_LDG = 1700.0
+        LIMIT_ZFM = 1650.0
 
     def _row_color(name: str, weight: float) -> str | None:
         if name == "ZERO FUEL MASS":
