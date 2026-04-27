@@ -64,7 +64,10 @@ arm = 2420.0 # LevelArm 2.42 m
 moment_kgm = 3274.0
 
 [aircraft.JA52DA.limits]
-# 未入力（必要なら追記）
+# 画面表示用（任意）
+mzfm = 1650.0
+mtow = 1785.0
+mlw = 1700.0
 
 [aircraft.JA52DA.envelope]
 # TDI 飛行CG封筒（提供いただいた頂点）
@@ -87,7 +90,10 @@ arm = 2470.0 # LevelArm 2.47 m
 moment_kgm = 3369.0
 
 [aircraft.JA53DA.limits]
-# 未入力（必要なら追記）
+# 画面表示用（任意）
+mzfm = 1650.0
+mtow = 1785.0
+mlw = 1700.0
 
 [aircraft.JA53DA.envelope]
 points = [
@@ -109,6 +115,7 @@ arm = 2445.0 # LevelArm 2.445 m
 moment_kgm = 3744.38
 
 [aircraft.JA56DA.limits]
+mzfm = 1835.0
 mtow = 1999.0
 mlw = 1999.0
 
