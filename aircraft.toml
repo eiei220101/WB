@@ -117,13 +117,14 @@ mlw = 1999.0
 # - CG[m] を mm に換算して記載
 # - If MÄM 42-678 is carried out:
 #   Most forward flight CG at max take-off mass 1999kg is 2.434m (=2434mm)
-#   ※ 本pointsは「2.418m at 1900kg」のラインで作成（必要なら差し替え）
+#   ※ JA56DA は MÄM 42-678 実施（1999kg）として作成
 points = [
-  # Most forward flight CG
+  # Most forward flight CG (bottom -> top)
   [2350, 1450],
   [2350, 1468],
   [2418, 1900],
-  # Most rearward flight CG
+  [2434, 1999],
+  # Most rearward flight CG (top -> bottom)
   [2480, 1999],
   [2480, 1700],
   [2454, 1450],
