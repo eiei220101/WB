@@ -1301,28 +1301,40 @@ def main() -> None:
                 gridcolor="rgba(148,163,184,0.12)",
             ),
         )
-        fig.update_yaxes(
-            showgrid=True,
-            gridcolor="rgba(148,163,184,0.25)",
-            zeroline=False,
-            dtick=20,
-            tickmode="array",
-            tickvals=[1250, 1300, 1350, 1400, 1450, 1500, 1550, 1600, 1650, 1700, 1750, 1800],
-            ticktext=[
-                "<b>1250</b>",
-                "<b>1300</b>",
-                "<b>1350</b>",
-                "<b>1400</b>",
-                "<b>1450</b>",
-                "<b>1500</b>",
-                "<b>1550</b>",
-                "<b>1600</b>",
-                "<b>1650</b>",
-                "<b>1700</b>",
-                "<b>1750</b>",
-                "<b>1800</b>",
-            ],
-        )
+        if tail == "JA56DA":
+            y_vals = list(range(1450, 2001, 50))
+            fig.update_yaxes(
+                showgrid=True,
+                gridcolor="rgba(148,163,184,0.25)",
+                zeroline=False,
+                dtick=50,
+                tickmode="array",
+                tickvals=y_vals,
+                ticktext=[f"<b>{v}</b>" for v in y_vals],
+            )
+        else:
+            fig.update_yaxes(
+                showgrid=True,
+                gridcolor="rgba(148,163,184,0.25)",
+                zeroline=False,
+                dtick=20,
+                tickmode="array",
+                tickvals=[1250, 1300, 1350, 1400, 1450, 1500, 1550, 1600, 1650, 1700, 1750, 1800],
+                ticktext=[
+                    "<b>1250</b>",
+                    "<b>1300</b>",
+                    "<b>1350</b>",
+                    "<b>1400</b>",
+                    "<b>1450</b>",
+                    "<b>1500</b>",
+                    "<b>1550</b>",
+                    "<b>1600</b>",
+                    "<b>1650</b>",
+                    "<b>1700</b>",
+                    "<b>1750</b>",
+                    "<b>1800</b>",
+                ],
+            )
         left_pad, center, right_pad = st.columns([1, 3, 1])
         with center:
             st.plotly_chart(fig, use_container_width=False)
