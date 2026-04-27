@@ -948,6 +948,15 @@ def main() -> None:
             return "#16a34a" if weight <= LIMIT_LDG else "#dc2626"
         return None
 
+    def _limit_text(name: str) -> str:
+        if name == "ZERO FUEL MASS":
+            return f"{LIMIT_ZFM:.0f}"
+        if name == "TAKE OFF WEIGHT":
+            return f"{LIMIT_TOW:.0f}"
+        if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"}:
+            return f"{LIMIT_LDG:.0f}"
+        return ""
+
     out = pd.DataFrame(
         {
             "項目": [r.get("name", "") for r in display_rows],
@@ -956,6 +965,7 @@ def main() -> None:
                 for r in display_rows
             ],
             f"重量 [{unit_weight}]": [("" if not isinstance(r.get("weight"), (int, float)) else _fmt5(float(r["weight"]))) for r in display_rows],
+            "制限 [kg]": [_limit_text(str(r.get("name", ""))) for r in display_rows],
             f"モーメント [{unit_weight}·{unit_arm_disp}]": [
                 (
                     "3274"
