@@ -1437,6 +1437,20 @@ def main() -> None:
         y_min = 1400 if tail in {"JA55DA", "JA56DA"} else 1250
         y_max = 1850 if tail in {"JA52DA", "JA53DA"} else 2000
         y_vals = list(range(y_min, y_max + 1, 50))
+
+        # 上端/下端の横線（表示範囲の枠線）
+        border_color = "rgba(148,163,184,0.45)"
+        for y in (y_min, y_max):
+            fig.add_shape(
+                type="line",
+                xref="paper",
+                yref="y",
+                x0=0,
+                x1=1,
+                y0=y,
+                y1=y,
+                line=dict(color=border_color, width=2, dash="dot"),
+            )
         fig.update_yaxes(
             showgrid=True,
             gridcolor="rgba(148,163,184,0.25)",
