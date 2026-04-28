@@ -744,8 +744,8 @@ def main() -> None:
             except Exception:
                 st.session_state[str(r["key"])] = 0.0
 
-        # JA52/53/56 の入力値制限（バゲッジ/De-ice）
-        if tail in {"JA52DA", "JA53DA", "JA56DA"}:
+        # JA52/53/55/56 の入力値制限（バゲッジ/De-ice）
+        if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
             # baggage max
             st.session_state["nose_bag"] = min(max(0.0, _ss_num("nose_bag")), 30.0)
             st.session_state["cockpit_bag"] = min(max(0.0, _ss_num("cockpit_bag")), 45.0)
@@ -754,7 +754,7 @@ def main() -> None:
             comb = _ss_num("cockpit_bag") + _ss_num("bag_ext")
             if comb > 45.0:
                 st.session_state["bag_ext"] = max(0.0, 45.0 - _ss_num("cockpit_bag"))
-                st.warning("JA52/53/56: Cockpit baggage + Baggage extension の合計は 45kg 以下に制限されます。")
+                st.warning("JA52/53/55/56: Cockpit baggage + Baggage extension の合計は 45kg 以下に制限されます。")
             # de-ice 22..30 L
             st.session_state["deice_l"] = min(max(22.0, _ss_num("deice_l")), 30.0)
 
@@ -783,12 +783,12 @@ def main() -> None:
             st.number_input("Rear seat R", min_value=0.0, step=1.0, format="%.1f", key="rear_r")
 
             st.markdown("**バゲッジ**")
-            if tail in {"JA52DA", "JA53DA", "JA56DA"}:
+            if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
                 st.number_input("Nose baggage", min_value=0.0, max_value=30.0, step=1.0, format="%.1f", key="nose_bag")
                 st.number_input("Cockpit baggage", min_value=0.0, max_value=45.0, step=1.0, format="%.1f", key="cockpit_bag")
                 st.number_input("Baggage extension", min_value=0.0, max_value=18.0, step=1.0, format="%.1f", key="bag_ext")
                 if _ss_num("cockpit_bag") + _ss_num("bag_ext") > 45.0:
-                    st.error("JA52/53/56: Cockpit baggage + Baggage extension の合計は 45kg 以下にしてください。")
+                    st.error("JA52/53/55/56: Cockpit baggage + Baggage extension の合計は 45kg 以下にしてください。")
             else:
                 st.number_input("Nose baggage", min_value=0.0, step=1.0, format="%.1f", key="nose_bag")
                 st.number_input("Cockpit baggage", min_value=0.0, step=1.0, format="%.1f", key="cockpit_bag")
@@ -796,7 +796,7 @@ def main() -> None:
 
         with col2:
             st.markdown("**De-ice / 液体**")
-            if tail in {"JA52DA", "JA53DA", "JA56DA"}:
+            if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
                 st.number_input("De-ice fluid [L]", min_value=22.0, max_value=30.0, step=1.0, format="%.1f", key="deice_l")
             else:
                 st.number_input("De-ice fluid [L]", min_value=0.0, step=1.0, format="%.1f", key="deice_l")
@@ -959,8 +959,8 @@ def main() -> None:
 
     # 制限値（固定）
     # 52/53DA: ZFM=1650, TOW=1785, LDG=1700
-    # 56DA:    ZFM=1835, TOW/LDG=1999
-    if tail == "JA56DA":
+    # 55/56DA: ZFM=1835, TOW/LDG=1999
+    if tail in {"JA55DA", "JA56DA"}:
         LIMIT_ZFM = 1835.0
         LIMIT_TOW = 1999.0
         LIMIT_LDG = 1999.0
@@ -979,8 +979,8 @@ def main() -> None:
         return None
 
     def _limit_text(name: str) -> str:
-        # 52/53/56: ステーション制限（入力値制限）も表示
-        if tail in {"JA52DA", "JA53DA", "JA56DA"}:
+        # 52/53/55/56: ステーション制限（入力値制限）も表示
+        if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
             if name == "Nose baggage":
                 return "30kg"
             if name == "Cockpit baggage":
@@ -1079,7 +1079,7 @@ def main() -> None:
     # スクロールさせず、スタイルが確実に効く表示（table）
     st.table(out_styled)
 
-    if tail != "JA56DA":
+    if tail not in {"JA55DA", "JA56DA"}:
         st.divider()
         st.subheader("燃料換算")
         st.caption("入力した燃料重量が、何 US gal / 何時間何分分かを表示します。")
@@ -1282,8 +1282,8 @@ def main() -> None:
         ann = []
 
         # 指定の参考線（常に表示）
-        # JA56DA: 1999kg、JA52/53DA: 1785kg(T/O) と 1700kg(LDG)
-        if tail == "JA56DA":
+        # JA55/56DA: 1999kg、JA52/53DA: 1785kg(T/O) と 1700kg(LDG)
+        if tail in {"JA55DA", "JA56DA"}:
             ref_lines = [(1999.0, "MTOW/MLW 1999kg")]
         else:
             ref_lines = [(1785.0, "MTOW 1785kg"), (1700.0, "MLW 1700kg")]
@@ -1313,8 +1313,8 @@ def main() -> None:
                 )
             )
 
-        # 既定の参考線とタイトルが重複しやすいので、JA52/53/56 は limits 由来の線は出さない
-        if tail not in {"JA52DA", "JA53DA", "JA56DA"} and mlw and mlw > 0:
+        # 既定の参考線とタイトルが重複しやすいので、JA52/53/55/56 は limits 由来の線は出さない
+        if tail not in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"} and mlw and mlw > 0:
             shapes.append(
                 dict(
                     type="line",
@@ -1337,7 +1337,7 @@ def main() -> None:
                     yanchor="bottom",
                 )
             )
-        if tail not in {"JA52DA", "JA53DA", "JA56DA"} and mtow and mtow > 0:
+        if tail not in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"} and mtow and mtow > 0:
             shapes.append(
                 dict(
                     type="line",
@@ -1388,7 +1388,7 @@ def main() -> None:
                 gridcolor="rgba(148,163,184,0.12)",
             ),
         )
-        if tail == "JA56DA":
+        if tail in {"JA55DA", "JA56DA"}:
             y_vals = list(range(1450, 2001, 50))
             fig.update_yaxes(
                 showgrid=True,

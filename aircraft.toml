@@ -136,3 +136,31 @@ points = [
   [2480, 1700],
   [2454, 1450],
 ]
+
+[aircraft.JA55DA]
+model = "DA42NG"
+notes = "（暫定）JA56DAベース"
+
+[aircraft.JA55DA.basic_empty]
+# まずは JA56DA をベースに暫定値（必要に応じて実機データへ差し替え）
+weight = 1531.0
+arm = 2445.0 # LevelArm 2.445 m
+moment_kgm = 3744.38
+
+[aircraft.JA55DA.limits]
+# JA56DA と同じ暫定（必要に応じて差し替え）
+mzfm = 1835.0
+mtow = 1999.0
+mlw = 1999.0
+
+[aircraft.JA55DA.envelope]
+# JA56DA と同じ暫定（必要に応じて差し替え）
+points = [
+  [2350, 1450],
+  [2350, 1468],
+  [2418, 1900],
+  [2434, 1999],
+  [2480, 1999],
+  [2480, 1700],
+  [2454, 1450],
+]
