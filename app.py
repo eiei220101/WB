@@ -1341,6 +1341,21 @@ def main() -> None:
                 )
             )
 
+        # 全機体共通: X=2.30 / 2.50 の補助縦線
+        for x in (2.30, 2.50):
+            shapes.append(
+                dict(
+                    type="line",
+                    xref="x",
+                    yref="paper",
+                    x0=x,
+                    x1=x,
+                    y0=0,
+                    y1=1,
+                    line=dict(color="rgba(148,163,184,0.45)", width=2, dash="dot"),
+                )
+            )
+
         # 既定の参考線とタイトルが重複しやすいので、JA52/53/55/56 は limits 由来の線は出さない
         if tail not in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"} and mlw and mlw > 0:
             shapes.append(
@@ -1415,31 +1430,6 @@ def main() -> None:
                 showgrid=True,
                 gridcolor="rgba(148,163,184,0.12)",
             ),
-        )
-        # 全機体共通: X=2.30 の補助線（縦線） + 2.30..2.50 表示 + 0.01刻みの補助線
-        shapes.append(
-            dict(
-                type="line",
-                xref="x",
-                yref="paper",
-                x0=2.30,
-                x1=2.30,
-                y0=0,
-                y1=1,
-                line=dict(color="rgba(148,163,184,0.45)", width=2, dash="dot"),
-            )
-        )
-        shapes.append(
-            dict(
-                type="line",
-                xref="x",
-                yref="paper",
-                x0=2.50,
-                x1=2.50,
-                y0=0,
-                y1=1,
-                line=dict(color="rgba(148,163,184,0.45)", width=2, dash="dot"),
-            )
         )
         fig.update_xaxes(range=[2.30, 2.50])
 
