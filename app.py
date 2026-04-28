@@ -1442,6 +1442,7 @@ def main() -> None:
                 tickvals=y_vals,
                 ticktext=[f"<b>{v}</b>" for v in y_vals],
             )
+            fig.update_yaxes(range=[1450, 2000])
         else:
             fig.update_yaxes(
                 showgrid=True,
