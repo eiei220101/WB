@@ -1404,7 +1404,8 @@ def main() -> None:
                 )
             )
 
-        _m_l, _m_r, _m_t, _m_b = 60, 20, 30, 50
+        # 目盛ラベルは残しつつ、上下の余白をできるだけ削る
+        _m_l, _m_r, _m_t, _m_b = 60, 20, 12, 28
         fig.update_layout(
             template="plotly_dark",
             xaxis_title="CG [m]",
@@ -1466,7 +1467,8 @@ def main() -> None:
         # 1マスの辺を揃える（X:0.01 == Y:50）
         # scaleanchor/scaleratio で軸スケールを連動させる
         _scaleratio = 0.01 / 50.0
-        fig.update_yaxes(scaleanchor="x", scaleratio=_scaleratio)
+        fig.update_yaxes(scaleanchor="x", scaleratio=_scaleratio, constrain="domain")
+        fig.update_xaxes(constrain="domain")
 
         # スケール連動を優先しつつ、y_min/y_max がプロット上下端に来るように
         # 「内側プロット領域」の高さを計算して figure の高さを決める。
@@ -1478,9 +1480,7 @@ def main() -> None:
         _inner_h = _inner_w * (_y_range * _scaleratio) / _x_range
         _fig_h = max(420.0, _inner_h + _m_t + _m_b)
         fig.update_layout(height=int(_fig_h), width=int(_fig_w))
-        left_pad, center, right_pad = st.columns([1, 3, 1])
-        with center:
-            st.plotly_chart(fig, use_container_width=False)
+        st.plotly_chart(fig, use_container_width=False)
 
     with st.expander("計算の考え方（初心者向け）"):
         st.markdown(
