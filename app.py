@@ -1408,8 +1408,8 @@ def main() -> None:
             template="plotly_dark",
             xaxis_title="CG [m]",
             yaxis_title=f"Weight [{unit_weight}]",
-            height=720,
-            width=720,
+            height=520,
+            width=1020,
             margin=dict(l=60, r=20, t=30, b=50),
             showlegend=False,
             paper_bgcolor="#0b1220",
@@ -1464,7 +1464,16 @@ def main() -> None:
 
         # 1マスの辺を揃える（X:0.01 == Y:50）
         # scaleanchor/scaleratio で軸スケールを連動させる
-        fig.update_yaxes(scaleanchor="x", scaleratio=0.01 / 50.0, constrain="domain")
+        _scaleratio = 0.01 / 50.0
+        fig.update_yaxes(scaleanchor="x", scaleratio=_scaleratio)
+
+        # スケール連動を優先しつつ、余白が出ないように「適切な高さ」に調整
+        # height ≒ width * (y_range * scaleratio) / x_range
+        _x_range = 2.50 - 2.30
+        _y_range = float(y_max) - float(y_min)
+        _width = 1020.0
+        _height = max(420.0, _width * (_y_range * _scaleratio) / _x_range)
+        fig.update_layout(height=int(_height), width=int(_width))
         left_pad, center, right_pad = st.columns([1, 3, 1])
         with center:
             st.plotly_chart(fig, use_container_width=False)
