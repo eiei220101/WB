@@ -979,12 +979,30 @@ def main() -> None:
         return None
 
     def _limit_text(name: str) -> str:
+        # 52/53: ステーション制限（入力値制限）も表示
+        if tail in {"JA52DA", "JA53DA"}:
+            if name == "Nose baggage":
+                return "≤30kg"
+            if name == "Cockpit baggage":
+                return "≤45kg"
+            if name == "Baggage extension":
+                return "≤18kg"
+            if name == "De-ice fluid":
+                return "22–30L"
+            if name == "ZERO FUEL MASS":
+                return f"≤{LIMIT_ZFM:.0f}kg"
+            if name == "TAKE OFF WEIGHT":
+                return f"≤{LIMIT_TOW:.0f}kg"
+            if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"}:
+                return f"≤{LIMIT_LDG:.0f}kg"
+            return ""
+
         if name == "ZERO FUEL MASS":
-            return f"{LIMIT_ZFM:.0f}"
+            return f"≤{LIMIT_ZFM:.0f}kg"
         if name == "TAKE OFF WEIGHT":
-            return f"{LIMIT_TOW:.0f}"
+            return f"≤{LIMIT_TOW:.0f}kg"
         if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"}:
-            return f"{LIMIT_LDG:.0f}"
+            return f"≤{LIMIT_LDG:.0f}kg"
         return ""
 
     out = pd.DataFrame(
@@ -1003,7 +1021,7 @@ def main() -> None:
                 )
                 for r in display_rows
             ],
-            "制限 [kg]": [_limit_text(str(r.get("name", ""))) for r in display_rows],
+            "制限": [_limit_text(str(r.get("name", ""))) for r in display_rows],
         }
     )
 
@@ -1039,11 +1057,11 @@ def main() -> None:
         for col in cols:
             cell_css_parts: list[str] = []
             # 制限値のセル自体は色付けしない
-            if color_css and col != "制限 [kg]":
+            if color_css and col != "制限":
                 cell_css_parts.append(color_css)
             if emphasis_css:
                 cell_css_parts.append(emphasis_css)
-            if col == "制限 [kg]" and str(row.get(col, "")).strip():
+            if col == "制限" and str(row.get(col, "")).strip():
                 cell_css_parts.append("color: #dc2626; font-weight: 800;")
             per_cell.append(" ".join(cell_css_parts).strip())
 
