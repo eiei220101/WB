@@ -1326,8 +1326,8 @@ def main() -> None:
                 )
             )
 
-        # 既定の参考線とタイトルが重複しやすいので、JA52/53/56 は limits 由来の線は出さない
-        if tail not in {"JA52DA", "JA53DA", "JA56DA"} and mlw and mlw > 0:
+        # 既定の参考線とタイトルが重複しやすいので、JA52/53/55/56 は limits 由来の線は出さない
+        if tail not in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"} and mlw and mlw > 0:
             shapes.append(
                 dict(
                     type="line",
@@ -1350,7 +1350,7 @@ def main() -> None:
                     yanchor="bottom",
                 )
             )
-        if tail not in {"JA52DA", "JA53DA", "JA56DA"} and mtow and mtow > 0:
+        if tail not in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"} and mtow and mtow > 0:
             shapes.append(
                 dict(
                     type="line",
