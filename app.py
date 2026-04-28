@@ -1408,8 +1408,8 @@ def main() -> None:
             zeroline=False,
             tickformat=".2f",
             tickmode="array",
-            tickvals=[2.35, 2.40, 2.45, 2.50],
-            ticktext=["<b>2.35</b>", "<b>2.40</b>", "<b>2.45</b>", "<b>2.50</b>"],
+            tickvals=[2.30, 2.35, 2.40, 2.45, 2.50],
+            ticktext=["<b>2.30</b>", "<b>2.35</b>", "<b>2.40</b>", "<b>2.45</b>", "<b>2.50</b>"],
             minor=dict(
                 dtick=0.01,
                 showgrid=True,
@@ -1424,6 +1424,18 @@ def main() -> None:
                 yref="paper",
                 x0=2.30,
                 x1=2.30,
+                y0=0,
+                y1=1,
+                line=dict(color="rgba(148,163,184,0.45)", width=2, dash="dot"),
+            )
+        )
+        shapes.append(
+            dict(
+                type="line",
+                xref="x",
+                yref="paper",
+                x0=2.50,
+                x1=2.50,
                 y0=0,
                 y1=1,
                 line=dict(color="rgba(148,163,184,0.45)", width=2, dash="dot"),
