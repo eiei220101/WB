@@ -755,8 +755,12 @@ def main() -> None:
             if comb > 45.0:
                 st.session_state["bag_ext"] = max(0.0, 45.0 - _ss_num("cockpit_bag"))
                 st.warning("JA52/53/55/56: Cockpit baggage + Baggage extension の合計は 45kg 以下に制限されます。")
-            # de-ice 22..30 L
-            st.session_state["deice_l"] = min(max(22.0, _ss_num("deice_l")), 30.0)
+            # de-ice: 0L または 22..30L（0<deice<22 は 22 に補正）
+            _d = float(_ss_num("deice_l"))
+            if 0.0 < _d < 22.0:
+                _d = 22.0
+                st.warning("De-ice は 0L または 22〜30L のみ入力可能です（22Lに補正しました）。")
+            st.session_state["deice_l"] = min(max(0.0, _d), 30.0)
 
     else:
         col1, col2 = st.columns(2, vertical_alignment="top")
@@ -797,7 +801,10 @@ def main() -> None:
         with col2:
             st.markdown("**De-ice / 液体**")
             if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
-                st.number_input("De-ice fluid [L]", min_value=22.0, max_value=30.0, step=1.0, format="%.1f", key="deice_l")
+                st.number_input("De-ice fluid [L]", min_value=0.0, max_value=30.0, step=1.0, format="%.1f", key="deice_l")
+                if 0.0 < _ss_num("deice_l") < 22.0:
+                    st.session_state["deice_l"] = 22.0
+                    st.warning("De-ice は 0L または 22〜30L のみ入力可能です（22Lに補正しました）。")
             else:
                 st.number_input("De-ice fluid [L]", min_value=0.0, step=1.0, format="%.1f", key="deice_l")
             st.caption(f"換算: {_ss_num('deice_l'):.1f} L → {_ss_num('deice_l') * 1.1:.1f} {unit_weight}")
@@ -993,7 +1000,7 @@ def main() -> None:
             if name == "Baggage extension":
                 return "18kg"
             if name == "De-ice fluid":
-                return "22–30L"
+                return "0L or 22–30L"
             if name == "ZERO FUEL MASS" and LIMIT_ZFM > 0:
                 return f"{LIMIT_ZFM:.0f}kg"
             if name == "TAKE OFF WEIGHT" and LIMIT_TOW > 0:
