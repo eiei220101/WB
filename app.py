@@ -1404,13 +1404,14 @@ def main() -> None:
                 )
             )
 
+        _m_l, _m_r, _m_t, _m_b = 60, 20, 30, 50
         fig.update_layout(
             template="plotly_dark",
             xaxis_title="CG [m]",
             yaxis_title=f"Weight [{unit_weight}]",
             height=520,
             width=1020,
-            margin=dict(l=60, r=20, t=30, b=50),
+            margin=dict(l=_m_l, r=_m_r, t=_m_t, b=_m_b),
             showlegend=False,
             paper_bgcolor="#0b1220",
             plot_bgcolor="#0b1220",
@@ -1467,13 +1468,16 @@ def main() -> None:
         _scaleratio = 0.01 / 50.0
         fig.update_yaxes(scaleanchor="x", scaleratio=_scaleratio)
 
-        # スケール連動を優先しつつ、余白が出ないように「適切な高さ」に調整
-        # height ≒ width * (y_range * scaleratio) / x_range
+        # スケール連動を優先しつつ、y_min/y_max がプロット上下端に来るように
+        # 「内側プロット領域」の高さを計算して figure の高さを決める。
+        # (inner_h / inner_w) = (y_range * scaleratio) / x_range
         _x_range = 2.50 - 2.30
         _y_range = float(y_max) - float(y_min)
-        _width = 1020.0
-        _height = max(420.0, _width * (_y_range * _scaleratio) / _x_range)
-        fig.update_layout(height=int(_height), width=int(_width))
+        _fig_w = 1020.0
+        _inner_w = max(1.0, _fig_w - _m_l - _m_r)
+        _inner_h = _inner_w * (_y_range * _scaleratio) / _x_range
+        _fig_h = max(420.0, _inner_h + _m_t + _m_b)
+        fig.update_layout(height=int(_fig_h), width=int(_fig_w))
         left_pad, center, right_pad = st.columns([1, 3, 1])
         with center:
             st.plotly_chart(fig, use_container_width=False)
