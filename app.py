@@ -1242,7 +1242,7 @@ def main() -> None:
         # 指定の参考線（常に表示）
         # JA56DA: 1999kg、JA52/53DA: 1785kg(T/O) と 1700kg(LDG)
         if tail == "JA56DA":
-            ref_lines = [(1999.0, "T/O・LDG Weight")]
+            ref_lines = [(1999.0, "MTOW/MLW 1999kg")]
         else:
             ref_lines = [(1785.0, "MTOW 1785kg"), (1700.0, "MLW 1700kg")]
 
