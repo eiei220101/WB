@@ -889,8 +889,13 @@ def main() -> None:
 
     front_w = float(front_l + front_r)
     rear_w = float(rear_l + rear_r)
-    front_arm = _combined_arm(front_l, front_a_l, front_r, front_a_r)
-    rear_arm = _combined_arm(rear_l, rear_a_l, rear_r, rear_a_r)
+    # 52/53/55/56 は座席のアームが固定（Front=2.30m, Rear=3.25m）
+    if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
+        front_arm = 2300.0
+        rear_arm = 3250.0
+    else:
+        front_arm = _combined_arm(front_l, front_a_l, front_r, front_a_r)
+        rear_arm = _combined_arm(rear_l, rear_a_l, rear_r, rear_a_r)
 
     def _moment(w: float, a: float) -> float:
         return float(w) * float(a)
