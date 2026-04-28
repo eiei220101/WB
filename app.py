@@ -962,25 +962,25 @@ def main() -> None:
         except Exception:
             return ""
 
-    # 制限値（固定）
-    # 52/53DA: ZFM=1650, TOW=1785, LDG=1700
-    # 55/56DA: ZFM=1835, TOW/LDG=1999
-    if tail in {"JA55DA", "JA56DA"}:
-        LIMIT_ZFM = 1835.0
-        LIMIT_TOW = 1999.0
-        LIMIT_LDG = 1999.0
-    else:
-        LIMIT_TOW = 1785.0
-        LIMIT_LDG = 1700.0
-        LIMIT_ZFM = 1650.0
+    # 制限値（機体ごとの limits から取得）
+    # MZFM=ZERO FUEL MASS, MTOW=TAKE OFF WEIGHT, MLW=LDG Weight
+    LIMIT_ZFM = float(mzfm or 0.0) if mzfm else 0.0
+    LIMIT_TOW = float(mtow or 0.0) if mtow else 0.0
+    LIMIT_LDG = float(mlw or 0.0) if mlw else 0.0
 
     def _row_color(name: str, weight: float) -> str | None:
         if name == "ZERO FUEL MASS":
-            return "#16a34a" if weight <= LIMIT_ZFM else "#dc2626"
+            if LIMIT_ZFM > 0:
+                return "#16a34a" if weight <= LIMIT_ZFM else "#dc2626"
+            return None
         if name == "TAKE OFF WEIGHT":
-            return "#16a34a" if weight <= LIMIT_TOW else "#dc2626"
+            if LIMIT_TOW > 0:
+                return "#16a34a" if weight <= LIMIT_TOW else "#dc2626"
+            return None
         if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"}:
-            return "#16a34a" if weight <= LIMIT_LDG else "#dc2626"
+            if LIMIT_LDG > 0:
+                return "#16a34a" if weight <= LIMIT_LDG else "#dc2626"
+            return None
         return None
 
     def _limit_text(name: str) -> str:
@@ -994,19 +994,19 @@ def main() -> None:
                 return "18kg"
             if name == "De-ice fluid":
                 return "22–30L"
-            if name == "ZERO FUEL MASS":
+            if name == "ZERO FUEL MASS" and LIMIT_ZFM > 0:
                 return f"{LIMIT_ZFM:.0f}kg"
-            if name == "TAKE OFF WEIGHT":
+            if name == "TAKE OFF WEIGHT" and LIMIT_TOW > 0:
                 return f"{LIMIT_TOW:.0f}kg"
-            if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"}:
+            if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"} and LIMIT_LDG > 0:
                 return f"{LIMIT_LDG:.0f}kg"
             return ""
 
-        if name == "ZERO FUEL MASS":
+        if name == "ZERO FUEL MASS" and LIMIT_ZFM > 0:
             return f"{LIMIT_ZFM:.0f}kg"
-        if name == "TAKE OFF WEIGHT":
+        if name == "TAKE OFF WEIGHT" and LIMIT_TOW > 0:
             return f"{LIMIT_TOW:.0f}kg"
-        if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"}:
+        if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"} and LIMIT_LDG > 0:
             return f"{LIMIT_LDG:.0f}kg"
         return ""
 
@@ -1084,7 +1084,7 @@ def main() -> None:
     # スクロールさせず、スタイルが確実に効く表示（table）
     st.table(out_styled)
 
-    if tail not in {"JA55DA", "JA56DA"}:
+    if tail != "JA56DA":
         st.divider()
         st.subheader("燃料換算")
         st.caption("入力した燃料重量が、何 US gal / 何時間何分分かを表示します。")
@@ -1287,11 +1287,19 @@ def main() -> None:
         ann = []
 
         # 指定の参考線（常に表示）
-        # JA55/56DA: 1999kg、JA52/53DA: 1785kg(T/O) と 1700kg(LDG)
-        if tail in {"JA55DA", "JA56DA"}:
+        # - JA56DA: 1999kg
+        # - JA52/53DA: 1785kg / 1700kg
+        # - それ以外: limits の MTOW/MLW を表示（入力がある場合）
+        if tail == "JA56DA":
             ref_lines = [(1999.0, "MTOW/MLW 1999kg")]
-        else:
+        elif tail in {"JA52DA", "JA53DA"}:
             ref_lines = [(1785.0, "MTOW 1785kg"), (1700.0, "MLW 1700kg")]
+        else:
+            ref_lines = []
+            if mtow and mtow > 0:
+                ref_lines.append((float(mtow), f"MTOW {float(mtow):.0f}kg"))
+            if mlw and mlw > 0:
+                ref_lines.append((float(mlw), f"MLW {float(mlw):.0f}kg"))
 
         ref_color = "#3b82f6"  # blue
         for y, title in ref_lines:
@@ -1318,8 +1326,8 @@ def main() -> None:
                 )
             )
 
-        # 既定の参考線とタイトルが重複しやすいので、JA52/53/55/56 は limits 由来の線は出さない
-        if tail not in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"} and mlw and mlw > 0:
+        # 既定の参考線とタイトルが重複しやすいので、JA52/53/56 は limits 由来の線は出さない
+        if tail not in {"JA52DA", "JA53DA", "JA56DA"} and mlw and mlw > 0:
             shapes.append(
                 dict(
                     type="line",
@@ -1342,7 +1350,7 @@ def main() -> None:
                     yanchor="bottom",
                 )
             )
-        if tail not in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"} and mtow and mtow > 0:
+        if tail not in {"JA52DA", "JA53DA", "JA56DA"} and mtow and mtow > 0:
             shapes.append(
                 dict(
                     type="line",
@@ -1393,7 +1401,7 @@ def main() -> None:
                 gridcolor="rgba(148,163,184,0.12)",
             ),
         )
-        if tail in {"JA55DA", "JA56DA"}:
+        if tail == "JA56DA":
             y_vals = list(range(1450, 2001, 50))
             fig.update_yaxes(
                 showgrid=True,
