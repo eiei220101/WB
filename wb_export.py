@@ -132,6 +132,20 @@ def _which_soffice() -> str | None:
                 Path(base) / "LibreOffice" / "program" / "soffice.com",
             ]
         )
+
+    # 2.5) Per-user install locations (when PROGRAMFILES is unavailable)
+    for base in [
+        os.environ.get("LOCALAPPDATA"),
+        (str(Path.home() / "AppData" / "Local") if Path.home() else None),
+    ]:
+        if not base:
+            continue
+        candidates.extend(
+            [
+                Path(base) / "Programs" / "LibreOffice" / "program" / "soffice.exe",
+                Path(base) / "Programs" / "LibreOffice" / "program" / "soffice.com",
+            ]
+        )
     # 3) Hard-coded fallbacks (in case env vars are missing)
     candidates.extend(
         [

@@ -599,6 +599,12 @@ def main() -> None:
         mapping_path_for_tail = None  # type: ignore[assignment]
         template_path_for_tail = None  # type: ignore[assignment]
 
+    # LibreOffice不要の直接PDF
+    try:
+        from wb_pdf_direct import build_direct_pdf
+    except Exception:
+        build_direct_pdf = None  # type: ignore[assignment]
+
     cfg = load_aircraft_config()
     aircraft_name = str(cfg.get("meta", {}).get("aircraft_name", "重量・重心計算"))
     fleet_default = str(cfg.get("fleet", {}).get("default_tail", "") or "")
@@ -852,6 +858,8 @@ def main() -> None:
                 Path(r"C:\Program Files\LibreOffice\program\soffice.com"),
                 Path(r"C:\Program Files (x86)\LibreOffice\program\soffice.exe"),
                 Path(r"C:\Program Files (x86)\LibreOffice\program\soffice.com"),
+                Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "LibreOffice" / "program" / "soffice.exe",
+                Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "LibreOffice" / "program" / "soffice.com",
             ]:
                 if p.exists():
                     os.environ["SOFFICE_PATH"] = str(p)
@@ -1670,6 +1678,59 @@ def main() -> None:
                         st.error(str(e))
             else:
                 st.caption("テンプレ（`templates/<TAIL>_template.xlsx`）とセル対応表（`templates/<TAIL>_mapping.json`）が揃うと有効になります。")
+
+        # --- PDF（LibreOffice不要）: 直接PDF生成 ---
+        st.subheader("PDF（LibreOffice不要）")
+        if build_direct_pdf is None:
+            st.info("このPDF出力を使うには `reportlab` が必要です（requirements を更新済み）。")
+        else:
+            # 表はテンプレと同じ並びで作る（表示文字列のまま）
+            direct_rows = [
+                ("Empty mass Actual", export_values.get("arm_basic_empty", ""), export_values.get("w_basic_empty", ""), export_values.get("m_basic_empty", "")),
+                ("Front seats", export_values.get("arm_front_seats", ""), export_values.get("w_front_seats", ""), export_values.get("m_front_seats", "")),
+                ("Rear seats", export_values.get("arm_rear_seats", ""), export_values.get("w_rear_seats", ""), export_values.get("m_rear_seats", "")),
+                ("Nose baggage", export_values.get("arm_nose_baggage", ""), export_values.get("w_nose_baggage", ""), export_values.get("m_nose_baggage", "")),
+                ("Cockpit baggage", export_values.get("arm_cockpit_baggage", ""), export_values.get("w_cockpit_baggage", ""), export_values.get("m_cockpit_baggage", "")),
+                ("Baggage extention", export_values.get("arm_baggage_extension", ""), export_values.get("w_baggage_extension", ""), export_values.get("m_baggage_extension", "")),
+                ("De-ICE Fluid", export_values.get("arm_deice_fluid", ""), export_values.get("w_deice_fluid", ""), export_values.get("m_deice_fluid", "")),
+                ("ZERO FUEL MASS", export_values.get("arm_zfm", ""), export_values.get("w_zfm", ""), export_values.get("m_zfm", "")),
+                ("Main FUEL", export_values.get("arm_main_fuel", ""), export_values.get("w_main_fuel", ""), export_values.get("m_main_fuel", "")),
+                ("TAXI-RUN", export_values.get("arm_taxi_run", ""), export_values.get("w_taxi_run", ""), export_values.get("m_taxi_run", "")),
+                ("TKOF Weight", export_values.get("arm_tow", ""), export_values.get("w_tow", ""), export_values.get("m_tow", "")),
+                ("Fuel consumption", export_values.get("arm_fuel_burn_out", ""), export_values.get("w_fuel_burn_out", ""), export_values.get("m_fuel_burn_out", "")),
+                ("LDG weight", export_values.get("arm_lw1", ""), export_values.get("w_lw1", ""), export_values.get("m_lw1", "")),
+                ("Fuel consumption", export_values.get("arm_fuel_burn_back", ""), export_values.get("w_fuel_burn_back", ""), export_values.get("m_fuel_burn_back", "")),
+                ("LDG weight", export_values.get("arm_lw2", ""), export_values.get("w_lw2", ""), export_values.get("m_lw2", "")),
+            ]
+
+            if st.button("PDFを作成（LibreOffice不要）"):
+                try:
+                    # Page2 data (福島帰投時燃料 / DVT候補)
+                    _page2 = {
+                        "remain_gal": f"{remain_gal:.1f}",
+                        "endurance_10": endurance_10,
+                        "endurance_166": endurance_166,
+                        "max_nm_120": f"{max_nm_120:.1f}",
+                        "max_nm_140": f"{max_nm_140:.1f}",
+                        "dvt_rows": [
+                            (str(r["空港"]), str(r["距離"]), str(r["GS120kt"]), str(r["GS140kt"]))
+                            for _, r in dvt_df.iterrows()
+                        ],
+                    }
+                    pdf = build_direct_pdf(
+                        tail=tail,
+                        rows=[(a, b, c, d) for (a, b, c, d) in direct_rows],
+                        envelope_png=export_images.get("cg_envelope_png"),
+                        page2=_page2,
+                    )
+                    st.download_button(
+                        "PDFをダウンロード（LibreOffice不要）",
+                        data=pdf,
+                        file_name=f"{tail}_WB_direct.pdf",
+                        mime="application/pdf",
+                    )
+                except Exception as e:
+                    st.error(str(e))
 
     with st.expander("計算の考え方（初心者向け）"):
         st.markdown(
