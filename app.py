@@ -1464,7 +1464,7 @@ def main() -> None:
 
         # 1マスの辺を揃える（X:0.01 == Y:50）
         # scaleanchor/scaleratio で軸スケールを連動させる
-        fig.update_yaxes(scaleanchor="x", scaleratio=0.01 / 50.0)
+        fig.update_yaxes(scaleanchor="x", scaleratio=0.01 / 50.0, constrain="domain")
         left_pad, center, right_pad = st.columns([1, 3, 1])
         with center:
             st.plotly_chart(fig, use_container_width=False)
