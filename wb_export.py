@@ -19,6 +19,70 @@ class ExportArtifacts:
     pdf_path: Path | None
 
 
+def _iter_registry_install_locations() -> list[Path]:
+    """
+    LibreOffice のインストール場所をレジストリから探す（Windows向け）。
+    """
+    try:
+        import winreg  # type: ignore
+    except Exception:
+        return []
+
+    paths: list[Path] = []
+
+    def _walk_uninstall(root, view_flag) -> None:
+        try:
+            base = winreg.OpenKey(root, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", 0, winreg.KEY_READ | view_flag)
+        except OSError:
+            return
+        try:
+            i = 0
+            while True:
+                try:
+                    sub_name = winreg.EnumKey(base, i)
+                except OSError:
+                    break
+                i += 1
+                try:
+                    sub = winreg.OpenKey(base, sub_name, 0, winreg.KEY_READ | view_flag)
+                except OSError:
+                    continue
+                try:
+                    disp, _ = winreg.QueryValueEx(sub, "DisplayName")
+                    if not isinstance(disp, str) or "LibreOffice" not in disp:
+                        continue
+                    loc, _ = winreg.QueryValueEx(sub, "InstallLocation")
+                    if isinstance(loc, str) and loc.strip():
+                        paths.append(Path(loc.strip()))
+                except OSError:
+                    continue
+        finally:
+            try:
+                winreg.CloseKey(base)
+            except OSError:
+                pass
+
+    # 64bit / 32bit view
+    HKLM = getattr(__import__("winreg"), "HKEY_LOCAL_MACHINE")
+    HKCU = getattr(__import__("winreg"), "HKEY_CURRENT_USER")
+    KEY_WOW64_64KEY = getattr(__import__("winreg"), "KEY_WOW64_64KEY", 0)
+    KEY_WOW64_32KEY = getattr(__import__("winreg"), "KEY_WOW64_32KEY", 0)
+    for root in (HKLM, HKCU):
+        _walk_uninstall(root, KEY_WOW64_64KEY)
+        _walk_uninstall(root, KEY_WOW64_32KEY)
+
+    # de-dupe while keeping order
+    seen: set[str] = set()
+    out: list[Path] = []
+    for p in paths:
+        s = str(p).lower()
+        if s in seen:
+            continue
+        seen.add(s)
+        out.append(p)
+    return out
+
+
 def _repo_templates_dir() -> Path:
     return Path(__file__).resolve().parent / "templates"
 
@@ -41,6 +105,13 @@ def load_mapping(tail: str) -> dict[str, Any]:
 
 
 def _which_soffice() -> str | None:
+    # 0) explicit override
+    override = os.environ.get("SOFFICE_PATH")
+    if override:
+        p = Path(override)
+        if p.exists():
+            return str(p)
+
     # 1) PATH
     for name in ("soffice", "soffice.exe", "soffice.com"):
         exe = shutil.which(name)
@@ -70,6 +141,17 @@ def _which_soffice() -> str | None:
             Path(r"C:\Program Files (x86)\LibreOffice\program\soffice.com"),
         ]
     )
+
+    # 4) Registry (InstallLocation)
+    for base in _iter_registry_install_locations():
+        candidates.extend(
+            [
+                base / "program" / "soffice.exe",
+                base / "program" / "soffice.com",
+                base / "soffice.exe",
+                base / "soffice.com",
+            ]
+        )
     for c in candidates:
         if c.exists():
             return str(c)
@@ -81,9 +163,10 @@ def convert_xlsx_to_pdf(xlsx_path: Path, out_dir: Path) -> Path:
     if not soffice:
         pf = os.environ.get("PROGRAMFILES")
         pfx86 = os.environ.get("PROGRAMFILES(X86)")
+        sp = os.environ.get("SOFFICE_PATH")
         raise RuntimeError(
             "LibreOffice（soffice）が見つかりません。LibreOffice をインストールするか、PATH に soffice を通してください。\n"
-            f"PROGRAMFILES={pf!r}\nPROGRAMFILES(X86)={pfx86!r}"
+            f"PROGRAMFILES={pf!r}\nPROGRAMFILES(X86)={pfx86!r}\nSOFFICE_PATH={sp!r}"
         )
 
     out_dir.mkdir(parents=True, exist_ok=True)
