@@ -42,9 +42,10 @@ def load_mapping(tail: str) -> dict[str, Any]:
 
 def _which_soffice() -> str | None:
     # 1) PATH
-    exe = shutil.which("soffice")
-    if exe:
-        return exe
+    for name in ("soffice", "soffice.exe", "soffice.com"):
+        exe = shutil.which(name)
+        if exe:
+            return exe
 
     # 2) Common Windows install locations
     candidates: list[Path] = []
@@ -60,6 +61,15 @@ def _which_soffice() -> str | None:
                 Path(base) / "LibreOffice" / "program" / "soffice.com",
             ]
         )
+    # 3) Hard-coded fallbacks (in case env vars are missing)
+    candidates.extend(
+        [
+            Path(r"C:\Program Files\LibreOffice\program\soffice.exe"),
+            Path(r"C:\Program Files\LibreOffice\program\soffice.com"),
+            Path(r"C:\Program Files (x86)\LibreOffice\program\soffice.exe"),
+            Path(r"C:\Program Files (x86)\LibreOffice\program\soffice.com"),
+        ]
+    )
     for c in candidates:
         if c.exists():
             return str(c)
@@ -69,8 +79,11 @@ def _which_soffice() -> str | None:
 def convert_xlsx_to_pdf(xlsx_path: Path, out_dir: Path) -> Path:
     soffice = _which_soffice()
     if not soffice:
+        pf = os.environ.get("PROGRAMFILES")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)")
         raise RuntimeError(
-            "LibreOffice（soffice）が見つかりません。LibreOffice をインストールするか、PATH に soffice を通してください。"
+            "LibreOffice（soffice）が見つかりません。LibreOffice をインストールするか、PATH に soffice を通してください。\n"
+            f"PROGRAMFILES={pf!r}\nPROGRAMFILES(X86)={pfx86!r}"
         )
 
     out_dir.mkdir(parents=True, exist_ok=True)
