@@ -1433,7 +1433,8 @@ def main() -> None:
 
         # Y=2000kg まで 50kg 刻みの補助線・目盛
         y_min = 1400 if tail in {"JA55DA", "JA56DA"} else 1250
-        y_vals = list(range(y_min, 2001, 50))
+        y_max = 1850 if tail in {"JA52DA", "JA53DA"} else 2000
+        y_vals = list(range(y_min, y_max + 1, 50))
         fig.update_yaxes(
             showgrid=True,
             gridcolor="rgba(148,163,184,0.25)",
@@ -1442,7 +1443,7 @@ def main() -> None:
             tickmode="array",
             tickvals=y_vals,
             ticktext=[f"<b>{v}</b>" for v in y_vals],
-            range=[y_min, 2000],
+            range=[y_min, y_max],
         )
         left_pad, center, right_pad = st.columns([1, 3, 1])
         with center:
