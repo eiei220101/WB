@@ -982,27 +982,27 @@ def main() -> None:
         # 52/53: ステーション制限（入力値制限）も表示
         if tail in {"JA52DA", "JA53DA"}:
             if name == "Nose baggage":
-                return "≤30kg"
+                return "30kg"
             if name == "Cockpit baggage":
-                return "≤45kg"
+                return "45kg"
             if name == "Baggage extension":
-                return "≤18kg"
+                return "18kg"
             if name == "De-ice fluid":
                 return "22–30L"
             if name == "ZERO FUEL MASS":
-                return f"≤{LIMIT_ZFM:.0f}kg"
+                return f"{LIMIT_ZFM:.0f}kg"
             if name == "TAKE OFF WEIGHT":
-                return f"≤{LIMIT_TOW:.0f}kg"
+                return f"{LIMIT_TOW:.0f}kg"
             if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"}:
-                return f"≤{LIMIT_LDG:.0f}kg"
+                return f"{LIMIT_LDG:.0f}kg"
             return ""
 
         if name == "ZERO FUEL MASS":
-            return f"≤{LIMIT_ZFM:.0f}kg"
+            return f"{LIMIT_ZFM:.0f}kg"
         if name == "TAKE OFF WEIGHT":
-            return f"≤{LIMIT_TOW:.0f}kg"
+            return f"{LIMIT_TOW:.0f}kg"
         if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"}:
-            return f"≤{LIMIT_LDG:.0f}kg"
+            return f"{LIMIT_LDG:.0f}kg"
         return ""
 
     out = pd.DataFrame(
