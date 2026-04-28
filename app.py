@@ -688,7 +688,8 @@ def main() -> None:
     with c_reset:
         if st.button("入力をリセット"):
             # 入力値を初期化（使いやすいデフォルトに戻す）
-            for k in ["front_l", "front_r", "rear_l", "rear_r", "nose_bag", "cockpit_bag", "bag_ext"]:
+            st.session_state["front_l"] = 45.0
+            for k in ["front_r", "rear_l", "rear_r", "nose_bag", "cockpit_bag", "bag_ext"]:
                 st.session_state[k] = 0.0
             st.session_state["taxi_burn_gal"] = 1.0
             st.session_state["deice_l"] = 22.0
@@ -703,7 +704,12 @@ def main() -> None:
     col1, col2 = st.columns(2, vertical_alignment="top")
     with col1:
         st.markdown("**座席**")
-        st.number_input("Front seat L", min_value=0.0, step=1.0, format="%.1f", key="front_l")
+        _front_l_opts = list(range(45, 101))
+        _front_l_cur = int(round(float(_ss_num("front_l", 45.0))))
+        if _front_l_cur not in _front_l_opts:
+            _front_l_cur = 45
+            st.session_state["front_l"] = 45.0
+        st.selectbox("Front seat L", _front_l_opts, index=_front_l_opts.index(_front_l_cur), key="front_l")
         _inst_map = {"山口教官": 72.0, "羽山教官": 73.0, "増本教官": 83.0}
         front_r_mode = st.selectbox("Front seat R", ["体重を入力", "山口教官", "羽山教官", "増本教官"], key="front_r_mode")
         if front_r_mode == "体重を入力":
