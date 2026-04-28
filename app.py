@@ -1244,7 +1244,7 @@ def main() -> None:
         if tail == "JA56DA":
             ref_lines = [(1999.0, "T/O・LDG Weight")]
         else:
-            ref_lines = [(1785.0, "MTOW 1835kg"), (1700.0, "MLW 1700kg")]
+            ref_lines = [(1785.0, "MTOW 1785kg"), (1700.0, "MLW 1700kg")]
 
         for y, title in ref_lines:
             shapes.append(
