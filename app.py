@@ -1416,7 +1416,7 @@ def main() -> None:
                 gridcolor="rgba(148,163,184,0.12)",
             ),
         )
-        if tail == "JA56DA":
+        if tail in {"JA55DA", "JA56DA"}:
             y_vals = list(range(1450, 2001, 50))
             fig.update_yaxes(
                 showgrid=True,
