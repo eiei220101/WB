@@ -806,7 +806,7 @@ def main() -> None:
             st.markdown("**De-ice / 液体**")
             if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
                 # 0L or 22..30L だけ入力できるUI
-                mode = st.radio("De-ice 입력モード", ["0L", "22L〜30L"], horizontal=True, key="deice_mode")
+                mode = st.radio("De-ice 入力モード", ["0L", "22L〜30L"], horizontal=True, key="deice_mode")
                 if mode == "0L":
                     st.session_state["deice_l"] = 0.0
                     st.session_state["deice_l_last_valid"] = 0.0
