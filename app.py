@@ -1416,6 +1416,21 @@ def main() -> None:
                 gridcolor="rgba(148,163,184,0.12)",
             ),
         )
+        if tail == "JA55DA":
+            # 2.30 の補助線（縦線） + 0.01刻みで 2.50 まで見えるようにする
+            shapes.append(
+                dict(
+                    type="line",
+                    xref="x",
+                    yref="paper",
+                    x0=2.30,
+                    x1=2.30,
+                    y0=0,
+                    y1=1,
+                    line=dict(color="rgba(148,163,184,0.45)", width=2, dash="dot"),
+                )
+            )
+            fig.update_xaxes(range=[2.30, 2.50])
         if tail in {"JA55DA", "JA56DA"}:
             y_vals = list(range(1450, 2001, 50))
             fig.update_yaxes(
