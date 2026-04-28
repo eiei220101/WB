@@ -248,7 +248,16 @@ def fill_template_xlsx(
         else:
             if key not in values:
                 continue
-            ws[cell].value = values[key]
+            v = values[key]
+            # ブラウザ表示のまま反映したいので、文字列はテキストとして書き込む
+            if isinstance(v, str):
+                try:
+                    ws[cell].number_format = "@"
+                except Exception:
+                    pass
+                ws[cell].value = v
+            else:
+                ws[cell].value = v
             nf = spec.get("number_format")
             if nf:
                 ws[cell].number_format = str(nf)

@@ -15,6 +15,8 @@ import traceback
 import json
 import plotly.io as pio
 import plotly
+import os
+import copy
 
 try:
     import tomllib  # py3.11+
@@ -841,6 +843,22 @@ def main() -> None:
         return_fuel_burn_weight=return_burn_kg,
     )
 
+    # Streamlit実行環境で PROGRAMFILES が取れない場合でも LibreOffice を見つけるための保険
+    # （存在するパスが見つかったら SOFFICE_PATH に入れる）
+    try:
+        if not os.environ.get("SOFFICE_PATH"):
+            for p in [
+                Path(r"C:\Program Files\LibreOffice\program\soffice.exe"),
+                Path(r"C:\Program Files\LibreOffice\program\soffice.com"),
+                Path(r"C:\Program Files (x86)\LibreOffice\program\soffice.exe"),
+                Path(r"C:\Program Files (x86)\LibreOffice\program\soffice.com"),
+            ]:
+                if p.exists():
+                    os.environ["SOFFICE_PATH"] = str(p)
+                    break
+    except Exception:
+        pass
+
     # kaleido が plotlyjs をローカルパスで掴めない環境向け（Windowsの日本語ユーザー名等）
     # CDN を使うと安定して PNG 変換できる
     try:
@@ -1487,20 +1505,30 @@ def main() -> None:
                 w_burn_out = float(flight_burn_kg)
                 w_burn_back = float(return_burn_kg)
 
-                # totals (ZFM/TOW/LW1/LW2) from wb_logic are kg*mm and mm
-                def _pt_arm_m(key: str) -> float:
-                    p = points.get(key)
-                    if p is None or p.cg is None:
-                        return 0.0
-                    return _mm_to_m(float(p.cg))
+                # ブラウザと同じ計算（Basic Empty の moment_kgm を優先）で ZFM/TOW/LW1/LW2 を作る
+                _m_basic = float(bew_moment_kgm) if isinstance(bew_moment_kgm, (int, float)) else (w_basic * arm_basic_empty_m)
+                _m_front = w_front * arm_front_m
+                _m_rear = w_rear * arm_rear_m
+                _m_nose = w_nose * arm_nose_m
+                _m_cockpit = w_cockpit * arm_cockpit_m
+                _m_bagext = w_bagext * arm_bagext_m
+                _m_deice = w_deice * arm_deice_m
 
-                def _pt_w(key: str) -> float:
-                    p = points.get(key)
-                    return 0.0 if p is None else float(p.weight)
+                def _totals(*, fuel_remaining_kg: float) -> tuple[float, float, float]:
+                    w = w_basic + w_front + w_rear + w_nose + w_cockpit + w_bagext + w_deice + float(fuel_remaining_kg)
+                    m = _m_basic + _m_front + _m_rear + _m_nose + _m_cockpit + _m_bagext + _m_deice + (float(fuel_remaining_kg) * arm_fuel_m)
+                    a = (m / w) if w > 0 else 0.0
+                    return w, m, a
 
-                def _pt_m_kgm(key: str) -> float:
-                    p = points.get(key)
-                    return 0.0 if p is None else float(p.moment) / 1000.0
+                fuel_to_kg = w_mainfuel
+                fuel_tow_rem = max(fuel_to_kg - w_taxi, 0.0)
+                fuel_lw1_rem = max(fuel_tow_rem - w_burn_out, 0.0)
+                fuel_lw2_rem = max(fuel_lw1_rem - w_burn_back, 0.0)
+
+                w_zfm, m_zfm, a_zfm = _totals(fuel_remaining_kg=0.0)
+                w_tow, m_tow, a_tow = _totals(fuel_remaining_kg=fuel_tow_rem)
+                w_lw1, m_lw1, a_lw1 = _totals(fuel_remaining_kg=fuel_lw1_rem)
+                w_lw2, m_lw2, a_lw2 = _totals(fuel_remaining_kg=fuel_lw2_rem)
 
                 export_values: dict[str, float | str] = {
                     "tail": tail,
@@ -1512,14 +1540,14 @@ def main() -> None:
                     "arm_cockpit_baggage": arm_cockpit_m,
                     "arm_baggage_extension": arm_bagext_m,
                     "arm_deice_fluid": arm_deice_m,
-                    "arm_zfm": _pt_arm_m("ZFM"),
+                    "arm_zfm": a_zfm,
                     "arm_main_fuel": arm_fuel_m,
                     "arm_taxi_run": arm_fuel_m,
-                    "arm_tow": _pt_arm_m("TOW"),
+                    "arm_tow": a_tow,
                     "arm_fuel_burn_out": arm_fuel_m,
-                    "arm_lw1": _pt_arm_m("LW1"),
+                    "arm_lw1": a_lw1,
                     "arm_fuel_burn_back": arm_fuel_m,
-                    "arm_lw2": _pt_arm_m("LW2"),
+                    "arm_lw2": a_lw2,
 
                     "w_basic_empty": w_basic,
                     "w_front_seats": w_front,
@@ -1528,36 +1556,100 @@ def main() -> None:
                     "w_cockpit_baggage": w_cockpit,
                     "w_baggage_extension": w_bagext,
                     "w_deice_fluid": w_deice,
-                    "w_zfm": _pt_w("ZFM"),
+                    "w_zfm": w_zfm,
                     "w_main_fuel": w_mainfuel,
                     "w_taxi_run": w_taxi,
-                    "w_tow": _pt_w("TOW"),
+                    "w_tow": w_tow,
                     "w_fuel_burn_out": w_burn_out,
-                    "w_lw1": _pt_w("LW1"),
+                    "w_lw1": w_lw1,
                     "w_fuel_burn_back": w_burn_back,
-                    "w_lw2": _pt_w("LW2"),
+                    "w_lw2": w_lw2,
 
-                    "m_basic_empty": w_basic * arm_basic_empty_m,
+                    # Basic Empty は aircraft.toml の moment_kgm を優先（ブラウザ表示と一致させる）
+                    "m_basic_empty": _m_basic,
                     "m_front_seats": w_front * arm_front_m,
                     "m_rear_seats": w_rear * arm_rear_m,
                     "m_nose_baggage": w_nose * arm_nose_m,
                     "m_cockpit_baggage": w_cockpit * arm_cockpit_m,
                     "m_baggage_extension": w_bagext * arm_bagext_m,
                     "m_deice_fluid": w_deice * arm_deice_m,
-                    "m_zfm": _pt_m_kgm("ZFM"),
+                    "m_zfm": m_zfm,
                     "m_main_fuel": w_mainfuel * arm_fuel_m,
                     "m_taxi_run": w_taxi * arm_fuel_m,
-                    "m_tow": _pt_m_kgm("TOW"),
+                    "m_tow": m_tow,
                     "m_fuel_burn_out": w_burn_out * arm_fuel_m,
-                    "m_lw1": _pt_m_kgm("LW1"),
+                    "m_lw1": m_lw1,
                     "m_fuel_burn_back": w_burn_back * arm_fuel_m,
-                    "m_lw2": _pt_m_kgm("LW2"),
+                    "m_lw2": m_lw2,
                 }
+
+                # Excelには「ブラウザで表示している文字列」をそのまま入れる
+                def _as_disp(v) -> str:
+                    try:
+                        fv = float(v)
+                    except Exception:
+                        return str(v)
+                    s = f"{fv:.5f}".rstrip("0").rstrip(".")
+                    return s
+
+                export_values = {k: (v if isinstance(v, str) else _as_disp(v)) for k, v in export_values.items()}
 
                 # CG envelope image (anchor I4)
                 export_images: dict[str, bytes] = {}
                 try:
-                    export_images["cg_envelope_png"] = pio.to_image(fig, format="png", scale=2)
+                    # PDF用は白黒（印刷向け）にして少し大きめに出力
+                    fig_pdf = copy.deepcopy(fig)
+                    fig_pdf.update_layout(
+                        template="plotly_white",
+                        paper_bgcolor="white",
+                        plot_bgcolor="white",
+                        font=dict(color="#111111"),
+                    )
+                    fig_pdf.update_xaxes(
+                        gridcolor="rgba(0,0,0,0.15)",
+                        zeroline=False,
+                        tickfont=dict(color="#111111"),
+                        titlefont=dict(color="#111111"),
+                    )
+                    fig_pdf.update_yaxes(
+                        gridcolor="rgba(0,0,0,0.15)",
+                        zeroline=False,
+                        tickfont=dict(color="#111111"),
+                        titlefont=dict(color="#111111"),
+                    )
+
+                    # traces: 線・点を黒に寄せる（塗りは透明のまま）
+                    for tr in fig_pdf.data:
+                        try:
+                            if hasattr(tr, "line") and tr.line is not None:
+                                tr.line.color = "#111111"
+                            if hasattr(tr, "marker") and tr.marker is not None:
+                                tr.marker.color = "#111111"
+                                if getattr(tr.marker, "line", None) is not None:
+                                    tr.marker.line.color = "#111111"
+                            if hasattr(tr, "fillcolor") and tr.fillcolor:
+                                tr.fillcolor = "rgba(0,0,0,0)"
+                        except Exception:
+                            pass
+
+                    # shapes / annotations も黒に寄せる
+                    try:
+                        for sh in (fig_pdf.layout.shapes or []):
+                            if getattr(sh, "line", None) is not None:
+                                sh.line.color = "#111111"
+                        for an in (fig_pdf.layout.annotations or []):
+                            if getattr(an, "font", None) is not None:
+                                an.font.color = "#111111"
+                    except Exception:
+                        pass
+
+                    export_images["cg_envelope_png"] = pio.to_image(
+                        fig_pdf,
+                        format="png",
+                        width=800,
+                        height=525,
+                        scale=2,
+                    )
                 except Exception as e:
                     st.warning(f"CGエンベロープ画像の生成に失敗しました: {e}")
 
