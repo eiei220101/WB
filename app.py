@@ -744,6 +744,20 @@ def main() -> None:
             except Exception:
                 st.session_state[str(r["key"])] = 0.0
 
+        # JA52/53 の入力値制限（バゲッジ/De-ice）
+        if tail in {"JA52DA", "JA53DA"}:
+            # baggage max
+            st.session_state["nose_bag"] = min(max(0.0, _ss_num("nose_bag")), 30.0)
+            st.session_state["cockpit_bag"] = min(max(0.0, _ss_num("cockpit_bag")), 45.0)
+            st.session_state["bag_ext"] = min(max(0.0, _ss_num("bag_ext")), 18.0)
+            # cockpit + extension <= 45
+            comb = _ss_num("cockpit_bag") + _ss_num("bag_ext")
+            if comb > 45.0:
+                st.session_state["bag_ext"] = max(0.0, 45.0 - _ss_num("cockpit_bag"))
+                st.warning("JA52/53: Cockpit baggage + Baggage extension の合計は 45kg 以下に制限されます。")
+            # de-ice 22..30 L
+            st.session_state["deice_l"] = min(max(22.0, _ss_num("deice_l")), 30.0)
+
     else:
         col1, col2 = st.columns(2, vertical_alignment="top")
         with col1:
@@ -769,13 +783,23 @@ def main() -> None:
             st.number_input("Rear seat R", min_value=0.0, step=1.0, format="%.1f", key="rear_r")
 
             st.markdown("**バゲッジ**")
-            st.number_input("Nose baggage", min_value=0.0, step=1.0, format="%.1f", key="nose_bag")
-            st.number_input("Cockpit baggage", min_value=0.0, step=1.0, format="%.1f", key="cockpit_bag")
-            st.number_input("Baggage extension", min_value=0.0, step=1.0, format="%.1f", key="bag_ext")
+            if tail in {"JA52DA", "JA53DA"}:
+                st.number_input("Nose baggage", min_value=0.0, max_value=30.0, step=1.0, format="%.1f", key="nose_bag")
+                st.number_input("Cockpit baggage", min_value=0.0, max_value=45.0, step=1.0, format="%.1f", key="cockpit_bag")
+                st.number_input("Baggage extension", min_value=0.0, max_value=18.0, step=1.0, format="%.1f", key="bag_ext")
+                if _ss_num("cockpit_bag") + _ss_num("bag_ext") > 45.0:
+                    st.error("JA52/53: Cockpit baggage + Baggage extension の合計は 45kg 以下にしてください。")
+            else:
+                st.number_input("Nose baggage", min_value=0.0, step=1.0, format="%.1f", key="nose_bag")
+                st.number_input("Cockpit baggage", min_value=0.0, step=1.0, format="%.1f", key="cockpit_bag")
+                st.number_input("Baggage extension", min_value=0.0, step=1.0, format="%.1f", key="bag_ext")
 
         with col2:
             st.markdown("**De-ice / 液体**")
-            st.number_input("De-ice fluid [L]", min_value=0.0, step=1.0, format="%.1f", key="deice_l")
+            if tail in {"JA52DA", "JA53DA"}:
+                st.number_input("De-ice fluid [L]", min_value=22.0, max_value=30.0, step=1.0, format="%.1f", key="deice_l")
+            else:
+                st.number_input("De-ice fluid [L]", min_value=0.0, step=1.0, format="%.1f", key="deice_l")
             st.caption(f"換算: {_ss_num('deice_l'):.1f} L → {_ss_num('deice_l') * 1.1:.1f} {unit_weight}")
 
             st.markdown("**燃料（US gal）**")
