@@ -692,7 +692,6 @@ def main() -> None:
                 st.session_state[k] = 0.0
             st.session_state["taxi_burn_gal"] = 1.0
             st.session_state["deice_l"] = 22.0
-            st.session_state["deice_l_select"] = 22.0
             st.session_state["main_fuel_gal"] = 50.0
             st.session_state["flight_burn_gal"] = 0.0
             st.session_state["return_burn_gal"] = 0.0
@@ -739,21 +738,23 @@ def main() -> None:
     with col2:
         st.markdown("**De-ice / 液体**")
         if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
-            # 0L または 22..30L のみ（デフォルトは 22L）
-            deice_opts = [0.0] + [float(x) for x in range(22, 31)]
+            # 従来UI: 0L / 22L〜30L の切替 + 数値入力（デフォルトは 22L）
             cur = float(_ss_num("deice_l", 22.0))
-            if cur not in deice_opts:
+            if (cur != 0.0) and not (22.0 <= cur <= 30.0):
                 cur = 22.0
                 st.session_state["deice_l"] = 22.0
-            idx = deice_opts.index(cur)
-            deice_sel = st.selectbox(
-                "De-ice fluid [L]",
-                deice_opts,
-                index=idx,
-                format_func=lambda x: f"{int(x)} L",
-                key="deice_l_select",
+
+            mode = st.radio(
+                "De-ice 入力モード",
+                ["0L", "22L〜30L"],
+                horizontal=True,
+                index=(0 if cur == 0.0 else 1),
+                key="deice_mode",
             )
-            st.session_state["deice_l"] = float(deice_sel)
+            if mode == "0L":
+                st.session_state["deice_l"] = 0.0
+            else:
+                st.number_input("De-ice fluid [L]", min_value=22.0, max_value=30.0, step=1.0, format="%.1f", key="deice_l")
         else:
             st.number_input("De-ice fluid [L]", min_value=0.0, step=1.0, format="%.1f", key="deice_l")
         st.caption(f"換算: {_ss_num('deice_l'):.1f} L → {_ss_num('deice_l') * 1.1:.1f} {unit_weight}")
