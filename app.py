@@ -744,8 +744,8 @@ def main() -> None:
             except Exception:
                 st.session_state[str(r["key"])] = 0.0
 
-        # JA52/53 の入力値制限（バゲッジ/De-ice）
-        if tail in {"JA52DA", "JA53DA"}:
+        # JA52/53/56 の入力値制限（バゲッジ/De-ice）
+        if tail in {"JA52DA", "JA53DA", "JA56DA"}:
             # baggage max
             st.session_state["nose_bag"] = min(max(0.0, _ss_num("nose_bag")), 30.0)
             st.session_state["cockpit_bag"] = min(max(0.0, _ss_num("cockpit_bag")), 45.0)
@@ -754,7 +754,7 @@ def main() -> None:
             comb = _ss_num("cockpit_bag") + _ss_num("bag_ext")
             if comb > 45.0:
                 st.session_state["bag_ext"] = max(0.0, 45.0 - _ss_num("cockpit_bag"))
-                st.warning("JA52/53: Cockpit baggage + Baggage extension の合計は 45kg 以下に制限されます。")
+                st.warning("JA52/53/56: Cockpit baggage + Baggage extension の合計は 45kg 以下に制限されます。")
             # de-ice 22..30 L
             st.session_state["deice_l"] = min(max(22.0, _ss_num("deice_l")), 30.0)
 
@@ -783,12 +783,12 @@ def main() -> None:
             st.number_input("Rear seat R", min_value=0.0, step=1.0, format="%.1f", key="rear_r")
 
             st.markdown("**バゲッジ**")
-            if tail in {"JA52DA", "JA53DA"}:
+            if tail in {"JA52DA", "JA53DA", "JA56DA"}:
                 st.number_input("Nose baggage", min_value=0.0, max_value=30.0, step=1.0, format="%.1f", key="nose_bag")
                 st.number_input("Cockpit baggage", min_value=0.0, max_value=45.0, step=1.0, format="%.1f", key="cockpit_bag")
                 st.number_input("Baggage extension", min_value=0.0, max_value=18.0, step=1.0, format="%.1f", key="bag_ext")
                 if _ss_num("cockpit_bag") + _ss_num("bag_ext") > 45.0:
-                    st.error("JA52/53: Cockpit baggage + Baggage extension の合計は 45kg 以下にしてください。")
+                    st.error("JA52/53/56: Cockpit baggage + Baggage extension の合計は 45kg 以下にしてください。")
             else:
                 st.number_input("Nose baggage", min_value=0.0, step=1.0, format="%.1f", key="nose_bag")
                 st.number_input("Cockpit baggage", min_value=0.0, step=1.0, format="%.1f", key="cockpit_bag")
@@ -796,7 +796,7 @@ def main() -> None:
 
         with col2:
             st.markdown("**De-ice / 液体**")
-            if tail in {"JA52DA", "JA53DA"}:
+            if tail in {"JA52DA", "JA53DA", "JA56DA"}:
                 st.number_input("De-ice fluid [L]", min_value=22.0, max_value=30.0, step=1.0, format="%.1f", key="deice_l")
             else:
                 st.number_input("De-ice fluid [L]", min_value=0.0, step=1.0, format="%.1f", key="deice_l")
@@ -979,8 +979,8 @@ def main() -> None:
         return None
 
     def _limit_text(name: str) -> str:
-        # 52/53: ステーション制限（入力値制限）も表示
-        if tail in {"JA52DA", "JA53DA"}:
+        # 52/53/56: ステーション制限（入力値制限）も表示
+        if tail in {"JA52DA", "JA53DA", "JA56DA"}:
             if name == "Nose baggage":
                 return "30kg"
             if name == "Cockpit baggage":
