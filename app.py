@@ -1416,56 +1416,33 @@ def main() -> None:
                 gridcolor="rgba(148,163,184,0.12)",
             ),
         )
-        if tail == "JA55DA":
-            # 2.30 の補助線（縦線） + 0.01刻みで 2.50 まで見えるようにする
-            shapes.append(
-                dict(
-                    type="line",
-                    xref="x",
-                    yref="paper",
-                    x0=2.30,
-                    x1=2.30,
-                    y0=0,
-                    y1=1,
-                    line=dict(color="rgba(148,163,184,0.45)", width=2, dash="dot"),
-                )
+        # 全機体共通: X=2.30 の補助線（縦線） + 2.30..2.50 表示 + 0.01刻みの補助線
+        shapes.append(
+            dict(
+                type="line",
+                xref="x",
+                yref="paper",
+                x0=2.30,
+                x1=2.30,
+                y0=0,
+                y1=1,
+                line=dict(color="rgba(148,163,184,0.45)", width=2, dash="dot"),
             )
-            fig.update_xaxes(range=[2.30, 2.50])
-        if tail in {"JA55DA", "JA56DA"}:
-            y_vals = list(range(1450, 2001, 50))
-            fig.update_yaxes(
-                showgrid=True,
-                gridcolor="rgba(148,163,184,0.25)",
-                zeroline=False,
-                dtick=50,
-                tickmode="array",
-                tickvals=y_vals,
-                ticktext=[f"<b>{v}</b>" for v in y_vals],
-            )
-            fig.update_yaxes(range=[1450, 2000])
-        else:
-            fig.update_yaxes(
-                showgrid=True,
-                gridcolor="rgba(148,163,184,0.25)",
-                zeroline=False,
-                dtick=20,
-                tickmode="array",
-                tickvals=[1250, 1300, 1350, 1400, 1450, 1500, 1550, 1600, 1650, 1700, 1750, 1800],
-                ticktext=[
-                    "<b>1250</b>",
-                    "<b>1300</b>",
-                    "<b>1350</b>",
-                    "<b>1400</b>",
-                    "<b>1450</b>",
-                    "<b>1500</b>",
-                    "<b>1550</b>",
-                    "<b>1600</b>",
-                    "<b>1650</b>",
-                    "<b>1700</b>",
-                    "<b>1750</b>",
-                    "<b>1800</b>",
-                ],
-            )
+        )
+        fig.update_xaxes(range=[2.30, 2.50])
+
+        # 全機体共通: Y=2000kg まで 50kg 刻みの補助線・目盛
+        y_vals = list(range(1250, 2001, 50))
+        fig.update_yaxes(
+            showgrid=True,
+            gridcolor="rgba(148,163,184,0.25)",
+            zeroline=False,
+            dtick=50,
+            tickmode="array",
+            tickvals=y_vals,
+            ticktext=[f"<b>{v}</b>" for v in y_vals],
+            range=[1250, 2000],
+        )
         left_pad, center, right_pad = st.columns([1, 3, 1])
         with center:
             st.plotly_chart(fig, use_container_width=False)
