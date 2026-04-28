@@ -13,7 +13,8 @@ import base64
 from pathlib import Path
 import traceback
 import json
-from pathlib import Path
+import plotly.io as pio
+import plotly
 
 try:
     import tomllib  # py3.11+
@@ -587,6 +588,15 @@ def main() -> None:
         st.code(traceback.format_exc())
         st.stop()
 
+    # Excelテンプレ埋め込みPDF（印刷用）
+    try:
+        from wb_export import build_print_pdf_from_template, load_mapping, mapping_path_for_tail, template_path_for_tail
+    except Exception:
+        build_print_pdf_from_template = None  # type: ignore[assignment]
+        load_mapping = None  # type: ignore[assignment]
+        mapping_path_for_tail = None  # type: ignore[assignment]
+        template_path_for_tail = None  # type: ignore[assignment]
+
     cfg = load_aircraft_config()
     aircraft_name = str(cfg.get("meta", {}).get("aircraft_name", "重量・重心計算"))
     fleet_default = str(cfg.get("fleet", {}).get("default_tail", "") or "")
@@ -830,6 +840,13 @@ def main() -> None:
         flight_fuel_burn_weight=flight_burn_kg,
         return_fuel_burn_weight=return_burn_kg,
     )
+
+    # kaleido が plotlyjs をローカルパスで掴めない環境向け（Windowsの日本語ユーザー名等）
+    # CDN を使うと安定して PNG 変換できる
+    try:
+        pio.kaleido.scope.plotlyjs = "https://cdn.plot.ly/plotly-2.27.0.min.js"
+    except Exception:
+        pass
 
     # 内訳（ZFM/TOW/LWそれぞれで共通の“入力値”を表示したいので、現在の搭載項目を一覧化）
     def _combined_arm(w1: float, a1: float, w2: float, a2: float) -> float:
@@ -1429,6 +1446,138 @@ def main() -> None:
         _fig_h = max(420.0, _inner_h + _m_t + _m_b)
         fig.update_layout(height=int(_fig_h), width=int(_fig_w))
         st.plotly_chart(fig, use_container_width=False)
+
+        # --- PDF（印刷用）: Excelテンプレートに埋め込み → PDF変換 ---
+        st.subheader("PDF（印刷用）")
+        if build_print_pdf_from_template is None:
+            st.info("PDF出力を使うには `openpyxl` / `kaleido` / `Pillow` が必要です（requirements を更新済み）。")
+        else:
+            tpl = template_path_for_tail(tail)
+            mp = mapping_path_for_tail(tail)
+            if not tpl.exists():
+                st.info(f"テンプレ未配置: `{tpl}`")
+            if not mp.exists():
+                st.info(f"セル対応表未配置: `{mp}`")
+
+            mapping = load_mapping(tail)
+            if tpl.exists() and mapping:
+                def _mm_to_m(v_mm: float) -> float:
+                    return float(v_mm) / 1000.0
+
+                # component arms are in mm
+                arm_basic_empty_m = _mm_to_m(bew_a)
+                arm_front_m = _mm_to_m(front_arm)
+                arm_rear_m = _mm_to_m(rear_arm)
+                arm_nose_m = _mm_to_m(nose_arm)
+                arm_cockpit_m = _mm_to_m(cockpit_arm)
+                arm_bagext_m = _mm_to_m(bag_ext_arm)
+                arm_deice_m = _mm_to_m(deice_arm)
+                arm_fuel_m = _mm_to_m(fuel_arm)
+
+                # weights (kg)
+                w_basic = float(bew_w)
+                w_front = float(front_w)
+                w_rear = float(rear_w)
+                w_nose = float(nose_bag)
+                w_cockpit = float(cockpit_bag)
+                w_bagext = float(bag_ext)
+                w_deice = float(deice_kg)
+                w_mainfuel = float(main_fuel_kg)
+                w_taxi = float(taxi_burn_kg)
+                w_burn_out = float(flight_burn_kg)
+                w_burn_back = float(return_burn_kg)
+
+                # totals (ZFM/TOW/LW1/LW2) from wb_logic are kg*mm and mm
+                def _pt_arm_m(key: str) -> float:
+                    p = points.get(key)
+                    if p is None or p.cg is None:
+                        return 0.0
+                    return _mm_to_m(float(p.cg))
+
+                def _pt_w(key: str) -> float:
+                    p = points.get(key)
+                    return 0.0 if p is None else float(p.weight)
+
+                def _pt_m_kgm(key: str) -> float:
+                    p = points.get(key)
+                    return 0.0 if p is None else float(p.moment) / 1000.0
+
+                export_values: dict[str, float | str] = {
+                    "tail": tail,
+
+                    "arm_basic_empty": arm_basic_empty_m,
+                    "arm_front_seats": arm_front_m,
+                    "arm_rear_seats": arm_rear_m,
+                    "arm_nose_baggage": arm_nose_m,
+                    "arm_cockpit_baggage": arm_cockpit_m,
+                    "arm_baggage_extension": arm_bagext_m,
+                    "arm_deice_fluid": arm_deice_m,
+                    "arm_zfm": _pt_arm_m("ZFM"),
+                    "arm_main_fuel": arm_fuel_m,
+                    "arm_taxi_run": arm_fuel_m,
+                    "arm_tow": _pt_arm_m("TOW"),
+                    "arm_fuel_burn_out": arm_fuel_m,
+                    "arm_lw1": _pt_arm_m("LW1"),
+                    "arm_fuel_burn_back": arm_fuel_m,
+                    "arm_lw2": _pt_arm_m("LW2"),
+
+                    "w_basic_empty": w_basic,
+                    "w_front_seats": w_front,
+                    "w_rear_seats": w_rear,
+                    "w_nose_baggage": w_nose,
+                    "w_cockpit_baggage": w_cockpit,
+                    "w_baggage_extension": w_bagext,
+                    "w_deice_fluid": w_deice,
+                    "w_zfm": _pt_w("ZFM"),
+                    "w_main_fuel": w_mainfuel,
+                    "w_taxi_run": w_taxi,
+                    "w_tow": _pt_w("TOW"),
+                    "w_fuel_burn_out": w_burn_out,
+                    "w_lw1": _pt_w("LW1"),
+                    "w_fuel_burn_back": w_burn_back,
+                    "w_lw2": _pt_w("LW2"),
+
+                    "m_basic_empty": w_basic * arm_basic_empty_m,
+                    "m_front_seats": w_front * arm_front_m,
+                    "m_rear_seats": w_rear * arm_rear_m,
+                    "m_nose_baggage": w_nose * arm_nose_m,
+                    "m_cockpit_baggage": w_cockpit * arm_cockpit_m,
+                    "m_baggage_extension": w_bagext * arm_bagext_m,
+                    "m_deice_fluid": w_deice * arm_deice_m,
+                    "m_zfm": _pt_m_kgm("ZFM"),
+                    "m_main_fuel": w_mainfuel * arm_fuel_m,
+                    "m_taxi_run": w_taxi * arm_fuel_m,
+                    "m_tow": _pt_m_kgm("TOW"),
+                    "m_fuel_burn_out": w_burn_out * arm_fuel_m,
+                    "m_lw1": _pt_m_kgm("LW1"),
+                    "m_fuel_burn_back": w_burn_back * arm_fuel_m,
+                    "m_lw2": _pt_m_kgm("LW2"),
+                }
+
+                # CG envelope image (anchor I4)
+                export_images: dict[str, bytes] = {}
+                try:
+                    export_images["cg_envelope_png"] = pio.to_image(fig, format="png", scale=2)
+                except Exception as e:
+                    st.warning(f"CGエンベロープ画像の生成に失敗しました: {e}")
+
+                if st.button("PDFを作成"):
+                    try:
+                        pdf_bytes, filename = build_print_pdf_from_template(
+                            tail=tail,
+                            values=export_values,
+                            images=export_images,
+                        )
+                        st.download_button(
+                            "PDFをダウンロード",
+                            data=pdf_bytes,
+                            file_name=filename,
+                            mime="application/pdf",
+                        )
+                    except Exception as e:
+                        st.error(str(e))
+            else:
+                st.caption("テンプレ（`templates/<TAIL>_template.xlsx`）とセル対応表（`templates/<TAIL>_mapping.json`）が揃うと有効になります。")
 
     with st.expander("計算の考え方（初心者向け）"):
         st.markdown(
