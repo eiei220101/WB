@@ -1246,6 +1246,7 @@ def main() -> None:
         else:
             ref_lines = [(1785.0, "MTOW 1785kg"), (1700.0, "MLW 1700kg")]
 
+        ref_color = "#3b82f6"  # blue
         for y, title in ref_lines:
             shapes.append(
                 dict(
@@ -1255,7 +1256,7 @@ def main() -> None:
                     x1=1,
                     y0=y,
                     y1=y,
-                    line=dict(color="#ef4444", width=2, dash="solid"),
+                    line=dict(color=ref_color, width=2, dash="solid"),
                 )
             )
             ann.append(
@@ -1265,7 +1266,7 @@ def main() -> None:
                     y=y,
                     text=title,
                     showarrow=False,
-                    font=dict(color="#ef4444", size=14),
+                    font=dict(color=ref_color, size=14),
                     yanchor="bottom",
                 )
             )
