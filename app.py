@@ -684,156 +684,97 @@ def main() -> None:
     st.session_state.setdefault("deice_l", 22.0)
     st.session_state.setdefault("main_fuel_gal", 50.0)
 
-    c_mode, c_reset = st.columns([3, 1], vertical_alignment="bottom")
-    with c_mode:
-        input_mode = st.radio("入力方法", ["フォーム（おすすめ）", "表（一覧で編集）"], horizontal=True, key="input_mode")
+    _, c_reset = st.columns([3, 1], vertical_alignment="bottom")
     with c_reset:
         if st.button("入力をリセット"):
-            for k in [
-                "front_l",
-                "front_r",
-                "rear_l",
-                "rear_r",
-                "nose_bag",
-                "cockpit_bag",
-                "bag_ext",
-                "deice_l",
-                "main_fuel_gal",
-                "taxi_burn_gal",
-                "flight_burn_gal",
-                "return_burn_gal",
-                "front_r_mode",
-            ]:
+            # 入力値を初期化（使いやすいデフォルトに戻す）
+            for k in ["front_l", "front_r", "rear_l", "rear_r", "nose_bag", "cockpit_bag", "bag_ext"]:
                 st.session_state[k] = 0.0
+            st.session_state["taxi_burn_gal"] = 1.0
+            st.session_state["deice_l"] = 22.0
+            st.session_state["deice_l_select"] = 22.0
+            st.session_state["main_fuel_gal"] = 50.0
+            st.session_state["flight_burn_gal"] = 0.0
+            st.session_state["return_burn_gal"] = 0.0
+            st.session_state["front_r_mode"] = "体重を入力"
+            st.session_state.pop("front_r_manual", None)
             st.rerun()
 
-    if input_mode == "表（一覧で編集）":
-        input_rows = [
-            {"key": "front_l", "カテゴリ": "座席", "項目": "Front seat L", "入力値": _ss_num("front_l"), "単位": unit_weight},
-            {"key": "front_r", "カテゴリ": "座席", "項目": "Front seat R", "入力値": _ss_num("front_r"), "単位": unit_weight},
-            {"key": "rear_l", "カテゴリ": "座席", "項目": "Rear seat L", "入力値": _ss_num("rear_l"), "単位": unit_weight},
-            {"key": "rear_r", "カテゴリ": "座席", "項目": "Rear seat R", "入力値": _ss_num("rear_r"), "単位": unit_weight},
-            {"key": "nose_bag", "カテゴリ": "バゲッジ", "項目": "Nose baggage", "入力値": _ss_num("nose_bag"), "単位": unit_weight},
-            {"key": "cockpit_bag", "カテゴリ": "バゲッジ", "項目": "Cockpit baggage", "入力値": _ss_num("cockpit_bag"), "単位": unit_weight},
-            {"key": "bag_ext", "カテゴリ": "バゲッジ", "項目": "Baggage extension", "入力値": _ss_num("bag_ext"), "単位": unit_weight},
-            {"key": "deice_l", "カテゴリ": "液体", "項目": "De-ice fluid", "入力値": _ss_num("deice_l"), "単位": "L"},
-            {"key": "main_fuel_gal", "カテゴリ": "燃料", "項目": "Main fuel (loaded)", "入力値": _ss_num("main_fuel_gal"), "単位": "US gal"},
-            {"key": "taxi_burn_gal", "カテゴリ": "燃料", "項目": "Taxi burn", "入力値": _ss_num("taxi_burn_gal"), "単位": "US gal"},
-            {"key": "flight_burn_gal", "カテゴリ": "燃料", "項目": "Flight burn", "入力値": _ss_num("flight_burn_gal"), "単位": "US gal"},
-            {"key": "return_burn_gal", "カテゴリ": "燃料", "項目": "Return burn", "入力値": _ss_num("return_burn_gal"), "単位": "US gal"},
-        ]
-
-        in_df = pd.DataFrame(input_rows)
-        edited = st.data_editor(
-            in_df,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "key": st.column_config.TextColumn("key", disabled=True),
-                "カテゴリ": st.column_config.TextColumn("カテゴリ", disabled=True),
-                "項目": st.column_config.TextColumn("項目", disabled=True),
-                "入力値": st.column_config.NumberColumn("入力値", min_value=0.0, step=1.0),
-                "単位": st.column_config.TextColumn("単位", disabled=True),
-            },
-            key="input_table",
-        )
-
-        for _, r in edited.iterrows():
-            try:
-                st.session_state[str(r["key"])] = max(0.0, float(r["入力値"] or 0.0))
-            except Exception:
-                st.session_state[str(r["key"])] = 0.0
-
-        # JA52/53/55/56 の入力値制限（バゲッジ/De-ice）
-        if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
-            # baggage max
-            st.session_state["nose_bag"] = min(max(0.0, _ss_num("nose_bag")), 30.0)
-            st.session_state["cockpit_bag"] = min(max(0.0, _ss_num("cockpit_bag")), 45.0)
-            st.session_state["bag_ext"] = min(max(0.0, _ss_num("bag_ext")), 18.0)
-            # cockpit + extension <= 45
-            comb = _ss_num("cockpit_bag") + _ss_num("bag_ext")
-            if comb > 45.0:
-                st.session_state["bag_ext"] = max(0.0, 45.0 - _ss_num("cockpit_bag"))
-                st.warning("JA52/53/55/56: Cockpit baggage + Baggage extension の合計は 45kg 以下に制限されます。")
-            # de-ice: 0L または 22..30L（1..21 は無効）
-            _d = float(_ss_num("deice_l"))
-            last_ok = float(st.session_state.get("deice_l_last_valid", 0.0) or 0.0)
-            is_ok = (_d == 0.0) or (22.0 <= _d <= 30.0)
-            if not is_ok:
-                st.session_state["deice_l"] = last_ok
-                st.warning("De-ice は 0L または 22〜30L のみ入力可能です（無効値は元に戻しました）。")
-            else:
-                st.session_state["deice_l"] = _d
-                st.session_state["deice_l_last_valid"] = _d
-
-    else:
-        col1, col2 = st.columns(2, vertical_alignment="top")
-        with col1:
-            st.markdown("**座席**")
-            st.number_input("Front seat L", min_value=0.0, step=1.0, format="%.1f", key="front_l")
-            _inst_map = {"山口教官": 72.0, "羽山教官": 73.0, "増本教官": 83.0}
-            front_r_mode = st.selectbox("Front seat R", ["体重を入力", "山口教官", "羽山教官", "増本教官"], key="front_r_mode")
-            if front_r_mode == "体重を入力":
-                v = st.number_input(
-                    "Front seat R（体重）",
-                    min_value=0.0,
-                    step=1.0,
-                    format="%.1f",
-                    value=_ss_num("front_r"),
-                    key="front_r_manual",
-                    label_visibility="collapsed",
-                )
-                st.session_state["front_r"] = float(v)
-            else:
-                st.session_state["front_r"] = float(_inst_map.get(front_r_mode, 0.0))
-                st.caption(f"{front_r_mode}: **{st.session_state['front_r']:.1f} {unit_weight}**")
-            st.number_input("Rear seat L", min_value=0.0, step=1.0, format="%.1f", key="rear_l")
-            st.number_input("Rear seat R", min_value=0.0, step=1.0, format="%.1f", key="rear_r")
-
-            st.markdown("**バゲッジ**")
-            if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
-                st.number_input("Nose baggage", min_value=0.0, max_value=30.0, step=1.0, format="%.1f", key="nose_bag")
-                st.number_input("Cockpit baggage", min_value=0.0, max_value=45.0, step=1.0, format="%.1f", key="cockpit_bag")
-                st.number_input("Baggage extension", min_value=0.0, max_value=18.0, step=1.0, format="%.1f", key="bag_ext")
-                if _ss_num("cockpit_bag") + _ss_num("bag_ext") > 45.0:
-                    st.error("JA52/53/55/56: Cockpit baggage + Baggage extension の合計は 45kg 以下にしてください。")
-            else:
-                st.number_input("Nose baggage", min_value=0.0, step=1.0, format="%.1f", key="nose_bag")
-                st.number_input("Cockpit baggage", min_value=0.0, step=1.0, format="%.1f", key="cockpit_bag")
-                st.number_input("Baggage extension", min_value=0.0, step=1.0, format="%.1f", key="bag_ext")
-
-        with col2:
-            st.markdown("**De-ice / 液体**")
-            if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
-                # 0L or 22..30L だけ入力できるUI
-                mode = st.radio("De-ice 入力モード", ["0L", "22L〜30L"], horizontal=True, key="deice_mode")
-                if mode == "0L":
-                    st.session_state["deice_l"] = 0.0
-                    st.session_state["deice_l_last_valid"] = 0.0
-                else:
-                    st.number_input("De-ice fluid [L]", min_value=22.0, max_value=30.0, step=1.0, format="%.1f", key="deice_l")
-                    st.session_state["deice_l_last_valid"] = float(_ss_num("deice_l"))
-            else:
-                st.number_input("De-ice fluid [L]", min_value=0.0, step=1.0, format="%.1f", key="deice_l")
-            st.caption(f"換算: {_ss_num('deice_l'):.1f} L → {_ss_num('deice_l') * 1.1:.1f} {unit_weight}")
-
-            st.markdown("**燃料（US gal）**")
-            st.number_input("Main fuel loaded [US gal]", min_value=0.0, step=1.0, format="%.1f", key="main_fuel_gal")
-            st.number_input("Taxi burn [US gal]", min_value=0.0, step=0.5, format="%.1f", key="taxi_burn_gal")
-            st.number_input("Flight burn [US gal]", min_value=0.0, step=0.5, format="%.1f", key="flight_burn_gal")
-            st.number_input("Return burn [US gal]", min_value=0.0, step=0.5, format="%.1f", key="return_burn_gal")
-
-            mf = _ss_num("main_fuel_gal")
-            tb = _ss_num("taxi_burn_gal")
-            fb = _ss_num("flight_burn_gal")
-            rb = _ss_num("return_burn_gal")
-            takeoff_remain = max(mf - tb, 0.0)
-            landing1_remain = max(takeoff_remain - fb, 0.0)
-            landing2_remain = max(landing1_remain - rb, 0.0)
-            st.caption(
-                f"換算: {mf:.1f} gal → {mf * fuel_kg_per_usg:.1f} {unit_weight} / "
-                f"T/O残 {takeoff_remain:.1f} gal / LDG1残 {landing1_remain:.1f} gal / LDG2残 {landing2_remain:.1f} gal"
+    # 入力方法はフォームに統一
+    col1, col2 = st.columns(2, vertical_alignment="top")
+    with col1:
+        st.markdown("**座席**")
+        st.number_input("Front seat L", min_value=0.0, step=1.0, format="%.1f", key="front_l")
+        _inst_map = {"山口教官": 72.0, "羽山教官": 73.0, "増本教官": 83.0}
+        front_r_mode = st.selectbox("Front seat R", ["体重を入力", "山口教官", "羽山教官", "増本教官"], key="front_r_mode")
+        if front_r_mode == "体重を入力":
+            v = st.number_input(
+                "Front seat R（体重）",
+                min_value=0.0,
+                step=1.0,
+                format="%.1f",
+                value=_ss_num("front_r"),
+                key="front_r_manual",
+                label_visibility="collapsed",
             )
+            st.session_state["front_r"] = float(v)
+        else:
+            st.session_state["front_r"] = float(_inst_map.get(front_r_mode, 0.0))
+            st.caption(f"{front_r_mode}: **{st.session_state['front_r']:.1f} {unit_weight}**")
+        st.number_input("Rear seat L", min_value=0.0, step=1.0, format="%.1f", key="rear_l")
+        st.number_input("Rear seat R", min_value=0.0, step=1.0, format="%.1f", key="rear_r")
+
+        st.markdown("**バゲッジ**")
+        if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
+            st.number_input("Nose baggage", min_value=0.0, max_value=30.0, step=1.0, format="%.1f", key="nose_bag")
+            st.number_input("Cockpit baggage", min_value=0.0, max_value=45.0, step=1.0, format="%.1f", key="cockpit_bag")
+            st.number_input("Baggage extension", min_value=0.0, max_value=18.0, step=1.0, format="%.1f", key="bag_ext")
+            if _ss_num("cockpit_bag") + _ss_num("bag_ext") > 45.0:
+                st.error("JA52/53/55/56: Cockpit baggage + Baggage extension の合計は 45kg 以下にしてください。")
+        else:
+            st.number_input("Nose baggage", min_value=0.0, step=1.0, format="%.1f", key="nose_bag")
+            st.number_input("Cockpit baggage", min_value=0.0, step=1.0, format="%.1f", key="cockpit_bag")
+            st.number_input("Baggage extension", min_value=0.0, step=1.0, format="%.1f", key="bag_ext")
+
+    with col2:
+        st.markdown("**De-ice / 液体**")
+        if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
+            # 0L または 22..30L のみ（デフォルトは 22L）
+            deice_opts = [0.0] + [float(x) for x in range(22, 31)]
+            cur = float(_ss_num("deice_l", 22.0))
+            if cur not in deice_opts:
+                cur = 22.0
+                st.session_state["deice_l"] = 22.0
+            idx = deice_opts.index(cur)
+            deice_sel = st.selectbox(
+                "De-ice fluid [L]",
+                deice_opts,
+                index=idx,
+                format_func=lambda x: f"{int(x)} L",
+                key="deice_l_select",
+            )
+            st.session_state["deice_l"] = float(deice_sel)
+        else:
+            st.number_input("De-ice fluid [L]", min_value=0.0, step=1.0, format="%.1f", key="deice_l")
+        st.caption(f"換算: {_ss_num('deice_l'):.1f} L → {_ss_num('deice_l') * 1.1:.1f} {unit_weight}")
+
+        st.markdown("**燃料（US gal）**")
+        st.number_input("Main fuel loaded [US gal]", min_value=0.0, step=1.0, format="%.1f", key="main_fuel_gal")
+        st.number_input("Taxi burn [US gal]", min_value=0.0, step=0.5, format="%.1f", key="taxi_burn_gal")
+        st.number_input("Flight burn [US gal]", min_value=0.0, step=0.5, format="%.1f", key="flight_burn_gal")
+        st.number_input("Return burn [US gal]", min_value=0.0, step=0.5, format="%.1f", key="return_burn_gal")
+
+        mf = _ss_num("main_fuel_gal")
+        tb = _ss_num("taxi_burn_gal")
+        fb = _ss_num("flight_burn_gal")
+        rb = _ss_num("return_burn_gal")
+        takeoff_remain = max(mf - tb, 0.0)
+        landing1_remain = max(takeoff_remain - fb, 0.0)
+        landing2_remain = max(landing1_remain - rb, 0.0)
+        st.caption(
+            f"換算: {mf:.1f} gal → {mf * fuel_kg_per_usg:.1f} {unit_weight} / "
+            f"T/O残 {takeoff_remain:.1f} gal / LDG1残 {landing1_remain:.1f} gal / LDG2残 {landing2_remain:.1f} gal"
+        )
 
     front_l = _ss_num("front_l")
     front_r = _ss_num("front_r")
