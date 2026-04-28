@@ -1323,8 +1323,8 @@ def main() -> None:
             template="plotly_dark",
             xaxis_title="CG [m]",
             yaxis_title=f"Weight [{unit_weight}]",
-            height=520,
-            width=1020,
+            height=650,
+            width=650,
             margin=dict(l=60, r=20, t=30, b=50),
             showlegend=False,
             paper_bgcolor="#0b1220",
@@ -1380,6 +1380,8 @@ def main() -> None:
                     "<b>1800</b>",
                 ],
             )
+        # 縦横比を 1:1（同一スケール）に固定
+        fig.update_yaxes(scaleanchor="x", scaleratio=1)
         left_pad, center, right_pad = st.columns([1, 3, 1])
         with center:
             st.plotly_chart(fig, use_container_width=False)
