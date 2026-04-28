@@ -1244,7 +1244,7 @@ def main() -> None:
         if tail == "JA56DA":
             ref_lines = [(1999.0, "T/O・LDG Weight")]
         else:
-            ref_lines = [(1785.0, "T/O Weight"), (1700.0, "LDG Weight")]
+            ref_lines = [(1785.0, "MTOW 1835kg"), (1700.0, "MLW 1700kg")]
 
         for y, title in ref_lines:
             shapes.append(
@@ -1270,8 +1270,8 @@ def main() -> None:
                 )
             )
 
-        # JA56DA は固定の「T/O・LDG Weight」だけ表示したいので、limits由来の線は出さない
-        if tail != "JA56DA" and mlw and mlw > 0:
+        # 既定の参考線とタイトルが重複しやすいので、JA52/53/56 は limits 由来の線は出さない
+        if tail not in {"JA52DA", "JA53DA", "JA56DA"} and mlw and mlw > 0:
             shapes.append(
                 dict(
                     type="line",
@@ -1294,7 +1294,7 @@ def main() -> None:
                     yanchor="bottom",
                 )
             )
-        if tail != "JA56DA" and mtow and mtow > 0:
+        if tail not in {"JA52DA", "JA53DA", "JA56DA"} and mtow and mtow > 0:
             shapes.append(
                 dict(
                     type="line",
