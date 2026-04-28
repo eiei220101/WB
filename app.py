@@ -755,12 +755,16 @@ def main() -> None:
             if comb > 45.0:
                 st.session_state["bag_ext"] = max(0.0, 45.0 - _ss_num("cockpit_bag"))
                 st.warning("JA52/53/55/56: Cockpit baggage + Baggage extension の合計は 45kg 以下に制限されます。")
-            # de-ice: 0L または 22..30L（0<deice<22 は 22 に補正）
+            # de-ice: 0L または 22..30L（1..21 は無効）
             _d = float(_ss_num("deice_l"))
-            if 0.0 < _d < 22.0:
-                _d = 22.0
-                st.warning("De-ice は 0L または 22〜30L のみ入力可能です（22Lに補正しました）。")
-            st.session_state["deice_l"] = min(max(0.0, _d), 30.0)
+            last_ok = float(st.session_state.get("deice_l_last_valid", 0.0) or 0.0)
+            is_ok = (_d == 0.0) or (22.0 <= _d <= 30.0)
+            if not is_ok:
+                st.session_state["deice_l"] = last_ok
+                st.warning("De-ice は 0L または 22〜30L のみ入力可能です（無効値は元に戻しました）。")
+            else:
+                st.session_state["deice_l"] = _d
+                st.session_state["deice_l_last_valid"] = _d
 
     else:
         col1, col2 = st.columns(2, vertical_alignment="top")
@@ -801,10 +805,14 @@ def main() -> None:
         with col2:
             st.markdown("**De-ice / 液体**")
             if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
-                st.number_input("De-ice fluid [L]", min_value=0.0, max_value=30.0, step=1.0, format="%.1f", key="deice_l")
-                if 0.0 < _ss_num("deice_l") < 22.0:
-                    st.session_state["deice_l"] = 22.0
-                    st.warning("De-ice は 0L または 22〜30L のみ入力可能です（22Lに補正しました）。")
+                # 0L or 22..30L だけ入力できるUI
+                mode = st.radio("De-ice 입력モード", ["0L", "22L〜30L"], horizontal=True, key="deice_mode")
+                if mode == "0L":
+                    st.session_state["deice_l"] = 0.0
+                    st.session_state["deice_l_last_valid"] = 0.0
+                else:
+                    st.number_input("De-ice fluid [L]", min_value=22.0, max_value=30.0, step=1.0, format="%.1f", key="deice_l")
+                    st.session_state["deice_l_last_valid"] = float(_ss_num("deice_l"))
             else:
                 st.number_input("De-ice fluid [L]", min_value=0.0, step=1.0, format="%.1f", key="deice_l")
             st.caption(f"換算: {_ss_num('deice_l'):.1f} L → {_ss_num('deice_l') * 1.1:.1f} {unit_weight}")
@@ -1000,7 +1008,7 @@ def main() -> None:
             if name == "Baggage extension":
                 return "18kg"
             if name == "De-ice fluid":
-                return "0L or 22–30L"
+                return "22L - 30L"
             if name == "ZERO FUEL MASS" and LIMIT_ZFM > 0:
                 return f"{LIMIT_ZFM:.0f}kg"
             if name == "TAKE OFF WEIGHT" and LIMIT_TOW > 0:
