@@ -1,5 +1,5 @@
 [
-  {"name": "山口教官", "weight": 72.0},
-  {"name": "羽山教官", "weight": 73.0},
-  {"name": "増元教官", "weight": 83.0}
+  {"name": "山口教官", "weight": 72.0, "affiliation": "一般"},
+  {"name": "羽山教官", "weight": 73.0, "affiliation": "一般"},
+  {"name": "増元教官", "weight": 83.0, "affiliation": "一般"}
 ]

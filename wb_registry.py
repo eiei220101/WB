@@ -7,10 +7,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+AFFILIATION_OPTIONS: tuple[str, ...] = ("桜美林", "一般", "JCAB")
+DEFAULT_AFFILIATION = "一般"
+
 DEFAULT_REGISTRY: list[dict[str, float | str]] = [
-    {"name": "山口教官", "weight": 72.0},
-    {"name": "羽山教官", "weight": 73.0},
-    {"name": "増元教官", "weight": 83.0},
+    {"name": "山口教官", "weight": 72.0, "affiliation": DEFAULT_AFFILIATION},
+    {"name": "羽山教官", "weight": 73.0, "affiliation": DEFAULT_AFFILIATION},
+    {"name": "増元教官", "weight": 83.0, "affiliation": DEFAULT_AFFILIATION},
 ]
 
 PROTECTED_NAMES: frozenset[str] = frozenset(str(e["name"]) for e in DEFAULT_REGISTRY)
@@ -28,6 +31,11 @@ def is_protected_name(name: str) -> bool:
     return str(name).strip() in PROTECTED_NAMES
 
 
+def normalize_affiliation(raw) -> str:
+    value = str(raw or DEFAULT_AFFILIATION).strip()
+    return value if value in AFFILIATION_OPTIONS else DEFAULT_AFFILIATION
+
+
 def _normalize(entries: list) -> list[dict[str, float | str]]:
     out: list[dict[str, float | str]] = []
     for item in entries:
@@ -40,8 +48,22 @@ def _normalize(entries: list) -> list[dict[str, float | str]]:
             weight = round(float(item.get("weight", 0.0)), 1)
         except (TypeError, ValueError):
             continue
-        out.append({"name": name, "weight": weight})
+        out.append(
+            {
+                "name": name,
+                "weight": weight,
+                "affiliation": normalize_affiliation(item.get("affiliation")),
+            }
+        )
     return out
+
+
+def _entry_from_raw(name: str, entry: dict[str, float | str]) -> dict[str, float | str]:
+    return {
+        "name": name,
+        "weight": float(entry["weight"]),
+        "affiliation": normalize_affiliation(entry.get("affiliation")),
+    }
 
 
 def _migrate_and_ensure_defaults(entries: list[dict[str, float | str]]) -> list[dict[str, float | str]]:
@@ -50,13 +72,17 @@ def _migrate_and_ensure_defaults(entries: list[dict[str, float | str]]) -> list[
         name = str(entry["name"])
         if name in _LEGACY_NAME_MAP:
             name = _LEGACY_NAME_MAP[name]
-        migrated.append({"name": name, "weight": float(entry["weight"])})
+        migrated.append(_entry_from_raw(name, entry))
 
     by_name = {str(e["name"]): e for e in migrated}
     for default in DEFAULT_REGISTRY:
         default_name = str(default["name"])
         if default_name not in by_name:
-            by_name[default_name] = {"name": default_name, "weight": float(default["weight"])}
+            by_name[default_name] = _entry_from_raw(default_name, default)
+        else:
+            by_name[default_name]["affiliation"] = normalize_affiliation(
+                by_name[default_name].get("affiliation", default.get("affiliation"))
+            )
 
     ordered: list[dict[str, float | str]] = []
     seen: set[str] = set()
@@ -76,16 +102,16 @@ def _migrate_and_ensure_defaults(entries: list[dict[str, float | str]]) -> list[
 def load_registry() -> list[dict[str, float | str]]:
     path = registry_path()
     if not path.exists():
-        return list(DEFAULT_REGISTRY)
+        return _migrate_and_ensure_defaults(list(DEFAULT_REGISTRY))
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return list(DEFAULT_REGISTRY)
+        return _migrate_and_ensure_defaults(list(DEFAULT_REGISTRY))
     if not isinstance(raw, list):
-        return list(DEFAULT_REGISTRY)
+        return _migrate_and_ensure_defaults(list(DEFAULT_REGISTRY))
     normalized = _normalize(raw)
     if not normalized:
-        return list(DEFAULT_REGISTRY)
+        return _migrate_and_ensure_defaults(list(DEFAULT_REGISTRY))
     result = _migrate_and_ensure_defaults(normalized)
     if result != normalized:
         save_registry(result)
@@ -102,16 +128,23 @@ def save_registry(entries: list[dict[str, float | str]]) -> None:
     )
 
 
-def upsert_entry(entries: list[dict[str, float | str]], name: str, weight: float) -> list[dict[str, float | str]]:
+def upsert_entry(
+    entries: list[dict[str, float | str]],
+    name: str,
+    weight: float,
+    affiliation: str,
+) -> list[dict[str, float | str]]:
     name = name.strip()
     if not name:
         return entries
     w = round(float(weight), 1)
+    aff = normalize_affiliation(affiliation)
     for entry in entries:
         if entry["name"] == name:
             entry["weight"] = w
+            entry["affiliation"] = aff
             return entries
-    return entries + [{"name": name, "weight": w}]
+    return entries + [{"name": name, "weight": w, "affiliation": aff}]
 
 
 def remove_entry(entries: list[dict[str, float | str]], name: str) -> list[dict[str, float | str]]:

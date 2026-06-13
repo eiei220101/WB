@@ -637,6 +637,7 @@ def main() -> None:
 
     try:
         from wb_registry import (
+            AFFILIATION_OPTIONS,
             deletable_names,
             front_right_instructor_map,
             front_right_instructor_names,
@@ -658,12 +659,14 @@ def main() -> None:
         display_entries = [e for e in registry_entries if not is_protected_name(str(e["name"]))]
         if display_entries:
             for entry in display_entries:
-                st.write(f"- **{entry['name']}**: {float(entry['weight']):.1f} {unit_weight}")
+                aff = str(entry.get("affiliation", "一般"))
+                st.write(f"- **{entry['name']}**（{aff}）: {float(entry['weight']):.1f} {unit_weight}")
         else:
             st.caption("登録がありません")
 
         with st.expander("追加・更新", expanded=False):
             reg_name = st.text_input("氏名", key="weight_reg_name")
+            reg_affiliation = st.selectbox("所属", AFFILIATION_OPTIONS, key="weight_reg_affiliation")
             reg_weight = st.number_input(
                 f"体重 [{unit_weight}]",
                 min_value=0.0,
@@ -676,7 +679,7 @@ def main() -> None:
                 if not reg_name.strip():
                     st.warning("氏名を入力してください。")
                 else:
-                    updated = upsert_entry(registry_entries, reg_name, reg_weight)
+                    updated = upsert_entry(registry_entries, reg_name, reg_weight, reg_affiliation)
                     save_registry(updated)
                     st.session_state.pop("weight_reg_name", None)
                     st.rerun()
