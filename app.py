@@ -624,7 +624,68 @@ def main() -> None:
     fleet_default = str(cfg.get("fleet", {}).get("default_tail", "") or "")
     aircraft_map = cfg.get("aircraft", {}) or {}
 
+    unit_weight = str(cfg.get("units", {}).get("weight", "kg"))
+    unit_arm = str(cfg.get("units", {}).get("arm", "mm"))
+    arm_scale = 0.001 if unit_arm.strip().lower() == "mm" else 1.0
+    unit_arm_disp = "m" if arm_scale == 0.001 else unit_arm
+
+    def disp_arm(x: float) -> float:
+        return float(x) * arm_scale
+
+    def undisp_arm(x: float) -> float:
+        return float(x) / arm_scale if arm_scale != 0 else float(x)
+
+    try:
+        from wb_registry import load_registry, registry_as_map, remove_entry, save_registry, upsert_entry
+    except Exception:
+        st.error("`wb_registry` の読み込みでエラーが発生しました。")
+        st.code(traceback.format_exc())
+        st.stop()
+
     with st.sidebar:
+        st.header("体重登録")
+        registry_entries = load_registry()
+        if registry_entries:
+            for entry in registry_entries:
+                st.write(f"- **{entry['name']}**: {float(entry['weight']):.1f} {unit_weight}")
+        else:
+            st.caption("登録がありません")
+
+        with st.expander("追加・更新", expanded=False):
+            reg_name = st.text_input("氏名", key="weight_reg_name")
+            reg_weight = st.number_input(
+                f"体重 [{unit_weight}]",
+                min_value=0.0,
+                max_value=200.0,
+                step=0.1,
+                format="%.1f",
+                key="weight_reg_value",
+            )
+            if st.button("登録", key="weight_reg_save", use_container_width=True):
+                if not reg_name.strip():
+                    st.warning("氏名を入力してください。")
+                else:
+                    updated = upsert_entry(registry_entries, reg_name, reg_weight)
+                    save_registry(updated)
+                    st.session_state.pop("weight_reg_name", None)
+                    st.rerun()
+
+        with st.expander("削除", expanded=False):
+            reg_names = [str(e["name"]) for e in registry_entries]
+            if reg_names:
+                del_name = st.selectbox("削除する氏名", reg_names, key="weight_reg_del_name")
+                if st.button("削除", key="weight_reg_delete", use_container_width=True):
+                    updated = remove_entry(registry_entries, del_name)
+                    save_registry(updated)
+                    if st.session_state.get("front_r_mode") == del_name:
+                        st.session_state["front_r_mode"] = "体重を入力"
+                    st.rerun()
+            else:
+                st.caption("削除できる登録がありません。")
+
+        weight_registry_map = registry_as_map(load_registry())
+
+        st.divider()
         st.header("機体選択")
         tails = sorted([str(k) for k in aircraft_map.keys()]) if isinstance(aircraft_map, dict) else []
         if tails:
@@ -651,18 +712,6 @@ def main() -> None:
             st.write(f"- 型式: **{model}**")
         if notes:
             st.write(f"- メモ: **{notes}**")
-
-        unit_weight = str(cfg.get("units", {}).get("weight", "kg"))
-        unit_arm = str(cfg.get("units", {}).get("arm", "mm"))
-        # 画面表示は「m」に統一（内部計算は従来通り mm ベースのまま）
-        arm_scale = 0.001 if unit_arm.strip().lower() == "mm" else 1.0
-        unit_arm_disp = "m" if arm_scale == 0.001 else unit_arm
-
-        def disp_arm(x: float) -> float:
-            return float(x) * arm_scale
-
-        def undisp_arm(x: float) -> float:
-            return float(x) / arm_scale if arm_scale != 0 else float(x)
 
         st.subheader("基本空重（BEW）")
         sel_be = selected.get("basic_empty", {}) if isinstance(selected, dict) else {}
@@ -746,8 +795,10 @@ def main() -> None:
             _front_l_cur = 45
             st.session_state["front_l"] = 45.0
         st.selectbox(f"Front seat L [{unit_weight}]", _front_l_opts, index=_front_l_opts.index(_front_l_cur), key="front_l")
-        _inst_map = {"山口教官": 72.0, "羽山教官": 73.0, "増本教官": 83.0}
-        front_r_mode = st.selectbox("Front seat R", ["体重を入力", "山口教官", "羽山教官", "増本教官"], key="front_r_mode")
+        front_r_options = ["体重を入力"] + list(weight_registry_map.keys())
+        if st.session_state.get("front_r_mode") not in front_r_options:
+            st.session_state["front_r_mode"] = "体重を入力"
+        front_r_mode = st.selectbox("Front seat R", front_r_options, key="front_r_mode")
         if front_r_mode == "体重を入力":
             v = st.number_input(
                 "Front seat R（体重）",
@@ -760,7 +811,7 @@ def main() -> None:
             )
             st.session_state["front_r"] = float(v)
         else:
-            st.session_state["front_r"] = float(_inst_map.get(front_r_mode, 0.0))
+            st.session_state["front_r"] = float(weight_registry_map.get(front_r_mode, 0.0))
             st.caption(f"{front_r_mode}: **{st.session_state['front_r']:.1f} {unit_weight}**")
         st.number_input(f"Rear seat L [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="rear_l")
         st.number_input(f"Rear seat R [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="rear_r")
