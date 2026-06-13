@@ -798,7 +798,7 @@ def main() -> None:
         st.caption(f"換算: {_ss_num('deice_l'):.1f} L → {_ss_num('deice_l') * 1.1:.1f} {unit_weight}")
 
         st.markdown("**燃料（US gal）**")
-        st.number_input("Main fuel loaded [US gal]", min_value=0.0, step=1.0, format="%.1f", key="main_fuel_gal")
+        st.number_input("Main fuel loaded [US gal]", min_value=0.0, max_value=50.0, step=1.0, format="%.1f", key="main_fuel_gal")
         st.number_input("Taxi burn [US gal]", min_value=0.0, step=0.5, format="%.1f", key="taxi_burn_gal")
         st.number_input("Flight burn [US gal]", min_value=0.0, step=0.5, format="%.1f", key="flight_burn_gal")
         st.number_input("Return burn [US gal]", min_value=0.0, step=0.5, format="%.1f", key="return_burn_gal")
