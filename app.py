@@ -660,7 +660,7 @@ def main() -> None:
         if display_entries:
             for entry in display_entries:
                 aff = str(entry.get("affiliation", "一般"))
-                st.write(f"- **{entry['name']}**（{aff}）: {float(entry['weight']):.1f} {unit_weight}")
+                st.write(f"- **{entry['name']}**（{aff}）")
         else:
             st.caption("登録がありません")
 
