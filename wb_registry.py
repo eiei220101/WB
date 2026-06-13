@@ -280,6 +280,16 @@ def deletable_names(entries: list[dict[str, float | str]]) -> list[str]:
     return [str(e["name"]) for e in entries if not is_protected_name(str(e["name"]))]
 
 
+def deletable_display_options(entries: list[dict[str, float | str]]) -> list[tuple[str, str]]:
+    """削除候補を (表示ラベル, 氏名) で返す。"""
+    out: list[tuple[str, str]] = []
+    for entry in entries:
+        if is_protected_name(str(entry["name"])):
+            continue
+        out.append((format_registry_display(entry), str(entry["name"])))
+    return out
+
+
 def registry_as_map(entries: list[dict[str, float | str]]) -> dict[str, float]:
     return {str(e["name"]): float(e["weight"]) for e in entries}
 

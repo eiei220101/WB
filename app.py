@@ -642,7 +642,7 @@ def main() -> None:
             OHIBIRIN_AFFILIATION,
             OHIBIRIN_COHORT_OPTIONS,
             REAR_RIGHT_AFFILIATIONS,
-            deletable_names,
+            deletable_display_options,
             format_registry_display,
             format_registry_display_html,
             format_affiliation_html,
@@ -701,24 +701,16 @@ def main() -> None:
                     )
                 st.caption("登録済みのため所属・期は変更できません。")
             else:
-                st.markdown(
-                    "<div style='display:flex;gap:1.2rem;margin-bottom:0.25rem;'>"
-                    f"{format_affiliation_html('桜美林')}"
-                    f"{format_affiliation_html('一般')}"
-                    f"{format_affiliation_html('JCAB')}"
-                    "</div>",
-                    unsafe_allow_html=True,
-                )
-                reg_affiliation = st.radio(
-                    "所属",
+                reg_affiliation = st.selectbox(
+                    "所属を選択",
                     AFFILIATION_OPTIONS,
-                    index=AFFILIATION_OPTIONS.index("一般"),
-                    horizontal=True,
-                    label_visibility="collapsed",
                     key="weight_reg_affiliation",
                 )
+                st.markdown(format_affiliation_html(reg_affiliation), unsafe_allow_html=True)
                 if reg_affiliation == OHIBIRIN_AFFILIATION:
                     reg_cohort = st.selectbox("期", OHIBIRIN_COHORT_OPTIONS, key="weight_reg_cohort")
+                else:
+                    st.session_state.pop("weight_reg_cohort", None)
 
             reg_name = st.text_input("氏名", key=reg_name_key)
             reg_weight = st.number_input(
@@ -733,15 +725,19 @@ def main() -> None:
                 if not reg_name.strip():
                     st.warning("氏名を入力してください。")
                 else:
+                    save_matched = next(
+                        (e for e in registry_entries if str(e["name"]) == reg_name.strip()),
+                        None,
+                    )
                     save_affiliation = (
-                        str(matched_entry.get("affiliation", "一般"))
-                        if matched_entry
-                        else reg_affiliation
+                        str(save_matched.get("affiliation", "一般"))
+                        if save_matched
+                        else str(st.session_state.get("weight_reg_affiliation", "一般"))
                     )
                     save_cohort = (
-                        str(matched_entry.get("cohort", ""))
-                        if matched_entry
-                        else reg_cohort
+                        str(save_matched.get("cohort", ""))
+                        if save_matched
+                        else str(st.session_state.get("weight_reg_cohort", ""))
                     )
                     if save_affiliation == OHIBIRIN_AFFILIATION and not save_cohort:
                         st.warning("桜美林を選択した場合は期を選択してください。")
@@ -762,9 +758,12 @@ def main() -> None:
                             st.rerun()
 
         with st.expander("削除", expanded=False):
-            reg_names = deletable_names(registry_entries)
-            if reg_names:
-                del_name = st.selectbox("削除する氏名", reg_names, key="weight_reg_del_name")
+            del_options = deletable_display_options(registry_entries)
+            if del_options:
+                del_labels = [label for label, _ in del_options]
+                del_name_by_label = {label: name for label, name in del_options}
+                del_label = st.selectbox("削除する登録", del_labels, key="weight_reg_del_label")
+                del_name = del_name_by_label[del_label]
                 if st.button("削除", key="weight_reg_delete", use_container_width=True):
                     updated = remove_entry(registry_entries, del_name)
                     try:
