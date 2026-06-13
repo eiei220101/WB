@@ -645,6 +645,7 @@ def main() -> None:
             deletable_display_options,
             format_registry_display,
             format_registry_display_html,
+            format_registry_list_item_html,
             format_affiliation_html,
             front_right_instructor_map,
             front_right_instructor_names,
@@ -683,10 +684,13 @@ def main() -> None:
         st.header("体重登録")
         registry_entries = load_registry()
         display_entries = [e for e in registry_entries if not is_protected_name(str(e["name"]))]
-        with st.expander("登録一覧", expanded=False):
+        with st.expander("登録者一覧", expanded=False):
             if display_entries:
                 for entry in display_entries:
-                    st.markdown(f"- {format_registry_display_html(entry)}", unsafe_allow_html=True)
+                    st.markdown(
+                        f"- {format_registry_list_item_html(entry, unit_weight=unit_weight)}",
+                        unsafe_allow_html=True,
+                    )
             else:
                 st.caption("登録がありません")
 

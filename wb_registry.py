@@ -247,6 +247,19 @@ def format_registry_display_html(entry: dict[str, float | str]) -> str:
     )
 
 
+def format_registry_list_item_html(
+    entry: dict[str, float | str],
+    *,
+    unit_weight: str = "kg",
+) -> str:
+    """登録者一覧用。JCAB のみ体重を横に表示。"""
+    line = format_registry_display_html(entry)
+    if str(entry.get("affiliation", DEFAULT_AFFILIATION)) == "JCAB":
+        weight = float(entry.get("weight", 0.0))
+        line += f' <span style="color:#6b7280;">{weight:.1f} {unit_weight}</span>'
+    return line
+
+
 def format_registry_display(entry: dict[str, float | str]) -> str:
     name = str(entry.get("name", "")).strip()
     affiliation = str(entry.get("affiliation", DEFAULT_AFFILIATION))
