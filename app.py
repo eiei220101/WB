@@ -663,6 +663,23 @@ def main() -> None:
         st.stop()
 
     with st.sidebar:
+        st.markdown(
+            """
+            <style>
+            section[data-testid="stSidebar"] button[kind="primary"] {
+                background-color: #dc2626 !important;
+                border-color: #dc2626 !important;
+                color: #ffffff !important;
+            }
+            section[data-testid="stSidebar"] button[kind="primary"]:hover {
+                background-color: #b91c1c !important;
+                border-color: #b91c1c !important;
+                color: #ffffff !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
         st.header("体重登録")
         registry_entries = load_registry()
         display_entries = [e for e in registry_entries if not is_protected_name(str(e["name"]))]
@@ -699,7 +716,6 @@ def main() -> None:
                         f"{reg_cohort or '—'}</span></div>",
                         unsafe_allow_html=True,
                     )
-                st.caption("登録済みのため所属・期は変更できません。")
             else:
                 reg_affiliation = st.selectbox(
                     "所属を選択",
@@ -709,7 +725,7 @@ def main() -> None:
                 st.markdown(format_affiliation_html(reg_affiliation), unsafe_allow_html=True)
                 if reg_affiliation == OHIBIRIN_AFFILIATION:
                     reg_cohort = st.selectbox("期", OHIBIRIN_COHORT_OPTIONS, key="weight_reg_cohort")
-                else:
+                elif "weight_reg_cohort" in st.session_state:
                     st.session_state.pop("weight_reg_cohort", None)
 
             reg_name = st.text_input("氏名", key=reg_name_key)
@@ -721,7 +737,7 @@ def main() -> None:
                 format="%.1f",
                 key="weight_reg_value",
             )
-            if st.button("登録", key="weight_reg_save", use_container_width=True):
+            if st.button("登録", key="weight_reg_save", type="primary", use_container_width=True):
                 if not reg_name.strip():
                     st.warning("氏名を入力してください。")
                 else:
