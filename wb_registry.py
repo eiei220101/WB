@@ -14,6 +14,12 @@ OHIBIRIN_COHORT_OPTIONS: tuple[str, ...] = tuple(f"{n}期" for n in range(15, 26
 DEFAULT_OHIBIRIN_COHORT = "15期"
 OHIBIRIN_AFFILIATION = "桜美林"
 
+AFFILIATION_COLORS: dict[str, str] = {
+    OHIBIRIN_AFFILIATION: "#d946ef",
+    DEFAULT_AFFILIATION: "#2563eb",
+    "JCAB": "#16a34a",
+}
+
 DEFAULT_REGISTRY: list[dict[str, float | str]] = [
     {"name": "山口教官", "weight": 72.0, "affiliation": DEFAULT_AFFILIATION},
     {"name": "羽山教官", "weight": 73.0, "affiliation": DEFAULT_AFFILIATION},
@@ -207,6 +213,40 @@ def upsert_entry(
     return out
 
 
+def affiliation_color(affiliation: str) -> str:
+    return AFFILIATION_COLORS.get(str(affiliation).strip(), "#374151")
+
+
+def format_affiliation_html(affiliation: str) -> str:
+    aff = str(affiliation).strip()
+    color = affiliation_color(aff)
+    return f'<span style="color:{color};font-weight:700;">{aff}</span>'
+
+
+def format_registry_tag(entry: dict[str, float | str]) -> str:
+    affiliation = str(entry.get("affiliation", DEFAULT_AFFILIATION))
+    if affiliation == OHIBIRIN_AFFILIATION:
+        cohort = str(entry.get("cohort", "")).strip()
+        if cohort.endswith("期"):
+            num = cohort[:-1]
+            if num.isdigit():
+                return f"[FO{num}]"
+        return "[FO]"
+    if affiliation == "JCAB":
+        return "[JCAB]"
+    return "[一般]"
+
+
+def format_registry_display_html(entry: dict[str, float | str]) -> str:
+    tag = format_registry_tag(entry)
+    name = str(entry.get("name", "")).strip()
+    color = affiliation_color(str(entry.get("affiliation", DEFAULT_AFFILIATION)))
+    return (
+        f'<span style="color:{color};font-weight:700;">{tag}</span> '
+        f'<span style="color:#111827;">{name}</span>'
+    )
+
+
 def format_registry_display(entry: dict[str, float | str]) -> str:
     name = str(entry.get("name", "")).strip()
     affiliation = str(entry.get("affiliation", DEFAULT_AFFILIATION))
@@ -220,6 +260,14 @@ def format_registry_display(entry: dict[str, float | str]) -> str:
     if affiliation == "JCAB":
         return f"[JCAB] {name}"
     return f"[一般] {name}"
+
+
+def registry_display_entry_map(entries: list[dict[str, float | str]]) -> dict[str, dict[str, float | str]]:
+    return {
+        format_registry_display(entry): entry
+        for entry in entries
+        if not is_protected_name(str(entry["name"]))
+    }
 
 
 def remove_entry(entries: list[dict[str, float | str]], name: str) -> list[dict[str, float | str]]:

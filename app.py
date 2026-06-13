@@ -644,10 +644,13 @@ def main() -> None:
             REAR_RIGHT_AFFILIATIONS,
             deletable_names,
             format_registry_display,
+            format_registry_display_html,
+            format_affiliation_html,
             front_right_instructor_map,
             front_right_instructor_names,
             is_protected_name,
             load_registry,
+            registry_display_entry_map,
             remove_entry,
             save_registry,
             seat_name_to_display_map_for_affiliations,
@@ -665,7 +668,7 @@ def main() -> None:
         display_entries = [e for e in registry_entries if not is_protected_name(str(e["name"]))]
         if display_entries:
             for entry in display_entries:
-                st.write(f"- {format_registry_display(entry)}")
+                st.markdown(f"- {format_registry_display_html(entry)}", unsafe_allow_html=True)
         else:
             st.caption("登録がありません")
 
@@ -684,7 +687,7 @@ def main() -> None:
                 reg_affiliation = str(matched_entry.get("affiliation", "一般"))
                 st.markdown(
                     f"<div style='padding:0.35rem 0.6rem;border:1px solid #d1d5db;border-radius:0.4rem;"
-                    f"background:#f9fafb;color:#374151;'>{reg_affiliation}</div>",
+                    f"background:#f9fafb;'>{format_affiliation_html(reg_affiliation)}</div>",
                     unsafe_allow_html=True,
                 )
                 if reg_affiliation == OHIBIRIN_AFFILIATION:
@@ -692,11 +695,20 @@ def main() -> None:
                     st.markdown("**期**")
                     st.markdown(
                         f"<div style='padding:0.35rem 0.6rem;border:1px solid #d1d5db;border-radius:0.4rem;"
-                        f"background:#f9fafb;color:#374151;'>{reg_cohort or '—'}</div>",
+                        f"background:#f9fafb;'><span style='color:#d946ef;font-weight:700;'>"
+                        f"{reg_cohort or '—'}</span></div>",
                         unsafe_allow_html=True,
                     )
                 st.caption("登録済みのため所属・期は変更できません。")
             else:
+                st.markdown(
+                    "<div style='display:flex;gap:1.2rem;margin-bottom:0.25rem;'>"
+                    f"{format_affiliation_html('桜美林')}"
+                    f"{format_affiliation_html('一般')}"
+                    f"{format_affiliation_html('JCAB')}"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
                 reg_affiliation = st.radio(
                     "所属",
                     AFFILIATION_OPTIONS,
@@ -788,6 +800,7 @@ def main() -> None:
         rear_r_name_to_display = seat_name_to_display_map_for_affiliations(
             registry_entries, REAR_RIGHT_AFFILIATIONS
         )
+        registry_display_entries = registry_display_entry_map(registry_entries)
 
         st.divider()
         st.header("機体選択")
@@ -882,6 +895,7 @@ def main() -> None:
         manual_key: str,
         registry_display_map: dict[str, float],
         name_to_display: dict[str, str],
+        display_entry_map: dict[str, dict[str, float | str]],
     ) -> None:
         options = ["体重を入力"] + list(registry_display_map.keys())
         current_mode = st.session_state.get(mode_key)
@@ -907,7 +921,15 @@ def main() -> None:
             st.session_state[weight_key] = float(v)
         else:
             st.session_state[weight_key] = float(registry_display_map.get(mode, 0.0))
-            st.caption(f"{mode}: **{st.session_state[weight_key]:.1f} {unit_weight}**")
+            selected_entry = display_entry_map.get(mode)
+            if selected_entry:
+                st.markdown(
+                    f"{format_registry_display_html(selected_entry)}: "
+                    f"**{st.session_state[weight_key]:.1f} {unit_weight}**",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.caption(f"{mode}: **{st.session_state[weight_key]:.1f} {unit_weight}**")
 
     _, c_reset = st.columns([3, 1], vertical_alignment="bottom")
     with c_reset:
@@ -941,6 +963,7 @@ def main() -> None:
             manual_key="front_l_manual",
             registry_display_map=front_l_registry_display_map,
             name_to_display=front_l_name_to_display,
+            display_entry_map=registry_display_entries,
         )
         front_r_options = ["体重を入力"] + front_right_instructor_names()
         if st.session_state.get("front_r_mode") == "増本教官":
@@ -970,6 +993,7 @@ def main() -> None:
             manual_key="rear_r_manual",
             registry_display_map=rear_r_registry_display_map,
             name_to_display=rear_r_name_to_display,
+            display_entry_map=registry_display_entries,
         )
 
         st.markdown("**バゲッジ**")
