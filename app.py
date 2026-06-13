@@ -739,9 +739,13 @@ def main() -> None:
                             save_affiliation,
                             save_cohort,
                         )
-                        save_registry(updated)
-                        st.session_state.pop("weight_reg_name", None)
-                        st.rerun()
+                        try:
+                            save_registry(updated)
+                        except OSError as exc:
+                            st.error(f"体重登録の保存に失敗しました: {exc}")
+                        else:
+                            st.session_state.pop("weight_reg_name", None)
+                            st.rerun()
 
         with st.expander("削除", expanded=False):
             reg_names = deletable_names(registry_entries)
@@ -749,18 +753,22 @@ def main() -> None:
                 del_name = st.selectbox("削除する氏名", reg_names, key="weight_reg_del_name")
                 if st.button("削除", key="weight_reg_delete", use_container_width=True):
                     updated = remove_entry(registry_entries, del_name)
-                    save_registry(updated)
-                    del_display = format_registry_display(
-                        next(e for e in registry_entries if str(e["name"]) == del_name)
-                    )
-                    for mode_key in ("front_l_mode", "rear_l_mode", "rear_r_mode"):
-                        if st.session_state.get(mode_key) == del_display:
-                            st.session_state[mode_key] = "体重を入力"
-                    if st.session_state.get("front_r_mode") == del_name:
-                        st.session_state["front_r_mode"] = "体重を入力"
-                    for pop_key in ("front_l_manual", "rear_l_manual", "rear_r_manual"):
-                        st.session_state.pop(pop_key, None)
-                    st.rerun()
+                    try:
+                        save_registry(updated)
+                    except OSError as exc:
+                        st.error(f"体重登録の保存に失敗しました: {exc}")
+                    else:
+                        del_display = format_registry_display(
+                            next(e for e in registry_entries if str(e["name"]) == del_name)
+                        )
+                        for mode_key in ("front_l_mode", "rear_l_mode", "rear_r_mode"):
+                            if st.session_state.get(mode_key) == del_display:
+                                st.session_state[mode_key] = "体重を入力"
+                        if st.session_state.get("front_r_mode") == del_name:
+                            st.session_state["front_r_mode"] = "体重を入力"
+                        for pop_key in ("front_l_manual", "rear_l_manual", "rear_r_manual"):
+                            st.session_state.pop(pop_key, None)
+                        st.rerun()
             else:
                 st.caption("削除できる登録がありません。")
 

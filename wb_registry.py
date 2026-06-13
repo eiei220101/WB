@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 AFFILIATION_OPTIONS: tuple[str, ...] = ("桜美林", "一般", "JCAB")
@@ -27,7 +28,50 @@ _LEGACY_NAME_MAP: dict[str, str] = {
 
 
 def registry_path() -> Path:
+    override = os.environ.get("WB_REGISTRY_PATH", "").strip()
+    if override:
+        return Path(override).expanduser()
+    return Path.home() / ".da42_wb" / "registered_weights.json"
+
+
+def bundled_registry_path() -> Path:
     return Path(__file__).resolve().parent / "data" / "registered_weights.json"
+
+
+def _load_bundled_or_defaults() -> list[dict[str, float | str]]:
+    bundled = bundled_registry_path()
+    if bundled.exists():
+        try:
+            raw = json.loads(bundled.read_text(encoding="utf-8"))
+            if isinstance(raw, list) and raw:
+                normalized = _normalize(raw)
+                if normalized:
+                    return _migrate_and_ensure_defaults(normalized)
+        except (OSError, json.JSONDecodeError):
+            pass
+    return _migrate_and_ensure_defaults(list(DEFAULT_REGISTRY))
+
+
+def _read_registry_file(path: Path) -> list[dict[str, float | str]] | None:
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(raw, list):
+        return None
+    normalized = _normalize(raw)
+    if not normalized:
+        return None
+    return _migrate_and_ensure_defaults(normalized)
+
+
+def _write_registry_file(path: Path, entries: list[dict[str, float | str]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    cleaned = _migrate_and_ensure_defaults(_normalize(entries))
+    payload = json.dumps(cleaned, ensure_ascii=False, indent=2) + "\n"
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(payload, encoding="utf-8")
+    tmp.replace(path)
 
 
 def is_protected_name(name: str) -> bool:
@@ -115,31 +159,20 @@ def _migrate_and_ensure_defaults(entries: list[dict[str, float | str]]) -> list[
 
 def load_registry() -> list[dict[str, float | str]]:
     path = registry_path()
-    if not path.exists():
-        return _migrate_and_ensure_defaults(list(DEFAULT_REGISTRY))
+    loaded = _read_registry_file(path) if path.exists() else None
+    if loaded is not None:
+        return loaded
+
+    seeded = _load_bundled_or_defaults()
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return _migrate_and_ensure_defaults(list(DEFAULT_REGISTRY))
-    if not isinstance(raw, list):
-        return _migrate_and_ensure_defaults(list(DEFAULT_REGISTRY))
-    normalized = _normalize(raw)
-    if not normalized:
-        return _migrate_and_ensure_defaults(list(DEFAULT_REGISTRY))
-    result = _migrate_and_ensure_defaults(normalized)
-    if result != normalized:
-        save_registry(result)
-    return result
+        _write_registry_file(path, seeded)
+    except OSError:
+        pass
+    return seeded
 
 
 def save_registry(entries: list[dict[str, float | str]]) -> None:
-    path = registry_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    cleaned = _migrate_and_ensure_defaults(_normalize(entries))
-    path.write_text(
-        json.dumps(cleaned, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    _write_registry_file(registry_path(), entries)
 
 
 def upsert_entry(
@@ -151,24 +184,27 @@ def upsert_entry(
 ) -> list[dict[str, float | str]]:
     name = name.strip()
     if not name:
-        return entries
+        return list(entries)
     w = round(float(weight), 1)
     aff = normalize_affiliation(affiliation)
     coh = normalize_cohort(aff, cohort)
+    updated_entry = {
+        "name": name,
+        "weight": w,
+        "affiliation": aff,
+        "cohort": coh if aff == OHIBIRIN_AFFILIATION else "",
+    }
+    out: list[dict[str, float | str]] = []
+    replaced = False
     for entry in entries:
-        if entry["name"] == name:
-            entry["weight"] = w
-            entry["affiliation"] = aff
-            entry["cohort"] = coh if aff == OHIBIRIN_AFFILIATION else ""
-            return entries
-    return entries + [
-        {
-            "name": name,
-            "weight": w,
-            "affiliation": aff,
-            "cohort": coh if aff == OHIBIRIN_AFFILIATION else "",
-        }
-    ]
+        if str(entry["name"]) == name:
+            out.append(updated_entry)
+            replaced = True
+        else:
+            out.append(dict(entry))
+    if not replaced:
+        out.append(updated_entry)
+    return out
 
 
 def format_registry_display(entry: dict[str, float | str]) -> str:
