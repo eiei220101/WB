@@ -9,6 +9,9 @@ from pathlib import Path
 
 AFFILIATION_OPTIONS: tuple[str, ...] = ("桜美林", "一般", "JCAB")
 DEFAULT_AFFILIATION = "一般"
+OHIBIRIN_COHORT_OPTIONS: tuple[str, ...] = tuple(f"{n}期" for n in range(15, 26))
+DEFAULT_OHIBIRIN_COHORT = "15期"
+OHIBIRIN_AFFILIATION = "桜美林"
 
 DEFAULT_REGISTRY: list[dict[str, float | str]] = [
     {"name": "山口教官", "weight": 72.0, "affiliation": DEFAULT_AFFILIATION},
@@ -36,6 +39,13 @@ def normalize_affiliation(raw) -> str:
     return value if value in AFFILIATION_OPTIONS else DEFAULT_AFFILIATION
 
 
+def normalize_cohort(affiliation: str, raw) -> str:
+    if affiliation != OHIBIRIN_AFFILIATION:
+        return ""
+    value = str(raw or DEFAULT_OHIBIRIN_COHORT).strip()
+    return value if value in OHIBIRIN_COHORT_OPTIONS else ""
+
+
 def _normalize(entries: list) -> list[dict[str, float | str]]:
     out: list[dict[str, float | str]] = []
     for item in entries:
@@ -48,21 +58,25 @@ def _normalize(entries: list) -> list[dict[str, float | str]]:
             weight = round(float(item.get("weight", 0.0)), 1)
         except (TypeError, ValueError):
             continue
+        affiliation = normalize_affiliation(item.get("affiliation"))
         out.append(
             {
                 "name": name,
                 "weight": weight,
-                "affiliation": normalize_affiliation(item.get("affiliation")),
+                "affiliation": affiliation,
+                "cohort": normalize_cohort(affiliation, item.get("cohort")),
             }
         )
     return out
 
 
 def _entry_from_raw(name: str, entry: dict[str, float | str]) -> dict[str, float | str]:
+    affiliation = normalize_affiliation(entry.get("affiliation"))
     return {
         "name": name,
         "weight": float(entry["weight"]),
-        "affiliation": normalize_affiliation(entry.get("affiliation")),
+        "affiliation": affiliation,
+        "cohort": normalize_cohort(affiliation, entry.get("cohort")),
     }
 
 
@@ -133,18 +147,37 @@ def upsert_entry(
     name: str,
     weight: float,
     affiliation: str,
+    cohort: str = "",
 ) -> list[dict[str, float | str]]:
     name = name.strip()
     if not name:
         return entries
     w = round(float(weight), 1)
     aff = normalize_affiliation(affiliation)
+    coh = normalize_cohort(aff, cohort)
     for entry in entries:
         if entry["name"] == name:
             entry["weight"] = w
             entry["affiliation"] = aff
+            entry["cohort"] = coh if aff == OHIBIRIN_AFFILIATION else ""
             return entries
-    return entries + [{"name": name, "weight": w, "affiliation": aff}]
+    return entries + [
+        {
+            "name": name,
+            "weight": w,
+            "affiliation": aff,
+            "cohort": coh if aff == OHIBIRIN_AFFILIATION else "",
+        }
+    ]
+
+
+def format_registry_label(entry: dict[str, float | str]) -> str:
+    affiliation = str(entry.get("affiliation", DEFAULT_AFFILIATION))
+    if affiliation == OHIBIRIN_AFFILIATION:
+        cohort = str(entry.get("cohort", "")).strip()
+        if cohort:
+            return f"{affiliation}・{cohort}"
+    return affiliation
 
 
 def remove_entry(entries: list[dict[str, float | str]], name: str) -> list[dict[str, float | str]]:

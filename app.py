@@ -638,7 +638,10 @@ def main() -> None:
     try:
         from wb_registry import (
             AFFILIATION_OPTIONS,
+            OHIBIRIN_AFFILIATION,
+            OHIBIRIN_COHORT_OPTIONS,
             deletable_names,
+            format_registry_label,
             front_right_instructor_map,
             front_right_instructor_names,
             is_protected_name,
@@ -659,8 +662,8 @@ def main() -> None:
         display_entries = [e for e in registry_entries if not is_protected_name(str(e["name"]))]
         if display_entries:
             for entry in display_entries:
-                aff = str(entry.get("affiliation", "一般"))
-                st.write(f"- **{entry['name']}**（{aff}）")
+                label = format_registry_label(entry)
+                st.write(f"- **{entry['name']}**（{label}）")
         else:
             st.caption("登録がありません")
 
@@ -674,6 +677,7 @@ def main() -> None:
             )
 
             st.markdown("**所属**")
+            reg_cohort = ""
             if matched_entry:
                 reg_affiliation = str(matched_entry.get("affiliation", "一般"))
                 st.markdown(
@@ -681,7 +685,15 @@ def main() -> None:
                     f"background:#f9fafb;color:#374151;'>{reg_affiliation}</div>",
                     unsafe_allow_html=True,
                 )
-                st.caption("登録済みのため所属は変更できません。")
+                if reg_affiliation == OHIBIRIN_AFFILIATION:
+                    reg_cohort = str(matched_entry.get("cohort", ""))
+                    st.markdown("**期**")
+                    st.markdown(
+                        f"<div style='padding:0.35rem 0.6rem;border:1px solid #d1d5db;border-radius:0.4rem;"
+                        f"background:#f9fafb;color:#374151;'>{reg_cohort or '—'}</div>",
+                        unsafe_allow_html=True,
+                    )
+                st.caption("登録済みのため所属・期は変更できません。")
             else:
                 reg_affiliation = st.radio(
                     "所属",
@@ -691,6 +703,8 @@ def main() -> None:
                     label_visibility="collapsed",
                     key="weight_reg_affiliation",
                 )
+                if reg_affiliation == OHIBIRIN_AFFILIATION:
+                    reg_cohort = st.selectbox("期", OHIBIRIN_COHORT_OPTIONS, key="weight_reg_cohort")
 
             reg_name = st.text_input("氏名", key=reg_name_key)
             reg_weight = st.number_input(
@@ -710,10 +724,24 @@ def main() -> None:
                         if matched_entry
                         else reg_affiliation
                     )
-                    updated = upsert_entry(registry_entries, reg_name, reg_weight, save_affiliation)
-                    save_registry(updated)
-                    st.session_state.pop("weight_reg_name", None)
-                    st.rerun()
+                    save_cohort = (
+                        str(matched_entry.get("cohort", ""))
+                        if matched_entry
+                        else reg_cohort
+                    )
+                    if save_affiliation == OHIBIRIN_AFFILIATION and not save_cohort:
+                        st.warning("桜美林を選択した場合は期を選択してください。")
+                    else:
+                        updated = upsert_entry(
+                            registry_entries,
+                            reg_name,
+                            reg_weight,
+                            save_affiliation,
+                            save_cohort,
+                        )
+                        save_registry(updated)
+                        st.session_state.pop("weight_reg_name", None)
+                        st.rerun()
 
         with st.expander("削除", expanded=False):
             reg_names = deletable_names(registry_entries)
