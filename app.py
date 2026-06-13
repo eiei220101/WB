@@ -683,11 +683,12 @@ def main() -> None:
         st.header("体重登録")
         registry_entries = load_registry()
         display_entries = [e for e in registry_entries if not is_protected_name(str(e["name"]))]
-        if display_entries:
-            for entry in display_entries:
-                st.markdown(f"- {format_registry_display_html(entry)}", unsafe_allow_html=True)
-        else:
-            st.caption("登録がありません")
+        with st.expander("登録一覧", expanded=False):
+            if display_entries:
+                for entry in display_entries:
+                    st.markdown(f"- {format_registry_display_html(entry)}", unsafe_allow_html=True)
+            else:
+                st.caption("登録がありません")
 
         with st.expander("追加・更新", expanded=False):
             form_id = int(st.session_state.get("weight_reg_form_id", 0))
