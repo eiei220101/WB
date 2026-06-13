@@ -944,6 +944,8 @@ def main() -> None:
         display_entry_map: dict[str, dict[str, float | str]],
     ) -> None:
         options = ["体重を入力"] + list(registry_display_map.keys())
+        prev_mode_key = f"{mode_key}__prev"
+        prev_mode = st.session_state.get(prev_mode_key)
         current_mode = st.session_state.get(mode_key)
         if current_mode in front_right_instructor_names():
             st.session_state[mode_key] = "体重を入力"
@@ -955,6 +957,9 @@ def main() -> None:
             st.session_state[mode_key] = "体重を入力"
         mode = st.selectbox(seat_label, options, key=mode_key)
         if mode == "体重を入力":
+            if prev_mode not in (None, "体重を入力"):
+                st.session_state[weight_key] = 0.0
+                st.session_state.pop(manual_key, None)
             v = st.number_input(
                 f"{seat_label}（体重）",
                 min_value=0.0,
@@ -976,6 +981,7 @@ def main() -> None:
                 )
             else:
                 st.caption(f"{mode}: **{st.session_state[weight_key]:.1f} {unit_weight}**")
+        st.session_state[prev_mode_key] = mode
 
     _, c_reset = st.columns([3, 1], vertical_alignment="bottom")
     with c_reset:
@@ -996,6 +1002,8 @@ def main() -> None:
             st.session_state["front_r_mode"] = "体重を入力"
             for pop_key in ("front_l_manual", "rear_r_manual", "front_r_manual"):
                 st.session_state.pop(pop_key, None)
+            for prev_key in ("front_l_mode__prev", "rear_r_mode__prev"):
+                st.session_state.pop(prev_key, None)
             st.rerun()
 
     # 入力方法はフォームに統一
