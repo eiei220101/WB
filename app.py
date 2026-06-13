@@ -636,7 +636,17 @@ def main() -> None:
         return float(x) / arm_scale if arm_scale != 0 else float(x)
 
     try:
-        from wb_registry import deletable_names, is_protected_name, load_registry, registry_as_map, remove_entry, save_registry, upsert_entry
+        from wb_registry import (
+            deletable_names,
+            front_right_instructor_map,
+            front_right_instructor_names,
+            is_protected_name,
+            load_registry,
+            remove_entry,
+            save_registry,
+            seat_selectable_map,
+            upsert_entry,
+        )
     except Exception:
         st.error("`wb_registry` の読み込みでエラーが発生しました。")
         st.code(traceback.format_exc())
@@ -647,7 +657,10 @@ def main() -> None:
         registry_entries = load_registry()
         if registry_entries:
             for entry in registry_entries:
-                suffix = "（削除不可）" if is_protected_name(str(entry["name"])) else ""
+                if is_protected_name(str(entry["name"])):
+                    suffix = "（前右席・削除不可）"
+                else:
+                    suffix = ""
                 st.write(f"- **{entry['name']}**{suffix}: {float(entry['weight']):.1f} {unit_weight}")
         else:
             st.caption("登録がありません")
@@ -681,13 +694,16 @@ def main() -> None:
                     for mode_key in ("front_l_mode", "rear_l_mode", "rear_r_mode"):
                         if st.session_state.get(mode_key) == del_name:
                             st.session_state[mode_key] = "体重を入力"
+                    if st.session_state.get("front_r_mode") == del_name:
+                        st.session_state["front_r_mode"] = "体重を入力"
                     for pop_key in ("front_l_manual", "rear_l_manual", "rear_r_manual"):
                         st.session_state.pop(pop_key, None)
                     st.rerun()
             else:
-                st.caption("削除できる登録がありません。（初期登録の3名は削除できません）")
+                st.caption("削除できる登録がありません。（山口・羽山・増元教官は前右席専用で削除できません）")
 
-        weight_registry_map = registry_as_map(load_registry())
+        instructor_map = front_right_instructor_map(registry_entries)
+        seat_registry_map = seat_selectable_map(registry_entries)
 
         st.divider()
         st.header("機体選択")
@@ -773,6 +789,7 @@ def main() -> None:
     st.session_state.setdefault("front_l_mode", "体重を入力")
     st.session_state.setdefault("rear_l_mode", "体重を入力")
     st.session_state.setdefault("rear_r_mode", "体重を入力")
+    st.session_state.setdefault("front_r_mode", "体重を入力")
 
     def _seat_weight_from_registry(
         seat_label: str,
@@ -780,11 +797,14 @@ def main() -> None:
         mode_key: str,
         weight_key: str,
         manual_key: str,
+        registry_map: dict[str, float],
     ) -> None:
-        options = ["体重を入力"] + list(weight_registry_map.keys())
+        options = ["体重を入力"] + list(registry_map.keys())
         current_mode = st.session_state.get(mode_key)
-        if current_mode == "増本教官":
-            st.session_state[mode_key] = "増元教官"
+        if current_mode in front_right_instructor_names():
+            st.session_state[mode_key] = "体重を入力"
+        elif current_mode == "増本教官":
+            st.session_state[mode_key] = "体重を入力"
         elif current_mode not in options:
             st.session_state[mode_key] = "体重を入力"
         mode = st.selectbox(seat_label, options, key=mode_key)
@@ -800,7 +820,7 @@ def main() -> None:
             )
             st.session_state[weight_key] = float(v)
         else:
-            st.session_state[weight_key] = float(weight_registry_map.get(mode, 0.0))
+            st.session_state[weight_key] = float(registry_map.get(mode, 0.0))
             st.caption(f"{mode}: **{st.session_state[weight_key]:.1f} {unit_weight}**")
 
     _, c_reset = st.columns([3, 1], vertical_alignment="bottom")
@@ -820,7 +840,8 @@ def main() -> None:
             st.session_state["front_l_mode"] = "体重を入力"
             st.session_state["rear_l_mode"] = "体重を入力"
             st.session_state["rear_r_mode"] = "体重を入力"
-            for pop_key in ("front_l_manual", "rear_l_manual", "rear_r_manual"):
+            st.session_state["front_r_mode"] = "体重を入力"
+            for pop_key in ("front_l_manual", "rear_l_manual", "rear_r_manual", "front_r_manual"):
                 st.session_state.pop(pop_key, None)
             st.rerun()
 
@@ -833,19 +854,41 @@ def main() -> None:
             mode_key="front_l_mode",
             weight_key="front_l",
             manual_key="front_l_manual",
+            registry_map=seat_registry_map,
         )
-        st.number_input(f"Front seat R [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="front_r")
+        front_r_options = ["体重を入力"] + front_right_instructor_names()
+        if st.session_state.get("front_r_mode") == "増本教官":
+            st.session_state["front_r_mode"] = "増元教官"
+        if st.session_state.get("front_r_mode") not in front_r_options:
+            st.session_state["front_r_mode"] = "体重を入力"
+        front_r_mode = st.selectbox("Front seat R", front_r_options, key="front_r_mode")
+        if front_r_mode == "体重を入力":
+            v = st.number_input(
+                f"Front seat R [{unit_weight}]（体重）",
+                min_value=0.0,
+                step=1.0,
+                format="%.1f",
+                value=_ss_num("front_r"),
+                key="front_r_manual",
+                label_visibility="collapsed",
+            )
+            st.session_state["front_r"] = float(v)
+        else:
+            st.session_state["front_r"] = float(instructor_map.get(front_r_mode, 0.0))
+            st.caption(f"{front_r_mode}: **{st.session_state['front_r']:.1f} {unit_weight}**")
         _seat_weight_from_registry(
             f"Rear seat L [{unit_weight}]",
             mode_key="rear_l_mode",
             weight_key="rear_l",
             manual_key="rear_l_manual",
+            registry_map=seat_registry_map,
         )
         _seat_weight_from_registry(
             f"Rear seat R [{unit_weight}]",
             mode_key="rear_r_mode",
             weight_key="rear_r",
             manual_key="rear_r_manual",
+            registry_map=seat_registry_map,
         )
 
         st.markdown("**バゲッジ**")

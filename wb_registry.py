@@ -126,3 +126,17 @@ def deletable_names(entries: list[dict[str, float | str]]) -> list[str]:
 
 def registry_as_map(entries: list[dict[str, float | str]]) -> dict[str, float]:
     return {str(e["name"]): float(e["weight"]) for e in entries}
+
+
+def front_right_instructor_names() -> list[str]:
+    return [str(e["name"]) for e in DEFAULT_REGISTRY]
+
+
+def front_right_instructor_map(entries: list[dict[str, float | str]]) -> dict[str, float]:
+    weights = registry_as_map(entries)
+    return {name: weights[name] for name in front_right_instructor_names() if name in weights}
+
+
+def seat_selectable_map(entries: list[dict[str, float | str]]) -> dict[str, float]:
+    """前左・後左・後右席で選べる登録者（前右席の3教官を除く）。"""
+    return {str(e["name"]): float(e["weight"]) for e in entries if not is_protected_name(str(e["name"]))}
