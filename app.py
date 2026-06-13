@@ -678,8 +678,11 @@ def main() -> None:
                 if st.button("削除", key="weight_reg_delete", use_container_width=True):
                     updated = remove_entry(registry_entries, del_name)
                     save_registry(updated)
-                    if st.session_state.get("front_r_mode") == del_name:
-                        st.session_state["front_r_mode"] = "体重を入力"
+                    for mode_key in ("front_l_mode", "rear_l_mode", "rear_r_mode"):
+                        if st.session_state.get(mode_key) == del_name:
+                            st.session_state[mode_key] = "体重を入力"
+                    for pop_key in ("front_l_manual", "rear_l_manual", "rear_r_manual"):
+                        st.session_state.pop(pop_key, None)
                     st.rerun()
             else:
                 st.caption("削除できる登録がありません。（初期登録の3名は削除できません）")
@@ -767,6 +770,38 @@ def main() -> None:
     st.session_state.setdefault("main_fuel_gal", 50.0)
     st.session_state.setdefault("cockpit_bag", 5.0)
     st.session_state.setdefault("bag_ext", 3.0)
+    st.session_state.setdefault("front_l_mode", "体重を入力")
+    st.session_state.setdefault("rear_l_mode", "体重を入力")
+    st.session_state.setdefault("rear_r_mode", "体重を入力")
+
+    def _seat_weight_from_registry(
+        seat_label: str,
+        *,
+        mode_key: str,
+        weight_key: str,
+        manual_key: str,
+    ) -> None:
+        options = ["体重を入力"] + list(weight_registry_map.keys())
+        current_mode = st.session_state.get(mode_key)
+        if current_mode == "増本教官":
+            st.session_state[mode_key] = "増元教官"
+        elif current_mode not in options:
+            st.session_state[mode_key] = "体重を入力"
+        mode = st.selectbox(seat_label, options, key=mode_key)
+        if mode == "体重を入力":
+            v = st.number_input(
+                f"{seat_label}（体重）",
+                min_value=0.0,
+                step=1.0,
+                format="%.1f",
+                value=_ss_num(weight_key),
+                key=manual_key,
+                label_visibility="collapsed",
+            )
+            st.session_state[weight_key] = float(v)
+        else:
+            st.session_state[weight_key] = float(weight_registry_map.get(mode, 0.0))
+            st.caption(f"{mode}: **{st.session_state[weight_key]:.1f} {unit_weight}**")
 
     _, c_reset = st.columns([3, 1], vertical_alignment="bottom")
     with c_reset:
@@ -782,42 +817,36 @@ def main() -> None:
             st.session_state["main_fuel_gal"] = 50.0
             st.session_state["flight_burn_gal"] = 0.0
             st.session_state["return_burn_gal"] = 0.0
-            st.session_state["front_r_mode"] = "体重を入力"
-            st.session_state.pop("front_r_manual", None)
+            st.session_state["front_l_mode"] = "体重を入力"
+            st.session_state["rear_l_mode"] = "体重を入力"
+            st.session_state["rear_r_mode"] = "体重を入力"
+            for pop_key in ("front_l_manual", "rear_l_manual", "rear_r_manual"):
+                st.session_state.pop(pop_key, None)
             st.rerun()
 
     # 入力方法はフォームに統一
     col1, col2 = st.columns(2, vertical_alignment="top")
     with col1:
         st.markdown("**座席**")
-        _front_l_opts = list(range(45, 101))
-        _front_l_cur = int(round(float(_ss_num("front_l", 45.0))))
-        if _front_l_cur not in _front_l_opts:
-            _front_l_cur = 45
-            st.session_state["front_l"] = 45.0
-        st.selectbox(f"Front seat L [{unit_weight}]", _front_l_opts, index=_front_l_opts.index(_front_l_cur), key="front_l")
-        front_r_options = ["体重を入力"] + list(weight_registry_map.keys())
-        if st.session_state.get("front_r_mode") == "増本教官":
-            st.session_state["front_r_mode"] = "増元教官"
-        if st.session_state.get("front_r_mode") not in front_r_options:
-            st.session_state["front_r_mode"] = "体重を入力"
-        front_r_mode = st.selectbox("Front seat R", front_r_options, key="front_r_mode")
-        if front_r_mode == "体重を入力":
-            v = st.number_input(
-                "Front seat R（体重）",
-                min_value=0.0,
-                step=1.0,
-                format="%.1f",
-                value=_ss_num("front_r"),
-                key="front_r_manual",
-                label_visibility="collapsed",
-            )
-            st.session_state["front_r"] = float(v)
-        else:
-            st.session_state["front_r"] = float(weight_registry_map.get(front_r_mode, 0.0))
-            st.caption(f"{front_r_mode}: **{st.session_state['front_r']:.1f} {unit_weight}**")
-        st.number_input(f"Rear seat L [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="rear_l")
-        st.number_input(f"Rear seat R [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="rear_r")
+        _seat_weight_from_registry(
+            f"Front seat L [{unit_weight}]",
+            mode_key="front_l_mode",
+            weight_key="front_l",
+            manual_key="front_l_manual",
+        )
+        st.number_input(f"Front seat R [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="front_r")
+        _seat_weight_from_registry(
+            f"Rear seat L [{unit_weight}]",
+            mode_key="rear_l_mode",
+            weight_key="rear_l",
+            manual_key="rear_l_manual",
+        )
+        _seat_weight_from_registry(
+            f"Rear seat R [{unit_weight}]",
+            mode_key="rear_r_mode",
+            weight_key="rear_r",
+            manual_key="rear_r_manual",
+        )
 
         st.markdown("**バゲッジ**")
         if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
