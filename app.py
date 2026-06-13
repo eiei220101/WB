@@ -684,15 +684,6 @@ def main() -> None:
         st.header("体重登録")
         registry_entries = load_registry()
         display_entries = [e for e in registry_entries if not is_protected_name(str(e["name"]))]
-        with st.expander("登録者一覧", expanded=False):
-            if display_entries:
-                for entry in display_entries:
-                    st.markdown(
-                        f"- {format_registry_list_item_html(entry, unit_weight=unit_weight)}",
-                        unsafe_allow_html=True,
-                    )
-            else:
-                st.caption("登録がありません")
 
         with st.expander("追加・更新", expanded=False):
             form_id = int(st.session_state.get("weight_reg_form_id", 0))
@@ -812,6 +803,16 @@ def main() -> None:
                         st.rerun()
             else:
                 st.caption("削除できる登録がありません。")
+
+        with st.expander("登録者一覧", expanded=False):
+            if display_entries:
+                for entry in display_entries:
+                    st.markdown(
+                        f"- {format_registry_list_item_html(entry, unit_weight=unit_weight)}",
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.caption("登録がありません")
 
         instructor_map = front_right_instructor_map(registry_entries)
         front_l_registry_display_map = seat_selectable_display_map_for_affiliations(
