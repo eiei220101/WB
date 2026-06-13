@@ -648,7 +648,8 @@ def main() -> None:
             load_registry,
             remove_entry,
             save_registry,
-            seat_selectable_map,
+            seat_name_to_display_map,
+            seat_selectable_display_map,
             upsert_entry,
         )
     except Exception:
@@ -749,8 +750,11 @@ def main() -> None:
                 if st.button("削除", key="weight_reg_delete", use_container_width=True):
                     updated = remove_entry(registry_entries, del_name)
                     save_registry(updated)
+                    del_display = format_registry_display(
+                        next(e for e in registry_entries if str(e["name"]) == del_name)
+                    )
                     for mode_key in ("front_l_mode", "rear_l_mode", "rear_r_mode"):
-                        if st.session_state.get(mode_key) == del_name:
+                        if st.session_state.get(mode_key) == del_display:
                             st.session_state[mode_key] = "体重を入力"
                     if st.session_state.get("front_r_mode") == del_name:
                         st.session_state["front_r_mode"] = "体重を入力"
@@ -761,7 +765,8 @@ def main() -> None:
                 st.caption("削除できる登録がありません。")
 
         instructor_map = front_right_instructor_map(registry_entries)
-        seat_registry_map = seat_selectable_map(registry_entries)
+        seat_registry_display_map = seat_selectable_display_map(registry_entries)
+        seat_name_to_display = seat_name_to_display_map(registry_entries)
 
         st.divider()
         st.header("機体選択")
@@ -855,14 +860,17 @@ def main() -> None:
         mode_key: str,
         weight_key: str,
         manual_key: str,
-        registry_map: dict[str, float],
+        registry_display_map: dict[str, float],
+        name_to_display: dict[str, str],
     ) -> None:
-        options = ["体重を入力"] + list(registry_map.keys())
+        options = ["体重を入力"] + list(registry_display_map.keys())
         current_mode = st.session_state.get(mode_key)
         if current_mode in front_right_instructor_names():
             st.session_state[mode_key] = "体重を入力"
         elif current_mode == "増本教官":
             st.session_state[mode_key] = "体重を入力"
+        elif current_mode in name_to_display:
+            st.session_state[mode_key] = name_to_display[current_mode]
         elif current_mode not in options:
             st.session_state[mode_key] = "体重を入力"
         mode = st.selectbox(seat_label, options, key=mode_key)
@@ -878,7 +886,7 @@ def main() -> None:
             )
             st.session_state[weight_key] = float(v)
         else:
-            st.session_state[weight_key] = float(registry_map.get(mode, 0.0))
+            st.session_state[weight_key] = float(registry_display_map.get(mode, 0.0))
             st.caption(f"{mode}: **{st.session_state[weight_key]:.1f} {unit_weight}**")
 
     _, c_reset = st.columns([3, 1], vertical_alignment="bottom")
@@ -912,7 +920,8 @@ def main() -> None:
             mode_key="front_l_mode",
             weight_key="front_l",
             manual_key="front_l_manual",
-            registry_map=seat_registry_map,
+            registry_display_map=seat_registry_display_map,
+            name_to_display=seat_name_to_display,
         )
         front_r_options = ["体重を入力"] + front_right_instructor_names()
         if st.session_state.get("front_r_mode") == "増本教官":
@@ -939,14 +948,16 @@ def main() -> None:
             mode_key="rear_l_mode",
             weight_key="rear_l",
             manual_key="rear_l_manual",
-            registry_map=seat_registry_map,
+            registry_display_map=seat_registry_display_map,
+            name_to_display=seat_name_to_display,
         )
         _seat_weight_from_registry(
             f"Rear seat R [{unit_weight}]",
             mode_key="rear_r_mode",
             weight_key="rear_r",
             manual_key="rear_r_manual",
-            registry_map=seat_registry_map,
+            registry_display_map=seat_registry_display_map,
+            name_to_display=seat_name_to_display,
         )
 
         st.markdown("**バゲッジ**")

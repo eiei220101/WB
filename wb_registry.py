@@ -209,6 +209,25 @@ def front_right_instructor_map(entries: list[dict[str, float | str]]) -> dict[st
     return {name: weights[name] for name in front_right_instructor_names() if name in weights}
 
 
+def seat_selectable_display_map(entries: list[dict[str, float | str]]) -> dict[str, float]:
+    """前左・後左・後右席の表示ラベル -> 体重。"""
+    out: dict[str, float] = {}
+    for entry in entries:
+        if is_protected_name(str(entry["name"])):
+            continue
+        out[format_registry_display(entry)] = float(entry["weight"])
+    return out
+
+
+def seat_name_to_display_map(entries: list[dict[str, float | str]]) -> dict[str, str]:
+    """氏名 -> 表示ラベル。"""
+    return {
+        str(entry["name"]): format_registry_display(entry)
+        for entry in entries
+        if not is_protected_name(str(entry["name"]))
+    }
+
+
 def seat_selectable_map(entries: list[dict[str, float | str]]) -> dict[str, float]:
     """前左・後左・後右席で選べる登録者（前右席の3教官を除く）。"""
     return {str(e["name"]): float(e["weight"]) for e in entries if not is_protected_name(str(e["name"]))}
