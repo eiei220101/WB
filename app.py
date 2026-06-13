@@ -636,7 +636,7 @@ def main() -> None:
         return float(x) / arm_scale if arm_scale != 0 else float(x)
 
     try:
-        from wb_registry import load_registry, registry_as_map, remove_entry, save_registry, upsert_entry
+        from wb_registry import deletable_names, is_protected_name, load_registry, registry_as_map, remove_entry, save_registry, upsert_entry
     except Exception:
         st.error("`wb_registry` の読み込みでエラーが発生しました。")
         st.code(traceback.format_exc())
@@ -647,7 +647,8 @@ def main() -> None:
         registry_entries = load_registry()
         if registry_entries:
             for entry in registry_entries:
-                st.write(f"- **{entry['name']}**: {float(entry['weight']):.1f} {unit_weight}")
+                suffix = "（削除不可）" if is_protected_name(str(entry["name"])) else ""
+                st.write(f"- **{entry['name']}**{suffix}: {float(entry['weight']):.1f} {unit_weight}")
         else:
             st.caption("登録がありません")
 
@@ -671,7 +672,7 @@ def main() -> None:
                     st.rerun()
 
         with st.expander("削除", expanded=False):
-            reg_names = [str(e["name"]) for e in registry_entries]
+            reg_names = deletable_names(registry_entries)
             if reg_names:
                 del_name = st.selectbox("削除する氏名", reg_names, key="weight_reg_del_name")
                 if st.button("削除", key="weight_reg_delete", use_container_width=True):
@@ -681,7 +682,7 @@ def main() -> None:
                         st.session_state["front_r_mode"] = "体重を入力"
                     st.rerun()
             else:
-                st.caption("削除できる登録がありません。")
+                st.caption("削除できる登録がありません。（初期登録の3名は削除できません）")
 
         weight_registry_map = registry_as_map(load_registry())
 
@@ -796,6 +797,8 @@ def main() -> None:
             st.session_state["front_l"] = 45.0
         st.selectbox(f"Front seat L [{unit_weight}]", _front_l_opts, index=_front_l_opts.index(_front_l_cur), key="front_l")
         front_r_options = ["体重を入力"] + list(weight_registry_map.keys())
+        if st.session_state.get("front_r_mode") == "増本教官":
+            st.session_state["front_r_mode"] = "増元教官"
         if st.session_state.get("front_r_mode") not in front_r_options:
             st.session_state["front_r_mode"] = "体重を入力"
         front_r_mode = st.selectbox("Front seat R", front_r_options, key="front_r_mode")
