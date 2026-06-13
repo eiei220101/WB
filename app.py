@@ -655,13 +655,10 @@ def main() -> None:
     with st.sidebar:
         st.header("体重登録")
         registry_entries = load_registry()
-        if registry_entries:
-            for entry in registry_entries:
-                if is_protected_name(str(entry["name"])):
-                    suffix = "（前右席・削除不可）"
-                else:
-                    suffix = ""
-                st.write(f"- **{entry['name']}**{suffix}: {float(entry['weight']):.1f} {unit_weight}")
+        display_entries = [e for e in registry_entries if not is_protected_name(str(e["name"]))]
+        if display_entries:
+            for entry in display_entries:
+                st.write(f"- **{entry['name']}**: {float(entry['weight']):.1f} {unit_weight}")
         else:
             st.caption("登録がありません")
 
@@ -700,7 +697,7 @@ def main() -> None:
                         st.session_state.pop(pop_key, None)
                     st.rerun()
             else:
-                st.caption("削除できる登録がありません。（山口・羽山・増元教官は前右席専用で削除できません）")
+                st.caption("削除できる登録がありません。")
 
         instructor_map = front_right_instructor_map(registry_entries)
         seat_registry_map = seat_selectable_map(registry_entries)
