@@ -59,6 +59,20 @@ def parse_points(raw) -> list[tuple[float, float]]:
     return pts
 
 
+def point_in_polygon(x: float, y: float, polygon: list[tuple[float, float]]) -> bool:
+    """多角形の内外判定（ray casting）。polygon は (x, y) の外周順。"""
+    if len(polygon) < 3:
+        return False
+    inside = False
+    n = len(polygon)
+    for i in range(n):
+        xi, yi = polygon[i]
+        xj, yj = polygon[(i + 1) % n]
+        if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi) + xi):
+            inside = not inside
+    return inside
+
+
 def _data_uri_for_png(path: str) -> str | None:
     p = Path(path)
     if not p.exists() or not p.is_file():
@@ -960,6 +974,11 @@ def main() -> None:
     lw1 = points["LW1"]
     lw2 = points["LW2"]
 
+    env_default = cfg.get("envelope", {}) or {}
+    env_override = selected.get("envelope", {}) if isinstance(selected, dict) else {}
+    env = {**env_default, **(env_override or {})}
+    env_points = parse_points(env.get("points", []))
+
     st.subheader("内訳一覧")
     def _fmt5(x) -> str:
         try:
@@ -974,20 +993,28 @@ def main() -> None:
     LIMIT_TOW = float(mtow or 0.0) if mtow else 0.0
     LIMIT_LDG = float(mlw or 0.0) if mlw else 0.0
 
-    def _row_color(name: str, weight: float) -> str | None:
-        if name == "ZERO FUEL MASS":
-            if LIMIT_ZFM > 0:
-                return "#16a34a" if weight <= LIMIT_ZFM else "#dc2626"
+    def _row_color(name: str, weight: float, arm_mm: float | None) -> str | None:
+        weight_limit: float | None = None
+        if name == "ZERO FUEL MASS" and LIMIT_ZFM > 0:
+            weight_limit = LIMIT_ZFM
+        elif name == "TAKE OFF WEIGHT" and LIMIT_TOW > 0:
+            weight_limit = LIMIT_TOW
+        elif name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"} and LIMIT_LDG > 0:
+            weight_limit = LIMIT_LDG
+        else:
             return None
-        if name == "TAKE OFF WEIGHT":
-            if LIMIT_TOW > 0:
-                return "#16a34a" if weight <= LIMIT_TOW else "#dc2626"
-            return None
-        if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"}:
-            if LIMIT_LDG > 0:
-                return "#16a34a" if weight <= LIMIT_LDG else "#dc2626"
-            return None
-        return None
+
+        weight_ok = weight <= weight_limit
+        if env_points and isinstance(arm_mm, (int, float)):
+            arm_ok = point_in_polygon(float(arm_mm), float(weight), env_points)
+        elif env_points:
+            arm_ok = False
+        else:
+            arm_ok = True
+
+        if weight_ok and arm_ok:
+            return "#16a34a"
+        return "#dc2626"
 
     def _limit_text(name: str) -> str:
         # 52/53/55/56: ステーション制限（入力値制限）も表示
@@ -1039,7 +1066,9 @@ def main() -> None:
     # 行ごとの色付け（TOW/LDGの制限判定）＋中央揃え
     def _style_row(row: "pd.Series"):
         name = str(row.get("項目", ""))
-        w = display_rows[row.name].get("weight")
+        src = display_rows[row.name]
+        w = src.get("weight")
+        arm_mm = src.get("arm")
         # 以前は制限行を太枠で囲っていたが、太枠は付けない（見た目は従来のまま）
         special = {
             "ZERO FUEL MASS",
@@ -1052,7 +1081,8 @@ def main() -> None:
         # 色付け（判定できる行だけ、行全体）
         color_css = ""
         if isinstance(w, (int, float)) and is_special:
-            c = _row_color(name, float(w))
+            arm_val = float(arm_mm) if isinstance(arm_mm, (int, float)) else None
+            c = _row_color(name, float(w), arm_val)
             if c:
                 color_css = f"background-color: {c}; color: white;"
         emphasis_css = "font-weight: 700;" if is_special else ""
@@ -1192,11 +1222,6 @@ def main() -> None:
 
     st.divider()
     st.subheader("CGエンベロープ")
-    # 機体ごとの envelope を優先
-    env_default = cfg.get("envelope", {}) or {}
-    env_override = selected.get("envelope", {}) if isinstance(selected, dict) else {}
-    env = {**env_default, **(env_override or {})}
-    env_points = parse_points(env.get("points", []))
 
     if not env_points:
         st.warning("この機体のエンベロープ点が未入力です。`aircraft.toml` の `[aircraft.<TAIL>.envelope].points` に点を追加してください。")
