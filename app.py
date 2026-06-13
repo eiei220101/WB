@@ -638,8 +638,10 @@ def main() -> None:
     try:
         from wb_registry import (
             AFFILIATION_OPTIONS,
+            FRONT_LEFT_AFFILIATIONS,
             OHIBIRIN_AFFILIATION,
             OHIBIRIN_COHORT_OPTIONS,
+            REAR_RIGHT_AFFILIATIONS,
             deletable_names,
             format_registry_display,
             front_right_instructor_map,
@@ -648,8 +650,8 @@ def main() -> None:
             load_registry,
             remove_entry,
             save_registry,
-            seat_name_to_display_map,
-            seat_selectable_display_map,
+            seat_name_to_display_map_for_affiliations,
+            seat_selectable_display_map_for_affiliations,
             upsert_entry,
         )
     except Exception:
@@ -758,23 +760,34 @@ def main() -> None:
                     except OSError as exc:
                         st.error(f"体重登録の保存に失敗しました: {exc}")
                     else:
-                        del_display = format_registry_display(
-                            next(e for e in registry_entries if str(e["name"]) == del_name)
-                        )
-                        for mode_key in ("front_l_mode", "rear_l_mode", "rear_r_mode"):
-                            if st.session_state.get(mode_key) == del_display:
-                                st.session_state[mode_key] = "体重を入力"
+                        del_entry = next(e for e in registry_entries if str(e["name"]) == del_name)
+                        del_display = format_registry_display(del_entry)
+                        del_affiliation = str(del_entry.get("affiliation", "一般"))
+                        if del_affiliation in FRONT_LEFT_AFFILIATIONS and st.session_state.get("front_l_mode") == del_display:
+                            st.session_state["front_l_mode"] = "体重を入力"
+                        if del_affiliation in REAR_RIGHT_AFFILIATIONS and st.session_state.get("rear_r_mode") == del_display:
+                            st.session_state["rear_r_mode"] = "体重を入力"
                         if st.session_state.get("front_r_mode") == del_name:
                             st.session_state["front_r_mode"] = "体重を入力"
-                        for pop_key in ("front_l_manual", "rear_l_manual", "rear_r_manual"):
+                        for pop_key in ("front_l_manual", "rear_r_manual", "front_r_manual"):
                             st.session_state.pop(pop_key, None)
                         st.rerun()
             else:
                 st.caption("削除できる登録がありません。")
 
         instructor_map = front_right_instructor_map(registry_entries)
-        seat_registry_display_map = seat_selectable_display_map(registry_entries)
-        seat_name_to_display = seat_name_to_display_map(registry_entries)
+        front_l_registry_display_map = seat_selectable_display_map_for_affiliations(
+            registry_entries, FRONT_LEFT_AFFILIATIONS
+        )
+        front_l_name_to_display = seat_name_to_display_map_for_affiliations(
+            registry_entries, FRONT_LEFT_AFFILIATIONS
+        )
+        rear_r_registry_display_map = seat_selectable_display_map_for_affiliations(
+            registry_entries, REAR_RIGHT_AFFILIATIONS
+        )
+        rear_r_name_to_display = seat_name_to_display_map_for_affiliations(
+            registry_entries, REAR_RIGHT_AFFILIATIONS
+        )
 
         st.divider()
         st.header("機体選択")
@@ -858,7 +871,6 @@ def main() -> None:
     st.session_state.setdefault("cockpit_bag", 5.0)
     st.session_state.setdefault("bag_ext", 3.0)
     st.session_state.setdefault("front_l_mode", "体重を入力")
-    st.session_state.setdefault("rear_l_mode", "体重を入力")
     st.session_state.setdefault("rear_r_mode", "体重を入力")
     st.session_state.setdefault("front_r_mode", "体重を入力")
 
@@ -912,10 +924,9 @@ def main() -> None:
             st.session_state["flight_burn_gal"] = 0.0
             st.session_state["return_burn_gal"] = 0.0
             st.session_state["front_l_mode"] = "体重を入力"
-            st.session_state["rear_l_mode"] = "体重を入力"
             st.session_state["rear_r_mode"] = "体重を入力"
             st.session_state["front_r_mode"] = "体重を入力"
-            for pop_key in ("front_l_manual", "rear_l_manual", "rear_r_manual", "front_r_manual"):
+            for pop_key in ("front_l_manual", "rear_r_manual", "front_r_manual"):
                 st.session_state.pop(pop_key, None)
             st.rerun()
 
@@ -928,8 +939,8 @@ def main() -> None:
             mode_key="front_l_mode",
             weight_key="front_l",
             manual_key="front_l_manual",
-            registry_display_map=seat_registry_display_map,
-            name_to_display=seat_name_to_display,
+            registry_display_map=front_l_registry_display_map,
+            name_to_display=front_l_name_to_display,
         )
         front_r_options = ["体重を入力"] + front_right_instructor_names()
         if st.session_state.get("front_r_mode") == "増本教官":
@@ -951,21 +962,14 @@ def main() -> None:
         else:
             st.session_state["front_r"] = float(instructor_map.get(front_r_mode, 0.0))
             st.caption(f"{front_r_mode}: **{st.session_state['front_r']:.1f} {unit_weight}**")
-        _seat_weight_from_registry(
-            f"Rear seat L [{unit_weight}]",
-            mode_key="rear_l_mode",
-            weight_key="rear_l",
-            manual_key="rear_l_manual",
-            registry_display_map=seat_registry_display_map,
-            name_to_display=seat_name_to_display,
-        )
+        st.number_input(f"Rear seat L [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="rear_l")
         _seat_weight_from_registry(
             f"Rear seat R [{unit_weight}]",
             mode_key="rear_r_mode",
             weight_key="rear_r",
             manual_key="rear_r_manual",
-            registry_display_map=seat_registry_display_map,
-            name_to_display=seat_name_to_display,
+            registry_display_map=rear_r_registry_display_map,
+            name_to_display=rear_r_name_to_display,
         )
 
         st.markdown("**バゲッジ**")

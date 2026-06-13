@@ -245,6 +245,45 @@ def front_right_instructor_map(entries: list[dict[str, float | str]]) -> dict[st
     return {name: weights[name] for name in front_right_instructor_names() if name in weights}
 
 
+def _seat_entries_for_affiliations(
+    entries: list[dict[str, float | str]],
+    affiliations: tuple[str, ...],
+) -> list[dict[str, float | str]]:
+    allowed = set(affiliations)
+    out: list[dict[str, float | str]] = []
+    for entry in entries:
+        if is_protected_name(str(entry["name"])):
+            continue
+        if str(entry.get("affiliation", DEFAULT_AFFILIATION)) in allowed:
+            out.append(entry)
+    return out
+
+
+def seat_selectable_display_map_for_affiliations(
+    entries: list[dict[str, float | str]],
+    affiliations: tuple[str, ...],
+) -> dict[str, float]:
+    """指定所属の登録者だけを、表示ラベル -> 体重 で返す。"""
+    out: dict[str, float] = {}
+    for entry in _seat_entries_for_affiliations(entries, affiliations):
+        out[format_registry_display(entry)] = float(entry["weight"])
+    return out
+
+
+def seat_name_to_display_map_for_affiliations(
+    entries: list[dict[str, float | str]],
+    affiliations: tuple[str, ...],
+) -> dict[str, str]:
+    return {
+        str(entry["name"]): format_registry_display(entry)
+        for entry in _seat_entries_for_affiliations(entries, affiliations)
+    }
+
+
+FRONT_LEFT_AFFILIATIONS: tuple[str, ...] = (OHIBIRIN_AFFILIATION, DEFAULT_AFFILIATION)
+REAR_RIGHT_AFFILIATIONS: tuple[str, ...] = ("JCAB",)
+
+
 def seat_selectable_display_map(entries: list[dict[str, float | str]]) -> dict[str, float]:
     """前左・後左・後右席の表示ラベル -> 体重。"""
     out: dict[str, float] = {}
