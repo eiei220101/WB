@@ -260,6 +260,28 @@ def format_registry_list_item_html(
     return line
 
 
+AFFILIATION_DISPLAY_ORDER: tuple[str, ...] = (OHIBIRIN_AFFILIATION, DEFAULT_AFFILIATION, "JCAB")
+
+
+def registry_display_sort_key(entry: dict[str, float | str]) -> tuple[int, int, str]:
+    affiliation = str(entry.get("affiliation", DEFAULT_AFFILIATION))
+    try:
+        aff_order = AFFILIATION_DISPLAY_ORDER.index(affiliation)
+    except ValueError:
+        aff_order = len(AFFILIATION_DISPLAY_ORDER)
+    cohort = str(entry.get("cohort", "")).strip()
+    if cohort.endswith("期") and cohort[:-1].isdigit():
+        cohort_num = int(cohort[:-1])
+    else:
+        cohort_num = 999
+    return (aff_order, cohort_num, str(entry.get("name", "")))
+
+
+def sort_registry_entries_for_display(entries: list[dict[str, float | str]]) -> list[dict[str, float | str]]:
+    """登録者一覧の表示順: 桜美林 → 一般 → JCAB。"""
+    return sorted(entries, key=registry_display_sort_key)
+
+
 def format_registry_display(entry: dict[str, float | str]) -> str:
     name = str(entry.get("name", "")).strip()
     affiliation = str(entry.get("affiliation", DEFAULT_AFFILIATION))

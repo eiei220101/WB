@@ -656,6 +656,7 @@ def main() -> None:
             save_registry,
             seat_name_to_display_map_for_affiliations,
             seat_selectable_display_map_for_affiliations,
+            sort_registry_entries_for_display,
             upsert_entry,
         )
     except Exception:
@@ -702,7 +703,9 @@ def main() -> None:
         )
         st.header("体重登録")
         registry_entries = load_registry()
-        display_entries = [e for e in registry_entries if not is_protected_name(str(e["name"]))]
+        display_entries = sort_registry_entries_for_display(
+            [e for e in registry_entries if not is_protected_name(str(e["name"]))]
+        )
 
         with st.expander("追加・更新", expanded=False):
             form_id = int(st.session_state.get("weight_reg_form_id", 0))
