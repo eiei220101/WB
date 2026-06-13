@@ -690,7 +690,12 @@ def main() -> None:
             st.caption("登録がありません")
 
         with st.expander("追加・更新", expanded=False):
-            reg_name_key = "weight_reg_name"
+            form_id = int(st.session_state.get("weight_reg_form_id", 0))
+            reg_name_key = f"weight_reg_name_{form_id}"
+            aff_key = f"weight_reg_affiliation_{form_id}"
+            cohort_key = f"weight_reg_cohort_{form_id}"
+            weight_key = f"weight_reg_value_{form_id}"
+
             reg_name_value = str(st.session_state.get(reg_name_key, "")).strip()
             matched_entry = (
                 next((e for e in registry_entries if str(e["name"]) == reg_name_value), None)
@@ -720,13 +725,14 @@ def main() -> None:
                 reg_affiliation = st.selectbox(
                     "所属を選択",
                     AFFILIATION_OPTIONS,
-                    key="weight_reg_affiliation",
+                    index=AFFILIATION_OPTIONS.index("一般"),
+                    key=aff_key,
                 )
                 st.markdown(format_affiliation_html(reg_affiliation), unsafe_allow_html=True)
                 if reg_affiliation == OHIBIRIN_AFFILIATION:
-                    reg_cohort = st.selectbox("期", OHIBIRIN_COHORT_OPTIONS, key="weight_reg_cohort")
-                elif "weight_reg_cohort" in st.session_state:
-                    st.session_state.pop("weight_reg_cohort", None)
+                    reg_cohort = st.selectbox("期", OHIBIRIN_COHORT_OPTIONS, key=cohort_key)
+                elif cohort_key in st.session_state:
+                    st.session_state.pop(cohort_key, None)
 
             reg_name = st.text_input("氏名", key=reg_name_key)
             reg_weight = st.number_input(
@@ -735,7 +741,7 @@ def main() -> None:
                 max_value=200.0,
                 step=0.1,
                 format="%.1f",
-                key="weight_reg_value",
+                key=weight_key,
             )
             if st.button("登録", key="weight_reg_save", type="primary", use_container_width=True):
                 if not reg_name.strip():
@@ -748,12 +754,12 @@ def main() -> None:
                     save_affiliation = (
                         str(save_matched.get("affiliation", "一般"))
                         if save_matched
-                        else str(st.session_state.get("weight_reg_affiliation", "一般"))
+                        else str(st.session_state.get(aff_key, "一般"))
                     )
                     save_cohort = (
                         str(save_matched.get("cohort", ""))
                         if save_matched
-                        else str(st.session_state.get("weight_reg_cohort", ""))
+                        else str(st.session_state.get(cohort_key, ""))
                     )
                     if save_affiliation == OHIBIRIN_AFFILIATION and not save_cohort:
                         st.warning("桜美林を選択した場合は期を選択してください。")
@@ -770,7 +776,7 @@ def main() -> None:
                         except OSError as exc:
                             st.error(f"体重登録の保存に失敗しました: {exc}")
                         else:
-                            st.session_state.pop("weight_reg_name", None)
+                            st.session_state["weight_reg_form_id"] = form_id + 1
                             st.rerun()
 
         with st.expander("削除", expanded=False):
