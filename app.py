@@ -641,7 +641,7 @@ def main() -> None:
             OHIBIRIN_AFFILIATION,
             OHIBIRIN_COHORT_OPTIONS,
             deletable_names,
-            format_registry_label,
+            format_registry_display,
             front_right_instructor_map,
             front_right_instructor_names,
             is_protected_name,
@@ -662,8 +662,7 @@ def main() -> None:
         display_entries = [e for e in registry_entries if not is_protected_name(str(e["name"]))]
         if display_entries:
             for entry in display_entries:
-                label = format_registry_label(entry)
-                st.write(f"- **{entry['name']}**（{label}）")
+                st.write(f"- {format_registry_display(entry)}")
         else:
             st.caption("登録がありません")
 

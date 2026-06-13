@@ -171,13 +171,19 @@ def upsert_entry(
     ]
 
 
-def format_registry_label(entry: dict[str, float | str]) -> str:
+def format_registry_display(entry: dict[str, float | str]) -> str:
+    name = str(entry.get("name", "")).strip()
     affiliation = str(entry.get("affiliation", DEFAULT_AFFILIATION))
     if affiliation == OHIBIRIN_AFFILIATION:
         cohort = str(entry.get("cohort", "")).strip()
-        if cohort:
-            return f"{affiliation}・{cohort}"
-    return affiliation
+        if cohort.endswith("期"):
+            num = cohort[:-1]
+            if num.isdigit():
+                return f"[FO{num}] {name}"
+        return f"[FO] {name}"
+    if affiliation == "JCAB":
+        return f"[JCAB] {name}"
+    return f"[一般] {name}"
 
 
 def remove_entry(entries: list[dict[str, float | str]], name: str) -> list[dict[str, float | str]]:
