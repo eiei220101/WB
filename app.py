@@ -715,14 +715,18 @@ def main() -> None:
     st.session_state.setdefault("taxi_burn_gal", 1.0)
     st.session_state.setdefault("deice_l", 22.0)
     st.session_state.setdefault("main_fuel_gal", 50.0)
+    st.session_state.setdefault("cockpit_bag", 5.0)
+    st.session_state.setdefault("bag_ext", 3.0)
 
     _, c_reset = st.columns([3, 1], vertical_alignment="bottom")
     with c_reset:
         if st.button("入力をリセット"):
             # 入力値を初期化（使いやすいデフォルトに戻す）
             st.session_state["front_l"] = 45.0
-            for k in ["front_r", "rear_l", "rear_r", "nose_bag", "cockpit_bag", "bag_ext"]:
+            for k in ["front_r", "rear_l", "rear_r", "nose_bag"]:
                 st.session_state[k] = 0.0
+            st.session_state["cockpit_bag"] = 5.0
+            st.session_state["bag_ext"] = 3.0
             st.session_state["taxi_burn_gal"] = 1.0
             st.session_state["deice_l"] = 22.0
             st.session_state["main_fuel_gal"] = 50.0
