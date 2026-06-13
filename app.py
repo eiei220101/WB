@@ -741,7 +741,7 @@ def main() -> None:
         if _front_l_cur not in _front_l_opts:
             _front_l_cur = 45
             st.session_state["front_l"] = 45.0
-        st.selectbox("Front seat L", _front_l_opts, index=_front_l_opts.index(_front_l_cur), key="front_l")
+        st.selectbox(f"Front seat L [{unit_weight}]", _front_l_opts, index=_front_l_opts.index(_front_l_cur), key="front_l")
         _inst_map = {"山口教官": 72.0, "羽山教官": 73.0, "増本教官": 83.0}
         front_r_mode = st.selectbox("Front seat R", ["体重を入力", "山口教官", "羽山教官", "増本教官"], key="front_r_mode")
         if front_r_mode == "体重を入力":
@@ -758,20 +758,20 @@ def main() -> None:
         else:
             st.session_state["front_r"] = float(_inst_map.get(front_r_mode, 0.0))
             st.caption(f"{front_r_mode}: **{st.session_state['front_r']:.1f} {unit_weight}**")
-        st.number_input("Rear seat L", min_value=0.0, step=1.0, format="%.1f", key="rear_l")
-        st.number_input("Rear seat R", min_value=0.0, step=1.0, format="%.1f", key="rear_r")
+        st.number_input(f"Rear seat L [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="rear_l")
+        st.number_input(f"Rear seat R [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="rear_r")
 
         st.markdown("**バゲッジ**")
         if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
-            st.number_input("Nose baggage", min_value=0.0, max_value=30.0, step=1.0, format="%.1f", key="nose_bag")
-            st.number_input("Cockpit baggage", min_value=0.0, max_value=45.0, step=1.0, format="%.1f", key="cockpit_bag")
-            st.number_input("Baggage extension", min_value=0.0, max_value=18.0, step=1.0, format="%.1f", key="bag_ext")
+            st.number_input(f"Nose baggage [{unit_weight}]", min_value=0.0, max_value=30.0, step=1.0, format="%.1f", key="nose_bag")
+            st.number_input(f"Cockpit baggage [{unit_weight}]", min_value=0.0, max_value=45.0, step=1.0, format="%.1f", key="cockpit_bag")
+            st.number_input(f"Baggage extension [{unit_weight}]", min_value=0.0, max_value=18.0, step=1.0, format="%.1f", key="bag_ext")
             if _ss_num("cockpit_bag") + _ss_num("bag_ext") > 45.0:
                 st.error("JA52/53/55/56: Cockpit baggage + Baggage extension の合計は 45kg 以下にしてください。")
         else:
-            st.number_input("Nose baggage", min_value=0.0, step=1.0, format="%.1f", key="nose_bag")
-            st.number_input("Cockpit baggage", min_value=0.0, step=1.0, format="%.1f", key="cockpit_bag")
-            st.number_input("Baggage extension", min_value=0.0, step=1.0, format="%.1f", key="bag_ext")
+            st.number_input(f"Nose baggage [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="nose_bag")
+            st.number_input(f"Cockpit baggage [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="cockpit_bag")
+            st.number_input(f"Baggage extension [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="bag_ext")
 
     with col2:
         st.markdown("**De-ice / 液体**")
