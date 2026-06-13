@@ -677,6 +677,25 @@ def main() -> None:
                 border-color: #b91c1c !important;
                 color: #ffffff !important;
             }
+            section[data-testid="stSidebar"] [data-testid="stExpanderDetails"] {
+                transform: none !important;
+                filter: none !important;
+                backface-visibility: visible !important;
+            }
+            section[data-testid="stSidebar"] [data-baseweb="select"] > div,
+            section[data-testid="stSidebar"] [data-baseweb="select"] span,
+            section[data-testid="stSidebar"] [data-baseweb="select"] input,
+            div[data-baseweb="popover"] ul li,
+            div[data-baseweb="popover"] ul li span {
+                -webkit-font-smoothing: subpixel-antialiased !important;
+                -moz-osx-font-smoothing: auto !important;
+                text-rendering: geometricPrecision !important;
+                font-weight: 500 !important;
+                opacity: 1 !important;
+                filter: none !important;
+                transform: none !important;
+                color: #111827 !important;
+            }
             </style>
             """,
             unsafe_allow_html=True,
