@@ -665,8 +665,34 @@ def main() -> None:
             st.caption("登録がありません")
 
         with st.expander("追加・更新", expanded=False):
-            reg_name = st.text_input("氏名", key="weight_reg_name")
-            reg_affiliation = st.selectbox("所属", AFFILIATION_OPTIONS, key="weight_reg_affiliation")
+            reg_name_key = "weight_reg_name"
+            reg_name_value = str(st.session_state.get(reg_name_key, "")).strip()
+            matched_entry = (
+                next((e for e in registry_entries if str(e["name"]) == reg_name_value), None)
+                if reg_name_value
+                else None
+            )
+
+            st.markdown("**所属**")
+            if matched_entry:
+                reg_affiliation = str(matched_entry.get("affiliation", "一般"))
+                st.markdown(
+                    f"<div style='padding:0.35rem 0.6rem;border:1px solid #d1d5db;border-radius:0.4rem;"
+                    f"background:#f9fafb;color:#374151;'>{reg_affiliation}</div>",
+                    unsafe_allow_html=True,
+                )
+                st.caption("登録済みのため所属は変更できません。")
+            else:
+                reg_affiliation = st.radio(
+                    "所属",
+                    AFFILIATION_OPTIONS,
+                    index=AFFILIATION_OPTIONS.index("一般"),
+                    horizontal=True,
+                    label_visibility="collapsed",
+                    key="weight_reg_affiliation",
+                )
+
+            reg_name = st.text_input("氏名", key=reg_name_key)
             reg_weight = st.number_input(
                 f"体重 [{unit_weight}]",
                 min_value=0.0,
@@ -679,7 +705,12 @@ def main() -> None:
                 if not reg_name.strip():
                     st.warning("氏名を入力してください。")
                 else:
-                    updated = upsert_entry(registry_entries, reg_name, reg_weight, reg_affiliation)
+                    save_affiliation = (
+                        str(matched_entry.get("affiliation", "一般"))
+                        if matched_entry
+                        else reg_affiliation
+                    )
+                    updated = upsert_entry(registry_entries, reg_name, reg_weight, save_affiliation)
                     save_registry(updated)
                     st.session_state.pop("weight_reg_name", None)
                     st.rerun()
