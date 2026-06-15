@@ -916,11 +916,11 @@ def main() -> None:
     if float(arms.get("rear_seat_right", 0.0) or 0.0) == 0.0:
         arms["rear_seat_right"] = 3250.0
 
-    st.subheader("入力")
     if tail:
-        st.markdown(f"**登録記号: {tail}**")
+        st.subheader(f"登録記号: {tail}")
     else:
-        st.warning("登録記号が未選択です。サイドバーで機体を選んでください。")
+        st.subheader("登録記号")
+        st.warning("未選択です。サイドバーで機体を選んでください。")
 
     fuel_kg_per_usg = 3.028
 
