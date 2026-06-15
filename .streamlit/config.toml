@@ -3,6 +3,9 @@
 base = "light"
 baseFontSize = 17
 textColor = "#111827"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#E5E7EB"
+primaryColor = "#1D4ED8"
 
 [server]
 headless = true

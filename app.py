@@ -31,22 +31,85 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# スタイル（余白・見出し・補足テキストの可読性）
+# スタイル（余白・見出し・明暗コントラスト）
 st.markdown(
     """
     <style>
     .block-container { padding-top: 1.2rem; }
-    h1 { font-weight: 600; }
+
+    /* サイドバーとメイン領域の明暗をはっきり分離 */
+    section[data-testid="stSidebar"] > div {
+        background-color: #e5e7eb !important;
+        border-right: 2px solid #9ca3af !important;
+    }
+    section[data-testid="stMain"] .block-container {
+        background-color: #ffffff;
+    }
+
+    /* 見出し */
+    h1 {
+        font-weight: 700 !important;
+        color: #030712 !important;
+    }
+    h2, h3 {
+        font-weight: 700 !important;
+        color: #111827 !important;
+        border-bottom: 2px solid #d1d5db;
+        padding-bottom: 0.3rem;
+        margin-top: 1.1rem;
+    }
+
+    /* 区切り線 */
+    hr {
+        margin: 1.25rem 0 !important;
+        border: none !important;
+        border-top: 2px solid #9ca3af !important;
+        opacity: 1 !important;
+    }
+
+    /* メトリクス */
+    [data-testid="stMetric"] {
+        background-color: #f3f4f6 !important;
+        border: 1px solid #9ca3af !important;
+        border-radius: 0.5rem !important;
+        padding: 0.65rem 0.85rem !important;
+    }
+    [data-testid="stMetricLabel"] {
+        color: #374151 !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stMetricValue"] {
+        color: #030712 !important;
+        font-weight: 700 !important;
+    }
+
+    /* テーブル枠 */
+    [data-testid="stTable"] > div {
+        border: 1px solid #9ca3af !important;
+        border-radius: 0.375rem !important;
+        overflow: hidden !important;
+    }
+
+    /* 補足テキスト（本文より一段明るいグレー） */
     [data-testid="stCaptionContainer"] p,
     .stCaption, .stCaption p {
         font-size: 0.95rem !important;
-        color: #374151 !important;
+        color: #4b5563 !important;
         line-height: 1.55;
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
+
+
+_TABLE_TH_PROPS: list[tuple[str, str]] = [
+    ("text-align", "center"),
+    ("background-color", "#d1d5db"),
+    ("color", "#111827"),
+    ("font-weight", "700"),
+    ("border", "1px solid #9ca3af"),
+]
 
 
 def parse_points(raw) -> list[tuple[float, float]]:
@@ -558,8 +621,8 @@ def render_top_view_svg(
   {bg}
   <defs>
     <style>
-      .seat {{ fill:#e5e7eb; stroke:#9ca3af; stroke-width:2; rx:12; }}
-      .bag  {{ fill:#e5e7eb; stroke:#9ca3af; stroke-width:2; rx:12; }}
+      .seat {{ fill:#d1d5db; stroke:#6b7280; stroke-width:2; rx:12; }}
+      .bag  {{ fill:#e5e7eb; stroke:#6b7280; stroke-width:2; rx:12; }}
       .pill {{ fill:#16a34a; }}
       .pillText {{ fill:white; font: 700 22px system-ui, -apple-system, Segoe UI, Roboto; }}
       .label {{ fill:#111827; font: 600 16px system-ui, -apple-system, Segoe UI, Roboto; }}
@@ -1288,8 +1351,8 @@ def main() -> None:
             arm_ok = True
 
         if weight_ok and arm_ok:
-            return "#16a34a"
-        return "#dc2626"
+            return "#15803d"
+        return "#b91c1c"
 
     def _limit_text(name: str) -> str:
         # 52/53/55/56: ステーション制限（入力値制限）も表示
@@ -1389,7 +1452,7 @@ def main() -> None:
     out_styled = (
         out.style.hide(axis="index")
         .set_properties(**{"text-align": "center"})
-        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+        .set_table_styles([{"selector": "th", "props": _TABLE_TH_PROPS}])
         .apply(_style_row, axis=1)
     )
     # スクロールさせず、スタイルが確実に効く表示（table）
@@ -1481,16 +1544,16 @@ def main() -> None:
     def _okng_style(v: str) -> str:
         s = str(v)
         if s.startswith("OK"):
-            return "background-color: #bbf7d0; color: #065f46; font-weight: 700;"
+            return "background-color: #86efac; color: #14532d; font-weight: 700;"
         if s == "NG":
-            return "background-color: #fecaca; color: #7f1d1d; font-weight: 700;"
+            return "background-color: #fca5a5; color: #991b1b; font-weight: 700;"
         return ""
 
     dvt_styled = (
         dvt_df.style.hide(axis="index")
         .set_properties(**{"text-align": "center"})
         .set_properties(subset=["GS120kt", "GS140kt"], **{"font-size": "0.92rem", "line-height": "1.45"})
-        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+        .set_table_styles([{"selector": "th", "props": _TABLE_TH_PROPS}])
         .map(_okng_style, subset=["GS120kt", "GS140kt"])
     )
     st.caption("RJSFからの各距離・無風状態")
