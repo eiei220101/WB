@@ -1886,6 +1886,8 @@ def main() -> None:
             export_images: dict[str, bytes] = {}
             try:
                 fig_pdf = copy.deepcopy(fig)
+                _pdf_grid_major = "rgba(0,0,0,0.30)"
+                _pdf_grid_minor = "rgba(0,0,0,0.20)"
                 fig_pdf.update_layout(
                     template="plotly_white",
                     paper_bgcolor="white",
@@ -1893,13 +1895,18 @@ def main() -> None:
                     font=dict(color="#111111"),
                 )
                 fig_pdf.update_xaxes(
-                    gridcolor="rgba(0,0,0,0.15)",
+                    gridcolor=_pdf_grid_major,
                     zeroline=False,
                     tickfont=dict(color="#111111"),
                     titlefont=dict(color="#111111"),
+                    minor=dict(
+                        dtick=0.01,
+                        showgrid=True,
+                        gridcolor=_pdf_grid_minor,
+                    ),
                 )
                 fig_pdf.update_yaxes(
-                    gridcolor="rgba(0,0,0,0.15)",
+                    gridcolor=_pdf_grid_major,
                     zeroline=False,
                     tickfont=dict(color="#111111"),
                     titlefont=dict(color="#111111"),
@@ -1920,6 +1927,18 @@ def main() -> None:
                     for sh in (fig_pdf.layout.shapes or []):
                         if getattr(sh, "line", None) is not None:
                             sh.line.color = "#111111"
+                            # 図の枠線（縦: x軸固定 / 横: 上下端）だけ破線→実線
+                            xref = getattr(sh, "xref", None)
+                            yref = getattr(sh, "yref", None)
+                            y0 = getattr(sh, "y0", None)
+                            is_vertical_frame = xref == "x" and yref == "paper"
+                            is_horizontal_frame = (
+                                xref == "paper"
+                                and yref == "y"
+                                and y0 in (y_min, y_max)
+                            )
+                            if is_vertical_frame or is_horizontal_frame:
+                                sh.line.dash = "solid"
                     for an in (fig_pdf.layout.annotations or []):
                         if getattr(an, "font", None) is not None:
                             an.font.color = "#111111"
