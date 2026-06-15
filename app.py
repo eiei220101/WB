@@ -610,16 +610,7 @@ def main() -> None:
         st.code(traceback.format_exc())
         st.stop()
 
-    # Excelテンプレ埋め込みPDF（印刷用）
-    try:
-        from wb_export import build_print_pdf_from_template, load_mapping, mapping_path_for_tail, template_path_for_tail
-    except Exception:
-        build_print_pdf_from_template = None  # type: ignore[assignment]
-        load_mapping = None  # type: ignore[assignment]
-        mapping_path_for_tail = None  # type: ignore[assignment]
-        template_path_for_tail = None  # type: ignore[assignment]
-
-    # LibreOffice不要の直接PDF
+    # 直接PDF生成（ReportLab）
     try:
         from wb_pdf_direct import build_direct_pdf
     except Exception:
@@ -1161,24 +1152,6 @@ def main() -> None:
         flight_fuel_burn_weight=flight_burn_kg,
         return_fuel_burn_weight=return_burn_kg,
     )
-
-    # Streamlit実行環境で PROGRAMFILES が取れない場合でも LibreOffice を見つけるための保険
-    # （存在するパスが見つかったら SOFFICE_PATH に入れる）
-    try:
-        if not os.environ.get("SOFFICE_PATH"):
-            for p in [
-                Path(r"C:\Program Files\LibreOffice\program\soffice.exe"),
-                Path(r"C:\Program Files\LibreOffice\program\soffice.com"),
-                Path(r"C:\Program Files (x86)\LibreOffice\program\soffice.exe"),
-                Path(r"C:\Program Files (x86)\LibreOffice\program\soffice.com"),
-                Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "LibreOffice" / "program" / "soffice.exe",
-                Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "LibreOffice" / "program" / "soffice.com",
-            ]:
-                if p.exists():
-                    os.environ["SOFFICE_PATH"] = str(p)
-                    break
-    except Exception:
-        pass
 
     # kaleido が plotlyjs をローカルパスで掴めない環境向け（Windowsの日本語ユーザー名等）
     # CDN を使うと安定して PNG 変換できる
@@ -1798,218 +1771,170 @@ def main() -> None:
         fig.update_layout(height=int(_fig_h), width=int(_fig_w))
         st.plotly_chart(fig, use_container_width=False)
 
-        # --- PDF（印刷用）: Excelテンプレートに埋め込み → PDF変換 ---
-        st.subheader("PDF（印刷用）")
-        if build_print_pdf_from_template is None:
-            st.info("PDF出力を使うには `openpyxl` / `kaleido` / `Pillow` が必要です（requirements を更新済み）。")
+        # --- PDF ---
+        st.subheader("PDF")
+        if build_direct_pdf is None:
+            st.info("PDF出力を使うには `reportlab` が必要です（requirements を更新済み）。")
         else:
-            tpl = template_path_for_tail(tail)
-            mp = mapping_path_for_tail(tail)
-            if not tpl.exists():
-                st.info(f"テンプレ未配置: `{tpl}`")
-            if not mp.exists():
-                st.info(f"セル対応表未配置: `{mp}`")
+            def _mm_to_m(v_mm: float) -> float:
+                return float(v_mm) / 1000.0
 
-            mapping = load_mapping(tail)
-            if tpl.exists() and mapping:
-                def _mm_to_m(v_mm: float) -> float:
-                    return float(v_mm) / 1000.0
+            arm_basic_empty_m = _mm_to_m(bew_a)
+            arm_front_m = _mm_to_m(front_arm)
+            arm_rear_m = _mm_to_m(rear_arm)
+            arm_nose_m = _mm_to_m(nose_arm)
+            arm_cockpit_m = _mm_to_m(cockpit_arm)
+            arm_bagext_m = _mm_to_m(bag_ext_arm)
+            arm_deice_m = _mm_to_m(deice_arm)
+            arm_fuel_m = _mm_to_m(fuel_arm)
 
-                # component arms are in mm
-                arm_basic_empty_m = _mm_to_m(bew_a)
-                arm_front_m = _mm_to_m(front_arm)
-                arm_rear_m = _mm_to_m(rear_arm)
-                arm_nose_m = _mm_to_m(nose_arm)
-                arm_cockpit_m = _mm_to_m(cockpit_arm)
-                arm_bagext_m = _mm_to_m(bag_ext_arm)
-                arm_deice_m = _mm_to_m(deice_arm)
-                arm_fuel_m = _mm_to_m(fuel_arm)
+            w_basic = float(bew_w)
+            w_front = float(front_w)
+            w_rear = float(rear_w)
+            w_nose = float(nose_bag)
+            w_cockpit = float(cockpit_bag)
+            w_bagext = float(bag_ext)
+            w_deice = float(deice_kg)
+            w_mainfuel = float(main_fuel_kg)
+            w_taxi = float(taxi_burn_kg)
+            w_burn_out = float(flight_burn_kg)
+            w_burn_back = float(return_burn_kg)
 
-                # weights (kg)
-                w_basic = float(bew_w)
-                w_front = float(front_w)
-                w_rear = float(rear_w)
-                w_nose = float(nose_bag)
-                w_cockpit = float(cockpit_bag)
-                w_bagext = float(bag_ext)
-                w_deice = float(deice_kg)
-                w_mainfuel = float(main_fuel_kg)
-                w_taxi = float(taxi_burn_kg)
-                w_burn_out = float(flight_burn_kg)
-                w_burn_back = float(return_burn_kg)
+            _m_basic = float(bew_moment_kgm) if isinstance(bew_moment_kgm, (int, float)) else (w_basic * arm_basic_empty_m)
+            _m_front = w_front * arm_front_m
+            _m_rear = w_rear * arm_rear_m
+            _m_nose = w_nose * arm_nose_m
+            _m_cockpit = w_cockpit * arm_cockpit_m
+            _m_bagext = w_bagext * arm_bagext_m
+            _m_deice = w_deice * arm_deice_m
 
-                # ブラウザと同じ計算（Basic Empty の moment_kgm を優先）で ZFM/TOW/LW1/LW2 を作る
-                _m_basic = float(bew_moment_kgm) if isinstance(bew_moment_kgm, (int, float)) else (w_basic * arm_basic_empty_m)
-                _m_front = w_front * arm_front_m
-                _m_rear = w_rear * arm_rear_m
-                _m_nose = w_nose * arm_nose_m
-                _m_cockpit = w_cockpit * arm_cockpit_m
-                _m_bagext = w_bagext * arm_bagext_m
-                _m_deice = w_deice * arm_deice_m
+            def _totals(*, fuel_remaining_kg: float) -> tuple[float, float, float]:
+                w = w_basic + w_front + w_rear + w_nose + w_cockpit + w_bagext + w_deice + float(fuel_remaining_kg)
+                m = _m_basic + _m_front + _m_rear + _m_nose + _m_cockpit + _m_bagext + _m_deice + (float(fuel_remaining_kg) * arm_fuel_m)
+                a = (m / w) if w > 0 else 0.0
+                return w, m, a
 
-                def _totals(*, fuel_remaining_kg: float) -> tuple[float, float, float]:
-                    w = w_basic + w_front + w_rear + w_nose + w_cockpit + w_bagext + w_deice + float(fuel_remaining_kg)
-                    m = _m_basic + _m_front + _m_rear + _m_nose + _m_cockpit + _m_bagext + _m_deice + (float(fuel_remaining_kg) * arm_fuel_m)
-                    a = (m / w) if w > 0 else 0.0
-                    return w, m, a
+            fuel_to_kg = w_mainfuel
+            fuel_tow_rem = max(fuel_to_kg - w_taxi, 0.0)
+            fuel_lw1_rem = max(fuel_tow_rem - w_burn_out, 0.0)
+            fuel_lw2_rem = max(fuel_lw1_rem - w_burn_back, 0.0)
 
-                fuel_to_kg = w_mainfuel
-                fuel_tow_rem = max(fuel_to_kg - w_taxi, 0.0)
-                fuel_lw1_rem = max(fuel_tow_rem - w_burn_out, 0.0)
-                fuel_lw2_rem = max(fuel_lw1_rem - w_burn_back, 0.0)
+            w_zfm, m_zfm, a_zfm = _totals(fuel_remaining_kg=0.0)
+            w_tow, m_tow, a_tow = _totals(fuel_remaining_kg=fuel_tow_rem)
+            w_lw1, m_lw1, a_lw1 = _totals(fuel_remaining_kg=fuel_lw1_rem)
+            w_lw2, m_lw2, a_lw2 = _totals(fuel_remaining_kg=fuel_lw2_rem)
 
-                w_zfm, m_zfm, a_zfm = _totals(fuel_remaining_kg=0.0)
-                w_tow, m_tow, a_tow = _totals(fuel_remaining_kg=fuel_tow_rem)
-                w_lw1, m_lw1, a_lw1 = _totals(fuel_remaining_kg=fuel_lw1_rem)
-                w_lw2, m_lw2, a_lw2 = _totals(fuel_remaining_kg=fuel_lw2_rem)
+            export_values: dict[str, float | str] = {
+                "tail": tail,
+                "arm_basic_empty": arm_basic_empty_m,
+                "arm_front_seats": arm_front_m,
+                "arm_rear_seats": arm_rear_m,
+                "arm_nose_baggage": arm_nose_m,
+                "arm_cockpit_baggage": arm_cockpit_m,
+                "arm_baggage_extension": arm_bagext_m,
+                "arm_deice_fluid": arm_deice_m,
+                "arm_zfm": a_zfm,
+                "arm_main_fuel": arm_fuel_m,
+                "arm_taxi_run": arm_fuel_m,
+                "arm_tow": a_tow,
+                "arm_fuel_burn_out": arm_fuel_m,
+                "arm_lw1": a_lw1,
+                "arm_fuel_burn_back": arm_fuel_m,
+                "arm_lw2": a_lw2,
+                "w_basic_empty": w_basic,
+                "w_front_seats": w_front,
+                "w_rear_seats": w_rear,
+                "w_nose_baggage": w_nose,
+                "w_cockpit_baggage": w_cockpit,
+                "w_baggage_extension": w_bagext,
+                "w_deice_fluid": w_deice,
+                "w_zfm": w_zfm,
+                "w_main_fuel": w_mainfuel,
+                "w_taxi_run": w_taxi,
+                "w_tow": w_tow,
+                "w_fuel_burn_out": w_burn_out,
+                "w_lw1": w_lw1,
+                "w_fuel_burn_back": w_burn_back,
+                "w_lw2": w_lw2,
+                "m_basic_empty": _m_basic,
+                "m_front_seats": w_front * arm_front_m,
+                "m_rear_seats": w_rear * arm_rear_m,
+                "m_nose_baggage": w_nose * arm_nose_m,
+                "m_cockpit_baggage": w_cockpit * arm_cockpit_m,
+                "m_baggage_extension": w_bagext * arm_bagext_m,
+                "m_deice_fluid": w_deice * arm_deice_m,
+                "m_zfm": m_zfm,
+                "m_main_fuel": w_mainfuel * arm_fuel_m,
+                "m_taxi_run": w_taxi * arm_fuel_m,
+                "m_tow": m_tow,
+                "m_fuel_burn_out": w_burn_out * arm_fuel_m,
+                "m_lw1": m_lw1,
+                "m_fuel_burn_back": w_burn_back * arm_fuel_m,
+                "m_lw2": m_lw2,
+            }
 
-                export_values: dict[str, float | str] = {
-                    "tail": tail,
-
-                    "arm_basic_empty": arm_basic_empty_m,
-                    "arm_front_seats": arm_front_m,
-                    "arm_rear_seats": arm_rear_m,
-                    "arm_nose_baggage": arm_nose_m,
-                    "arm_cockpit_baggage": arm_cockpit_m,
-                    "arm_baggage_extension": arm_bagext_m,
-                    "arm_deice_fluid": arm_deice_m,
-                    "arm_zfm": a_zfm,
-                    "arm_main_fuel": arm_fuel_m,
-                    "arm_taxi_run": arm_fuel_m,
-                    "arm_tow": a_tow,
-                    "arm_fuel_burn_out": arm_fuel_m,
-                    "arm_lw1": a_lw1,
-                    "arm_fuel_burn_back": arm_fuel_m,
-                    "arm_lw2": a_lw2,
-
-                    "w_basic_empty": w_basic,
-                    "w_front_seats": w_front,
-                    "w_rear_seats": w_rear,
-                    "w_nose_baggage": w_nose,
-                    "w_cockpit_baggage": w_cockpit,
-                    "w_baggage_extension": w_bagext,
-                    "w_deice_fluid": w_deice,
-                    "w_zfm": w_zfm,
-                    "w_main_fuel": w_mainfuel,
-                    "w_taxi_run": w_taxi,
-                    "w_tow": w_tow,
-                    "w_fuel_burn_out": w_burn_out,
-                    "w_lw1": w_lw1,
-                    "w_fuel_burn_back": w_burn_back,
-                    "w_lw2": w_lw2,
-
-                    # Basic Empty は aircraft.toml の moment_kgm を優先（ブラウザ表示と一致させる）
-                    "m_basic_empty": _m_basic,
-                    "m_front_seats": w_front * arm_front_m,
-                    "m_rear_seats": w_rear * arm_rear_m,
-                    "m_nose_baggage": w_nose * arm_nose_m,
-                    "m_cockpit_baggage": w_cockpit * arm_cockpit_m,
-                    "m_baggage_extension": w_bagext * arm_bagext_m,
-                    "m_deice_fluid": w_deice * arm_deice_m,
-                    "m_zfm": m_zfm,
-                    "m_main_fuel": w_mainfuel * arm_fuel_m,
-                    "m_taxi_run": w_taxi * arm_fuel_m,
-                    "m_tow": m_tow,
-                    "m_fuel_burn_out": w_burn_out * arm_fuel_m,
-                    "m_lw1": m_lw1,
-                    "m_fuel_burn_back": w_burn_back * arm_fuel_m,
-                    "m_lw2": m_lw2,
-                }
-
-                # Excelには「ブラウザで表示している文字列」をそのまま入れる
-                def _as_disp(v) -> str:
-                    try:
-                        fv = float(v)
-                    except Exception:
-                        return str(v)
-                    s = f"{fv:.5f}".rstrip("0").rstrip(".")
-                    return s
-
-                export_values = {k: (v if isinstance(v, str) else _as_disp(v)) for k, v in export_values.items()}
-
-                # CG envelope image (anchor I4)
-                export_images: dict[str, bytes] = {}
+            def _as_disp(v) -> str:
                 try:
-                    # PDF用は白黒（印刷向け）にして少し大きめに出力
-                    fig_pdf = copy.deepcopy(fig)
-                    fig_pdf.update_layout(
-                        template="plotly_white",
-                        paper_bgcolor="white",
-                        plot_bgcolor="white",
-                        font=dict(color="#111111"),
-                    )
-                    fig_pdf.update_xaxes(
-                        gridcolor="rgba(0,0,0,0.15)",
-                        zeroline=False,
-                        tickfont=dict(color="#111111"),
-                        titlefont=dict(color="#111111"),
-                    )
-                    fig_pdf.update_yaxes(
-                        gridcolor="rgba(0,0,0,0.15)",
-                        zeroline=False,
-                        tickfont=dict(color="#111111"),
-                        titlefont=dict(color="#111111"),
-                    )
+                    fv = float(v)
+                except Exception:
+                    return str(v)
+                s = f"{fv:.5f}".rstrip("0").rstrip(".")
+                return s
 
-                    # traces: 線・点を黒に寄せる（塗りは透明のまま）
-                    for tr in fig_pdf.data:
-                        try:
-                            if hasattr(tr, "line") and tr.line is not None:
-                                tr.line.color = "#111111"
-                            if hasattr(tr, "marker") and tr.marker is not None:
-                                tr.marker.color = "#111111"
-                                if getattr(tr.marker, "line", None) is not None:
-                                    tr.marker.line.color = "#111111"
-                            if hasattr(tr, "fillcolor") and tr.fillcolor:
-                                tr.fillcolor = "rgba(0,0,0,0)"
-                        except Exception:
-                            pass
+            export_values = {k: (v if isinstance(v, str) else _as_disp(v)) for k, v in export_values.items()}
 
-                    # shapes / annotations も黒に寄せる
+            export_images: dict[str, bytes] = {}
+            try:
+                fig_pdf = copy.deepcopy(fig)
+                fig_pdf.update_layout(
+                    template="plotly_white",
+                    paper_bgcolor="white",
+                    plot_bgcolor="white",
+                    font=dict(color="#111111"),
+                )
+                fig_pdf.update_xaxes(
+                    gridcolor="rgba(0,0,0,0.15)",
+                    zeroline=False,
+                    tickfont=dict(color="#111111"),
+                    titlefont=dict(color="#111111"),
+                )
+                fig_pdf.update_yaxes(
+                    gridcolor="rgba(0,0,0,0.15)",
+                    zeroline=False,
+                    tickfont=dict(color="#111111"),
+                    titlefont=dict(color="#111111"),
+                )
+                for tr in fig_pdf.data:
                     try:
-                        for sh in (fig_pdf.layout.shapes or []):
-                            if getattr(sh, "line", None) is not None:
-                                sh.line.color = "#111111"
-                        for an in (fig_pdf.layout.annotations or []):
-                            if getattr(an, "font", None) is not None:
-                                an.font.color = "#111111"
+                        if hasattr(tr, "line") and tr.line is not None:
+                            tr.line.color = "#111111"
+                        if hasattr(tr, "marker") and tr.marker is not None:
+                            tr.marker.color = "#111111"
+                            if getattr(tr.marker, "line", None) is not None:
+                                tr.marker.line.color = "#111111"
+                        if hasattr(tr, "fillcolor") and tr.fillcolor:
+                            tr.fillcolor = "rgba(0,0,0,0)"
                     except Exception:
                         pass
+                try:
+                    for sh in (fig_pdf.layout.shapes or []):
+                        if getattr(sh, "line", None) is not None:
+                            sh.line.color = "#111111"
+                    for an in (fig_pdf.layout.annotations or []):
+                        if getattr(an, "font", None) is not None:
+                            an.font.color = "#111111"
+                except Exception:
+                    pass
+                export_images["cg_envelope_png"] = pio.to_image(
+                    fig_pdf,
+                    format="png",
+                    width=800,
+                    height=525,
+                    scale=2,
+                )
+            except Exception as e:
+                st.warning(f"CGエンベロープ画像の生成に失敗しました: {e}")
 
-                    export_images["cg_envelope_png"] = pio.to_image(
-                        fig_pdf,
-                        format="png",
-                        width=800,
-                        height=525,
-                        scale=2,
-                    )
-                except Exception as e:
-                    st.warning(f"CGエンベロープ画像の生成に失敗しました: {e}")
-
-                if st.button("PDFを作成"):
-                    try:
-                        pdf_bytes, filename = build_print_pdf_from_template(
-                            tail=tail,
-                            values=export_values,
-                            images=export_images,
-                        )
-                        st.download_button(
-                            "PDFをダウンロード",
-                            data=pdf_bytes,
-                            file_name=filename,
-                            mime="application/pdf",
-                        )
-                    except Exception as e:
-                        st.error(str(e))
-            else:
-                st.caption("テンプレ（`templates/<TAIL>_template.xlsx`）とセル対応表（`templates/<TAIL>_mapping.json`）が揃うと有効になります。")
-
-        # --- PDF（LibreOffice不要）: 直接PDF生成 ---
-        st.subheader("PDF（LibreOffice不要）")
-        if build_direct_pdf is None:
-            st.info("このPDF出力を使うには `reportlab` が必要です（requirements を更新済み）。")
-        else:
-            # 表はテンプレと同じ並びで作る（表示文字列のまま）
             direct_rows = [
                 ("Empty mass Actual", export_values.get("arm_basic_empty", ""), export_values.get("w_basic_empty", ""), export_values.get("m_basic_empty", "")),
                 ("Front seats", export_values.get("arm_front_seats", ""), export_values.get("w_front_seats", ""), export_values.get("m_front_seats", "")),
@@ -2028,9 +1953,8 @@ def main() -> None:
                 ("LDG weight", export_values.get("arm_lw2", ""), export_values.get("w_lw2", ""), export_values.get("m_lw2", "")),
             ]
 
-            if st.button("PDFを作成（LibreOffice不要）"):
+            if st.button("PDFを作成"):
                 try:
-                    # Page2 data (福島帰投時燃料 / DVT候補)
                     _page2 = {
                         "remain_gal": f"{remain_gal:.1f}",
                         "endurance_10": endurance_10,
@@ -2049,9 +1973,9 @@ def main() -> None:
                         page2=_page2,
                     )
                     st.download_button(
-                        "PDFをダウンロード（LibreOffice不要）",
+                        "PDFをダウンロード",
                         data=pdf,
-                        file_name=f"{tail}_WB_direct.pdf",
+                        file_name=f"{tail}_WB.pdf",
                         mime="application/pdf",
                     )
                 except Exception as e:
