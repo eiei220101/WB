@@ -53,8 +53,8 @@ def build_direct_pdf(
     jp = _ensure_jp_font()
     styles = getSampleStyleSheet()
     s_title = ParagraphStyle("t", parent=styles["Normal"], fontName=jp, fontSize=12, leading=14)
-    s_jp = ParagraphStyle("jp", parent=styles["Normal"], fontName=jp, fontSize=8, leading=10)
-    s_en = ParagraphStyle("en", parent=styles["Normal"], fontName="Helvetica", fontSize=8, leading=10)
+    s_jp = ParagraphStyle("jp", parent=styles["Normal"], fontName=jp, fontSize=9, leading=12)
+    s_en = ParagraphStyle("en", parent=styles["Normal"], fontName="Helvetica", fontSize=9, leading=12)
 
     # --- Layout constants (領域固定して干渉を防ぐ) ---
     m_l, m_r, m_t, m_b = 10 * mm, 10 * mm, 8 * mm, 8 * mm
@@ -83,7 +83,7 @@ def build_direct_pdf(
                             ("LINEBELOW", (0, 0), (1, 0), 0.8, colors.black),
                             ("ALIGN", (1, 0), (1, 1), "CENTER"),
                             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                            ("FONT", (1, 0), (1, 1), "Helvetica", 8),
+                            ("FONT", (1, 0), (1, 1), "Helvetica", 9),
                         ]
                     ),
                 )
@@ -106,8 +106,8 @@ def build_direct_pdf(
             [
                 ("GRID", (0, 0), (-1, -1), 0.8, colors.black),
                 ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
-                ("FONT", (0, 0), (-1, 0), "Helvetica-Bold", 8),
-                ("FONT", (1, 1), (-1, -1), "Helvetica", 8),
+                ("FONT", (0, 0), (-1, 0), "Helvetica-Bold", 9),
+                ("FONT", (1, 1), (-1, -1), "Helvetica", 9),
                 ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ("LEFTPADDING", (0, 0), (-1, -1), 3),
@@ -140,7 +140,7 @@ def build_direct_pdf(
             ["50%", "3.6", "10.9"],
         ],
         colWidths=[30 * mm, 16 * mm, 16 * mm],
-        style=TableStyle([("BOX", (0, 0), (-1, -1), 0.8, colors.black), ("ALIGN", (1, 1), (-1, -1), "RIGHT"), ("FONT", (0, 0), (-1, 0), jp, 8), ("FONT", (0, 1), (-1, -1), "Helvetica", 8)]),
+        style=TableStyle([("BOX", (0, 0), (-1, -1), 0.8, colors.black), ("ALIGN", (1, 1), (-1, -1), "RIGHT"), ("FONT", (0, 0), (-1, 0), jp, 9), ("FONT", (0, 1), (-1, -1), "Helvetica", 9)]),
     )
     extra_lines = [
         "以下の液体は　Empty mass actual に含まれる。",
@@ -240,7 +240,7 @@ def build_direct_pdf(
     perf_w = max(40 * mm, env_right_edge - perf_x)
 
     # シンプルな1列レイアウトに戻す（文字列のみ）
-    s_perf = ParagraphStyle("perf", parent=s_jp, fontSize=9, leading=12)
+    s_perf = ParagraphStyle("perf", parent=s_jp, fontSize=10, leading=13)
     perf_tbl = Table(
         [
             [Paragraph("2  離着陸距離及び性能", s_perf)],
@@ -287,9 +287,9 @@ def build_direct_pdf(
         fuel_box_y = fuel_box_top - fuel_box_h
 
         # 見やすさ重視：3カラムのカード風
-        s_h2 = ParagraphStyle("h2", parent=s_jp, fontSize=10, leading=12)
+        s_h2 = ParagraphStyle("h2", parent=s_jp, fontSize=11, leading=13)
         s_big = ParagraphStyle("big", parent=s_jp, fontSize=12, leading=14)
-        s_mid = ParagraphStyle("mid", parent=s_jp, fontSize=9, leading=12)
+        s_mid = ParagraphStyle("mid", parent=s_jp, fontSize=10, leading=13)
 
         card_w = (fuel_box_w - 2 * 4 * mm) / 3.0
         cards = Table(
@@ -373,7 +373,7 @@ def build_direct_pdf(
             style=TableStyle(
                 ts
                 + [
-                    ("FONT", (0, 0), (-1, -1), jp, 8),
+                    ("FONT", (0, 0), (-1, -1), jp, 9),
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                     ("LEFTPADDING", (0, 0), (-1, -1), 3),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 3),

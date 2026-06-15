@@ -1,6 +1,8 @@
 # 画面を広く使う・フォントサイズの目安（必要なら数値を調整）
 [theme]
 base = "light"
+baseFontSize = 17
+textColor = "#111827"
 
 [server]
 headless = true

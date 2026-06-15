@@ -31,12 +31,18 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# スタイル（余白・見出し）
+# スタイル（余白・見出し・補足テキストの可読性）
 st.markdown(
     """
     <style>
     .block-container { padding-top: 1.2rem; }
     h1 { font-weight: 600; }
+    [data-testid="stCaptionContainer"] p,
+    .stCaption, .stCaption p {
+        font-size: 0.95rem !important;
+        color: #374151 !important;
+        line-height: 1.55;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -354,10 +360,10 @@ def render_top_view_svg(
       /* ForeFlightっぽい見た目（背景なし・グレーの座席/荷物 + 緑の数値） */
       .seat {{ fill:#d1d5db; stroke:#9ca3af; stroke-width:2; rx:12; }}
       .bag  {{ fill:#e5e7eb; stroke:#9ca3af; stroke-width:2; rx:12; }}
-      .label {{ fill:#6b7280; font: 700 12px system-ui, -apple-system, Segoe UI, Roboto; letter-spacing: 0.06em; }}
+      .label {{ fill:#374151; font: 700 14px system-ui, -apple-system, Segoe UI, Roboto; letter-spacing: 0.06em; }}
       .valueBox {{ fill:#16a34a; stroke:#15803d; stroke-width:2; }}
       .value {{ fill:#ffffff; font: 900 22px system-ui, -apple-system, Segoe UI, Roboto; }}
-      .small {{ fill:#ffffff; font: 700 12px system-ui, -apple-system, Segoe UI, Roboto; opacity:0.95; }}
+      .small {{ fill:#ffffff; font: 700 14px system-ui, -apple-system, Segoe UI, Roboto; opacity:0.95; }}
       .resize-handle {{ fill:#111827; opacity:0.55; cursor:nwse-resize; }}
       .main-rect {{ cursor:move; }}
       .overlay {{ display: {"block" if edit_mode else "none"}; }}
@@ -556,8 +562,8 @@ def render_top_view_svg(
       .bag  {{ fill:#e5e7eb; stroke:#9ca3af; stroke-width:2; rx:12; }}
       .pill {{ fill:#16a34a; }}
       .pillText {{ fill:white; font: 700 22px system-ui, -apple-system, Segoe UI, Roboto; }}
-      .label {{ fill:#111827; font: 600 14px system-ui, -apple-system, Segoe UI, Roboto; }}
-      .small {{ fill:#374151; font: 500 12px system-ui, -apple-system, Segoe UI, Roboto; }}
+      .label {{ fill:#111827; font: 600 16px system-ui, -apple-system, Segoe UI, Roboto; }}
+      .small {{ fill:#1f2937; font: 500 14px system-ui, -apple-system, Segoe UI, Roboto; }}
     </style>
   </defs>
 
@@ -647,6 +653,7 @@ def main() -> None:
             format_registry_display_html,
             format_registry_list_item_html,
             format_affiliation_html,
+            affiliation_color,
             front_right_instructor_map,
             front_right_instructor_names,
             is_protected_name,
@@ -735,7 +742,7 @@ def main() -> None:
                     st.markdown("**期**")
                     st.markdown(
                         f"<div style='padding:0.35rem 0.6rem;border:1px solid #d1d5db;border-radius:0.4rem;"
-                        f"background:#f9fafb;'><span style='color:#d946ef;font-weight:700;'>"
+                        f"background:#f9fafb;'><span style='color:{affiliation_color(OHIBIRIN_AFFILIATION)};font-weight:700;'>"
                         f"{reg_cohort or '—'}</span></div>",
                         unsafe_allow_html=True,
                     )
@@ -1644,7 +1651,7 @@ def main() -> None:
                     y=y,
                     text=title,
                     showarrow=False,
-                    font=dict(color=ref_color, size=14),
+                    font=dict(color=ref_color, size=16),
                     yanchor="bottom",
                 )
             )
@@ -1684,7 +1691,7 @@ def main() -> None:
                     y=mlw,
                     text=f"MAX LDW {mlw:.0f}{unit_weight}",
                     showarrow=False,
-                    font=dict(color="#ef4444", size=14),
+                    font=dict(color="#ef4444", size=16),
                     yanchor="bottom",
                 )
             )
@@ -1707,7 +1714,7 @@ def main() -> None:
                     y=mtow,
                     text=f"MAX TOW {mtow:.0f}{unit_weight}",
                     showarrow=False,
-                    font=dict(color="#ef4444", size=12),
+                    font=dict(color="#ef4444", size=14),
                     yanchor="bottom",
                 )
             )
@@ -1724,12 +1731,13 @@ def main() -> None:
             showlegend=False,
             paper_bgcolor="#0b1220",
             plot_bgcolor="#0b1220",
+            font=dict(size=14, color="#e2e8f0"),
             shapes=shapes,
             annotations=ann,
         )
         fig.update_xaxes(
             showgrid=True,
-            gridcolor="rgba(148,163,184,0.25)",
+            gridcolor="rgba(148,163,184,0.35)",
             zeroline=False,
             tickformat=".2f",
             tickmode="array",
@@ -1738,7 +1746,7 @@ def main() -> None:
             minor=dict(
                 dtick=0.01,
                 showgrid=True,
-                gridcolor="rgba(148,163,184,0.12)",
+                gridcolor="rgba(148,163,184,0.22)",
             ),
         )
         fig.update_xaxes(range=[2.30, 2.50])

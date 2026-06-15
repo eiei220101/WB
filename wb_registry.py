@@ -15,9 +15,9 @@ DEFAULT_OHIBIRIN_COHORT = "15期"
 OHIBIRIN_AFFILIATION = "桜美林"
 
 AFFILIATION_COLORS: dict[str, str] = {
-    OHIBIRIN_AFFILIATION: "#d946ef",
-    DEFAULT_AFFILIATION: "#2563eb",
-    "JCAB": "#16a34a",
+    OHIBIRIN_AFFILIATION: "#a21caf",
+    DEFAULT_AFFILIATION: "#1d4ed8",
+    "JCAB": "#15803d",
 }
 
 DEFAULT_REGISTRY: list[dict[str, float | str]] = [
@@ -256,7 +256,7 @@ def format_registry_list_item_html(
     line = format_registry_display_html(entry)
     if str(entry.get("affiliation", DEFAULT_AFFILIATION)) == "JCAB":
         weight = float(entry.get("weight", 0.0))
-        line += f' <span style="color:#6b7280;">{weight:.1f} {unit_weight}</span>'
+        line += f' <span style="color:#4b5563;">{weight:.1f} {unit_weight}</span>'
     return line
 
 
