@@ -1441,6 +1441,13 @@ def main() -> None:
     LIMIT_TOW = float(mtow or 0.0) if mtow else 0.0
     LIMIT_LDG = float(mlw or 0.0) if mlw else 0.0
 
+    ldg1_weight = float(ldg1_row.get("weight", 0.0) or 0.0)
+    ldg2_weight = float(ldg2_row.get("weight", 0.0) or 0.0)
+    ldg1_overrun = max(0.0, ldg1_weight - LIMIT_LDG) if LIMIT_LDG > 0 else 0.0
+    ldg2_overrun = max(0.0, ldg2_weight - LIMIT_LDG) if LIMIT_LDG > 0 else 0.0
+    has_ldg_weight_overrun = ldg1_overrun > 0 or ldg2_overrun > 0
+    ldg_overrun_kg = max(ldg1_overrun, ldg2_overrun)
+
     def _row_color(name: str, weight: float, arm_mm: float | None) -> str | None:
         weight_limit: float | None = None
         if name == "ZERO FUEL MASS" and LIMIT_ZFM > 0:
@@ -1465,6 +1472,10 @@ def main() -> None:
         return "#b91c1c"
 
     def _limit_text(name: str) -> str:
+        if name == "LDG Weight（目的地空港着陸時）" and ldg1_overrun > 0:
+            return f"{ldg1_overrun:.1f}kg超過"
+        if name == "LDG Weight（帰投時）" and ldg2_overrun > 0:
+            return f"{ldg2_overrun:.1f}kg超過"
         # 52/53/55/56: ステーション制限（入力値制限）も表示
         if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
             if name == "Nose baggage":
@@ -1571,7 +1582,9 @@ def main() -> None:
     st.divider()
 
     if tail != "JA56DA":
-        with st.expander("燃料換算", expanded=False):
+        if has_ldg_weight_overrun:
+            st.session_state["fuel_convert_kg"] = ldg_overrun_kg
+        with st.expander("燃料換算", expanded=has_ldg_weight_overrun):
             st.caption("入力した燃料重量が、何 US gal / 何時間何分分かを表示します。")
 
             fuel_kg = st.number_input("燃料重量 [kg]", min_value=0.0, step=1.0, format="%.1f", key="fuel_convert_kg")
