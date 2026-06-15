@@ -1467,7 +1467,12 @@ def main() -> None:
             fuel_used_gal = max(0.0, (minutes / 60.0) * 10.0)
             fuel_used_kg = fuel_used_gal * fuel_kg_per_usg
             ldg_w = max(0.0, ldg_w_at_fukushima - fuel_used_kg)
-            return f"OK（{_fmt_hm_from_minutes(minutes)} / {fuel_used_gal:.1f}gal / LDG W {ldg_w:.1f}kg）"
+            return (
+                f"OK\n"
+                f"{_fmt_hm_from_minutes(minutes)}\n"
+                f"使用燃料 {fuel_used_gal:.1f}gal\n"
+                f"当該空港着陸時重量 {ldg_w:.1f}kg"
+            )
         return "NG"
 
     dvt_df["GS120kt"] = dvt_df["距離 [NM]"].apply(lambda d: _ok_with_time(float(d), 120.0, max_nm_120))
@@ -1486,6 +1491,7 @@ def main() -> None:
     dvt_styled = (
         dvt_df.style.hide(axis="index")
         .set_properties(**{"text-align": "center"})
+        .set_properties(subset=["GS120kt", "GS140kt"], **{"white-space": "pre-line"})
         .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
         .map(_okng_style, subset=["GS120kt", "GS140kt"])
     )

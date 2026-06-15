@@ -381,9 +381,15 @@ def build_direct_pdf(
         c.drawString(m_l, dvt_title_y, "DVT候補（10.0 GAL/hr / RJSFからの各距離・無風状態）")
 
         dvt_rows = page2.get("dvt_rows") or []
+        s_dvt = ParagraphStyle("dvt", parent=s_jp, fontSize=9, leading=11, alignment=1)
+
+        def _dvt_cell(text: str) -> Paragraph:
+            html = str(text).replace("\n", "<br/>")
+            return Paragraph(html, s_dvt)
+
         dvt_data = [[Paragraph("空港", s_jp), Paragraph("距離", s_jp), Paragraph("GS120kt", s_jp), Paragraph("GS140kt", s_jp)]]
         for r in dvt_rows:
-            dvt_data.append([Paragraph(str(r[0]), s_jp), str(r[1]), Paragraph(str(r[2]), s_jp), Paragraph(str(r[3]), s_jp)])
+            dvt_data.append([Paragraph(str(r[0]), s_jp), str(r[1]), _dvt_cell(r[2]), _dvt_cell(r[3])])
 
         # style OK/NG
         ts = [("GRID", (0, 0), (-1, -1), 0.6, colors.black), ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke)]
@@ -405,8 +411,8 @@ def build_direct_pdf(
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                     ("LEFTPADDING", (0, 0), (-1, -1), 3),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 3),
-                    ("TOPPADDING", (0, 0), (-1, -1), 2),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
                 ]
             ),
         )
