@@ -199,6 +199,10 @@ _TABLE_TH_PROPS: list[tuple[str, str]] = [
 _WEIGHT_MODE_MANUAL = "体重を入力/選択"
 _WEIGHT_MODE_MANUAL_LEGACY = "体重を入力"
 
+_DEICE_MODE_OPTIONS: tuple[str, ...] = ("0L", "22L", "30L", "任意の量を入力")
+_DEICE_MODE_CUSTOM = "任意の量を入力"
+_DEICE_MODE_LEGACY_RANGE = "22L〜30L"
+
 
 def parse_points(raw) -> list[tuple[float, float]]:
     """
@@ -1225,21 +1229,34 @@ def main() -> None:
     with col2:
         st.markdown("**De-ice / 液体**")
         if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
-            # 従来UI: 0L / 22L〜30L の切替 + 数値入力（デフォルトは 22L）
+            if st.session_state.get("deice_mode") == _DEICE_MODE_LEGACY_RANGE:
+                st.session_state["deice_mode"] = _DEICE_MODE_CUSTOM
+
             cur = float(_ss_num("deice_l", 22.0))
-            if (cur != 0.0) and not (22.0 <= cur <= 30.0):
-                cur = 22.0
+            if cur == 0.0:
+                deice_mode_index = 0
+            elif cur == 22.0:
+                deice_mode_index = 1
+            elif cur == 30.0:
+                deice_mode_index = 2
+            elif 22.0 <= cur <= 30.0:
+                deice_mode_index = 3
+            else:
                 st.session_state["deice_l"] = 22.0
+                deice_mode_index = 1
 
             mode = st.radio(
                 "De-ice 入力モード",
-                ["0L", "22L〜30L"],
-                horizontal=True,
-                index=(0 if cur == 0.0 else 1),
+                list(_DEICE_MODE_OPTIONS),
+                index=deice_mode_index,
                 key="deice_mode",
             )
             if mode == "0L":
                 st.session_state["deice_l"] = 0.0
+            elif mode == "22L":
+                st.session_state["deice_l"] = 22.0
+            elif mode == "30L":
+                st.session_state["deice_l"] = 30.0
             else:
                 st.number_input("De-ice fluid [L]", min_value=22.0, max_value=30.0, step=1.0, format="%.1f", key="deice_l")
         else:
