@@ -119,6 +119,56 @@ st.markdown(
         margin-bottom: 0.85rem !important;
     }
 
+    /* 入力欄ラベル（座席・De-ice・燃料の見出しと同じ大きさ） */
+    section[data-testid="stMain"] [data-testid="stWidgetLabel"] p,
+    section[data-testid="stMain"] [data-testid="stWidgetLabel"] label {
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        color: #111827 !important;
+    }
+    section[data-testid="stMain"] [data-testid="column"] p strong {
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        color: #111827 !important;
+    }
+
+    /* 重量入力のグレー枠内の白い線を除去 */
+    section[data-testid="stMain"] [data-testid="stNumberInput"] > div,
+    section[data-testid="stMain"] [data-testid="stNumberInputContainer"] {
+        background-color: #e5e7eb !important;
+        border: 1px solid #9ca3af !important;
+        border-radius: 0.375rem !important;
+    }
+    section[data-testid="stMain"] [data-testid="stNumberInput"] input,
+    section[data-testid="stMain"] [data-testid="stNumberInputField"] {
+        background-color: #e5e7eb !important;
+        color: #111827 !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    section[data-testid="stMain"] [data-testid="stNumberInput"] button {
+        background-color: #d1d5db !important;
+        color: #111827 !important;
+        border: none !important;
+        border-left: 1px solid #9ca3af !important;
+        box-shadow: none !important;
+    }
+    section[data-testid="stMain"] [data-testid="stNumberInput"] [data-baseweb="input"],
+    section[data-testid="stMain"] [data-testid="stNumberInput"] [data-baseweb="input"] > div {
+        background-color: #e5e7eb !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    section[data-testid="stMain"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+        background-color: #e5e7eb !important;
+        border: 1px solid #9ca3af !important;
+        border-radius: 0.375rem !important;
+    }
+    section[data-testid="stMain"] [data-testid="stSelectbox"] [data-baseweb="select"] > div > div {
+        background-color: #e5e7eb !important;
+        border: none !important;
+    }
+
     /* カラム内の縦方向の詰まりを緩和 */
     section[data-testid="stMain"] [data-testid="column"] {
         padding-top: 0.2rem;
