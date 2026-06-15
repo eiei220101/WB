@@ -1493,28 +1493,26 @@ def main() -> None:
     # スクロールさせず、スタイルが確実に効く表示（table）
     st.table(out_styled)
 
-    if tail != "JA56DA":
-        st.divider()
-        st.subheader("燃料換算")
-        st.caption("入力した燃料重量が、何 US gal / 何時間何分分かを表示します。")
-
-        fuel_kg = st.number_input("燃料重量 [kg]", min_value=0.0, step=1.0, format="%.1f", key="fuel_convert_kg")
-        fuel_gal = (fuel_kg / fuel_kg_per_usg) if fuel_kg_per_usg > 0 else 0.0
-
-        def _hm(hours: float) -> str:
-            mins = int(max(0.0, float(hours)) * 60.0)
-            return f"{mins // 60}時間{mins % 60}分"
-
-        h10 = _hm(fuel_gal / 10.0) if 10.0 > 0 else "0時間0分"
-        h166 = _hm(fuel_gal / 16.6) if 16.6 > 0 else "0時間0分"
-
-        fc1, fc2, fc3 = st.columns(3)
-        fc1.metric("換算燃料 [US gal]", f"{fuel_gal:.1f}")
-        fc2.metric("10.0 GAL/hr", h10)
-        fc3.metric("16.6 GAL/hr", h166)
-
     st.divider()
-    st.subheader("福島帰投時燃料")
+
+    if tail != "JA56DA":
+        with st.expander("燃料換算", expanded=False):
+            st.caption("入力した燃料重量が、何 US gal / 何時間何分分かを表示します。")
+
+            fuel_kg = st.number_input("燃料重量 [kg]", min_value=0.0, step=1.0, format="%.1f", key="fuel_convert_kg")
+            fuel_gal = (fuel_kg / fuel_kg_per_usg) if fuel_kg_per_usg > 0 else 0.0
+
+            def _hm(hours: float) -> str:
+                mins = int(max(0.0, float(hours)) * 60.0)
+                return f"{mins // 60}時間{mins % 60}分"
+
+            h10 = _hm(fuel_gal / 10.0) if 10.0 > 0 else "0時間0分"
+            h166 = _hm(fuel_gal / 16.6) if 16.6 > 0 else "0時間0分"
+
+            fc1, fc2, fc3 = st.columns(3)
+            fc1.metric("換算燃料 [US gal]", f"{fuel_gal:.1f}")
+            fc2.metric("10.0 GAL/hr", h10)
+            fc3.metric("16.6 GAL/hr", h166)
 
     remain_gal = max(main_fuel_gal - taxi_burn_gal - flight_burn_gal - return_burn_gal, 0.0)
 
@@ -1528,17 +1526,14 @@ def main() -> None:
     endurance_10 = _fmt_hm_from_hours(endurance_hours_10)
     endurance_166 = _fmt_hm_from_hours(remain_gal / 16.6)
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("福島帰投時残燃料 [US gal]", f"{remain_gal:.1f}")
-    c2.metric("10.0 GAL/hr", endurance_10)
-    c3.metric("16.6 GAL/hr", endurance_166)
+    with st.expander("福島帰投時燃料", expanded=False):
+        c1, c2, c3 = st.columns(3)
+        c1.metric("福島帰投時残燃料 [US gal]", f"{remain_gal:.1f}")
+        c2.metric("10.0 GAL/hr", endurance_10)
+        c3.metric("16.6 GAL/hr", endurance_166)
 
-    st.subheader("DVT候補（10.0 GAL/hr）")
     max_nm_120 = max(0.0, endurance_hours_10) * 120.0
     max_nm_140 = max(0.0, endurance_hours_10) * 140.0
-    d1, d2 = st.columns(2)
-    d1.metric("GS 120 kt 到達可能距離 [NM]", f"{max_nm_120:.1f}")
-    d2.metric("GS 140 kt 到達可能距離 [NM]", f"{max_nm_140:.1f}")
 
     divert = [
         {"空港": "RJSS", "名称": "仙台空港", "距離 [NM]": 61.0},
@@ -1553,6 +1548,7 @@ def main() -> None:
     ]
     dvt_df = pd.DataFrame(divert)
     dvt_df["空港"] = dvt_df.apply(lambda r: f"{r['空港']} {r['名称']}", axis=1)
+
     def _fmt_hm_from_minutes(total_minutes: float) -> str:
         mins = int(max(0.0, float(total_minutes)))
         h = mins // 60
@@ -1591,8 +1587,13 @@ def main() -> None:
         .set_table_styles([{"selector": "th", "props": _TABLE_TH_PROPS}])
         .map(_okng_style, subset=["GS120kt", "GS140kt"])
     )
-    st.caption("RJSFからの各距離・無風状態")
-    st.table(dvt_styled)
+
+    with st.expander("DVT候補（10.0 GAL/hr）", expanded=False):
+        d1, d2 = st.columns(2)
+        d1.metric("GS 120 kt 到達可能距離 [NM]", f"{max_nm_120:.1f}")
+        d2.metric("GS 140 kt 到達可能距離 [NM]", f"{max_nm_140:.1f}")
+        st.caption("RJSFからの各距離・無風状態")
+        st.table(dvt_styled)
 
     st.divider()
     st.subheader("CGエンベロープ")
