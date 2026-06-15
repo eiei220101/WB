@@ -1471,11 +1471,19 @@ def main() -> None:
             return "#15803d"
         return "#b91c1c"
 
+    def _ldg_limit_text(overrun: float) -> str:
+        if LIMIT_LDG <= 0:
+            return ""
+        base = f"{LIMIT_LDG:.0f}kg"
+        if overrun > 0:
+            return f"{base} / {overrun:.1f}kg超過"
+        return base
+
     def _limit_text(name: str) -> str:
-        if name == "LDG Weight（目的地空港着陸時）" and ldg1_overrun > 0:
-            return f"{ldg1_overrun:.1f}kg超過"
-        if name == "LDG Weight（帰投時）" and ldg2_overrun > 0:
-            return f"{ldg2_overrun:.1f}kg超過"
+        if name == "LDG Weight（目的地空港着陸時）":
+            return _ldg_limit_text(ldg1_overrun)
+        if name == "LDG Weight（帰投時）":
+            return _ldg_limit_text(ldg2_overrun)
         # 52/53/55/56: ステーション制限（入力値制限）も表示
         if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
             if name == "Nose baggage":
@@ -1490,16 +1498,12 @@ def main() -> None:
                 return f"{LIMIT_ZFM:.0f}kg"
             if name == "TAKE OFF WEIGHT" and LIMIT_TOW > 0:
                 return f"{LIMIT_TOW:.0f}kg"
-            if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"} and LIMIT_LDG > 0:
-                return f"{LIMIT_LDG:.0f}kg"
             return ""
 
         if name == "ZERO FUEL MASS" and LIMIT_ZFM > 0:
             return f"{LIMIT_ZFM:.0f}kg"
         if name == "TAKE OFF WEIGHT" and LIMIT_TOW > 0:
             return f"{LIMIT_TOW:.0f}kg"
-        if name in {"LDG Weight（目的地空港着陸時）", "LDG Weight（帰投時）"} and LIMIT_LDG > 0:
-            return f"{LIMIT_LDG:.0f}kg"
         return ""
 
     out = pd.DataFrame(
