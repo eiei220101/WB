@@ -917,9 +917,9 @@ def main() -> None:
         arms["rear_seat_right"] = 3250.0
 
     if tail:
-        st.subheader(f"選択機体: {tail}")
+        st.subheader(f"選択機材: {tail}")
     else:
-        st.subheader("選択機体")
+        st.subheader("選択機材")
         st.warning("未選択です。サイドバーで機体を選んでください。")
 
     fuel_kg_per_usg = 3.028
