@@ -35,6 +35,14 @@ def _pick_font(text: str) -> str:
         return _ensure_jp_font()
 
 
+def _is_wb_summary_row(item: str) -> bool:
+    """ZFM / T/O / LDG の合計行を判定（表記ゆれに対応）。"""
+    key = str(item).strip().upper()
+    if key in {"ZERO FUEL MASS", "ZERO FUEL WEIGHT", "TKOF WEIGHT"}:
+        return True
+    return key.startswith("LDG WEIGHT") or key == "LDG WEIGHT"
+
+
 def build_direct_pdf(
     *,
     tail: str,
@@ -69,7 +77,7 @@ def build_direct_pdf(
     # --- Header (left/top) ---
     header_tbl = Table(
         [
-            [Paragraph("W&B・離着陸距離・性能確認シート", s_title)],
+            [Paragraph("WB・離着陸距離・性能確認シート", s_title)],
             [
                 Table(
                     [[Paragraph("ACFT TYPE", s_en), "DA42"], [Paragraph("IDENT", s_en), tail]],
@@ -96,24 +104,31 @@ def build_direct_pdf(
     header_tbl.drawOn(c, x_left, y_top - hh)
 
     # --- Main W&B table (left) ---
+    _cream = colors.HexColor("#FFF8E7")
+    _sky = colors.HexColor("#DBEAFE")
     main_data = [[Paragraph("Item", s_en), Paragraph("Level arm (m)", s_en), Paragraph("Mass (kg)", s_en), Paragraph("Moment (kgm)", s_en)]]
     for item, arm, mass, mom in rows:
         main_data.append([Paragraph(str(item), s_en), str(arm), str(mass), str(mom)])
+
+    main_style: list[tuple] = [
+        ("GRID", (0, 0), (-1, -1), 0.8, colors.black),
+        ("BACKGROUND", (0, 0), (-1, 0), _cream),
+        ("FONT", (0, 0), (-1, 0), "Helvetica-Bold", 9),
+        ("FONT", (1, 1), (-1, -1), "Helvetica", 9),
+        ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 3),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+    ]
+    for row_idx, (item, *_rest) in enumerate(rows, start=1):
+        if _is_wb_summary_row(item):
+            main_style.append(("BACKGROUND", (0, row_idx), (-1, row_idx), _sky))
+            main_style.append(("FONT", (0, row_idx), (-1, row_idx), "Helvetica-Bold", 9))
+
     main_tbl = Table(
         main_data,
         colWidths=[56 * mm, 22 * mm, 22 * mm, 25 * mm],
-        style=TableStyle(
-            [
-                ("GRID", (0, 0), (-1, -1), 0.8, colors.black),
-                ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
-                ("FONT", (0, 0), (-1, 0), "Helvetica-Bold", 9),
-                ("FONT", (1, 1), (-1, -1), "Helvetica", 9),
-                ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 3),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 3),
-            ]
-        ),
+        style=TableStyle(main_style),
     )
     tw, th = main_tbl.wrapOn(c, left_w, page_h)
     # IDENT の下に2行ぶん余白を作る
