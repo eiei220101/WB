@@ -1584,7 +1584,7 @@ def main() -> None:
     if tail != "JA56DA":
         if has_ldg_weight_overrun:
             st.session_state["fuel_convert_kg"] = ldg_overrun_kg
-        with st.expander("燃料換算", expanded=has_ldg_weight_overrun):
+        with st.expander("燃料換算[ kg to gal/time]", expanded=has_ldg_weight_overrun):
             st.caption("入力した燃料重量が、何 US gal / 何時間何分分かを表示します。")
 
             fuel_kg = st.number_input("燃料重量 [kg]", min_value=0.0, step=1.0, format="%.1f", key="fuel_convert_kg")
