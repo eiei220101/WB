@@ -146,6 +146,20 @@ def build_direct_pdf(
         "",
         "※    燃料消費量（片ENG）",
     ]
+    s_notes = ParagraphStyle("notes", parent=s_jp, fontSize=7.5, leading=9)
+    notes_tbl = Table(
+        [[Paragraph(line if line else " ", s_notes)] for line in notes_lines],
+        colWidths=[left_w],
+        style=TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        ),
+    )
     fuel_tbl = Table(
         [
             [Paragraph("パワー設定", s_jp), Paragraph("US gal", s_en), Paragraph("kg", s_en)],
@@ -163,36 +177,16 @@ def build_direct_pdf(
         "使用不能燃料　　Main ( 2 x 3.8litrs = 2 × 1 Usgal )",
         "　　　　　      Aux ( 2 x 1.9litrs = 2 × 0.5 Usgal )",
     ]
-
-    # notes start just below main table
-    y_notes = (y_tbl_top - th) - 8 * mm
-    min_y = y_bottom + 10 * mm
-    c.setFont(jp, 7.5)
-    for line in notes_lines:
-        if y_notes < min_y:
-            break
-        c.drawString(x_left, y_notes, line)
-        y_notes -= 3.6 * mm
-
-    # 燃料消費の表（枠付き）を必ず描画
-    fw, fh = fuel_tbl.wrapOn(c, left_w, 80 * mm)
-    fuel_x = x_left  # 内訳表の左辺と揃える
-    fuel_y = y_notes - fh + 2 * mm
-    if fuel_y < min_y:
-        fuel_y = min_y
-    fuel_tbl.drawOn(c, fuel_x, fuel_y)
-
-    # 右側の空きに、枠付きで説明文を入れる
-    box_gap = 4 * mm
-    box_x = fuel_x + fw + box_gap
-    box_w = max(10 * mm, left_w - (box_x - x_left))
+    gap_notes = 3 * mm
+    gap_cols = 3 * mm
+    fuel_col_w = 62 * mm
+    extra_col_w = max(20 * mm, left_w - fuel_col_w - gap_cols)
     extra_tbl = Table(
-        [[Paragraph(l, s_jp)] for l in extra_lines],
-        colWidths=[box_w],
+        [[Paragraph(l, s_notes)] for l in extra_lines],
+        colWidths=[extra_col_w],
         style=TableStyle(
             [
                 ("BOX", (0, 0), (-1, -1), 0.8, colors.black),
-                ("FONT", (0, 0), (-1, -1), jp, 7.5),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
                 ("LEFTPADDING", (0, 0), (-1, -1), 3),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 3),
@@ -201,10 +195,29 @@ def build_direct_pdf(
             ]
         ),
     )
-    ew, eh = extra_tbl.wrapOn(c, box_w, fh)
-    # 燃料表と同じ上端に揃える（高さが足りない場合は下に合わせる）
-    extra_y = fuel_y + max(0.0, fh - eh)
-    extra_tbl.drawOn(c, box_x, extra_y)
+
+    _, notes_h = notes_tbl.wrapOn(c, left_w, page_h)
+    fw, fh = fuel_tbl.wrapOn(c, fuel_col_w, page_h)
+    ew, eh = extra_tbl.wrapOn(c, extra_col_w, page_h)
+    row_h = max(fh, eh)
+
+    y_area_top = (y_tbl_top - th) - 6 * mm
+    y_notes_top = y_area_top
+    y_notes_bottom = y_notes_top - notes_h
+    y_row_top = y_notes_bottom - gap_notes
+    y_row_bottom = y_row_top - row_h
+
+    min_bottom = y_bottom + 6 * mm
+    if y_row_bottom < min_bottom:
+        shift = min_bottom - y_row_bottom
+        y_notes_top += shift
+        y_notes_bottom += shift
+        y_row_top += shift
+        y_row_bottom += shift
+
+    notes_tbl.drawOn(c, x_left, y_notes_bottom)
+    fuel_tbl.drawOn(c, x_left, y_row_top - fh)
+    extra_tbl.drawOn(c, x_left + fw + gap_cols, y_row_top - eh)
 
     # --- Right/top: envelope image (fixed box) ---
     # 右側は「左表の下端」と揃える：性能枠の上辺＝左表の下端
