@@ -917,7 +917,10 @@ def main() -> None:
         arms["rear_seat_right"] = 3250.0
 
     st.subheader("入力")
-    st.caption("燃料は **US gal** で入力（1 US gal = 3.028 kg）。De-ice は **L** 入力（1 L = 1.1 kg）。")
+    if tail:
+        st.markdown(f"**登録記号: {tail}**")
+    else:
+        st.warning("登録記号が未選択です。サイドバーで機体を選んでください。")
 
     fuel_kg_per_usg = 3.028
 
