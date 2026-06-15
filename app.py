@@ -46,25 +46,50 @@ st.markdown(
         background-color: #ffffff;
     }
 
-    /* 見出し */
+    /* 見出し（メイン領域のみ下線・余白を確保して被りを防ぐ） */
     h1 {
         font-weight: 700 !important;
         color: #030712 !important;
+        margin-bottom: 0.85rem !important;
     }
-    h2, h3 {
+    section[data-testid="stMain"] h2,
+    section[data-testid="stMain"] h3 {
         font-weight: 700 !important;
         color: #111827 !important;
         border-bottom: 2px solid #d1d5db;
-        padding-bottom: 0.3rem;
-        margin-top: 1.1rem;
+        padding-bottom: 0.45rem;
+        margin-top: 1.25rem;
+        margin-bottom: 1rem !important;
+    }
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3 {
+        border-bottom: none !important;
+        padding-bottom: 0 !important;
+        margin-bottom: 0.65rem !important;
     }
 
-    /* 区切り線 */
-    hr {
-        margin: 1.25rem 0 !important;
+    /* 区切り線（前後に余白） */
+    [data-testid="stDivider"] {
+        margin-top: 1.5rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+    hr,
+    [data-testid="stDivider"] hr {
+        margin: 0 !important;
         border: none !important;
         border-top: 2px solid #9ca3af !important;
         opacity: 1 !important;
+    }
+
+    /* 見出し直後のコンテンツとの間隔 */
+    section[data-testid="stMain"] [data-testid="stSubheader"],
+    section[data-testid="stMain"] [data-testid="stHeader"] {
+        margin-bottom: 0.35rem !important;
+    }
+    [data-testid="stCaptionContainer"] {
+        margin-top: 0.4rem !important;
+        margin-bottom: 0.65rem !important;
     }
 
     /* メトリクス */
@@ -73,6 +98,8 @@ st.markdown(
         border: 1px solid #9ca3af !important;
         border-radius: 0.5rem !important;
         padding: 0.65rem 0.85rem !important;
+        margin-bottom: 0.5rem !important;
+        box-sizing: border-box !important;
     }
     [data-testid="stMetricLabel"] {
         color: #374151 !important;
@@ -83,11 +110,19 @@ st.markdown(
         font-weight: 700 !important;
     }
 
-    /* テーブル枠 */
+    /* テーブル枠（内側の罫線と二重にならないよう外枠のみ） */
     [data-testid="stTable"] > div {
         border: 1px solid #9ca3af !important;
         border-radius: 0.375rem !important;
         overflow: hidden !important;
+        margin-top: 0.6rem !important;
+        margin-bottom: 0.85rem !important;
+    }
+
+    /* カラム内の縦方向の詰まりを緩和 */
+    section[data-testid="stMain"] [data-testid="column"] {
+        padding-top: 0.2rem;
+        padding-bottom: 0.2rem;
     }
 
     /* 補足テキスト（本文より一段明るいグレー） */
@@ -108,7 +143,7 @@ _TABLE_TH_PROPS: list[tuple[str, str]] = [
     ("background-color", "#d1d5db"),
     ("color", "#111827"),
     ("font-weight", "700"),
-    ("border", "1px solid #9ca3af"),
+    ("border-bottom", "2px solid #9ca3af"),
 ]
 
 
