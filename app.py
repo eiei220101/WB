@@ -196,6 +196,9 @@ _TABLE_TH_PROPS: list[tuple[str, str]] = [
     ("border-bottom", "2px solid #9ca3af"),
 ]
 
+_WEIGHT_MODE_MANUAL = "体重を入力"
+_WEIGHT_SELECT_LABEL = "体重を入力/選択"
+
 
 def parse_points(raw) -> list[tuple[float, float]]:
     """
@@ -1095,21 +1098,22 @@ def main() -> None:
         name_to_display: dict[str, str],
         display_entry_map: dict[str, dict[str, float | str]],
     ) -> None:
-        options = ["体重を入力"] + list(registry_display_map.keys())
+        st.markdown(f"**{seat_label}**")
+        options = [_WEIGHT_MODE_MANUAL] + list(registry_display_map.keys())
         prev_mode_key = f"{mode_key}__prev"
         prev_mode = st.session_state.get(prev_mode_key)
         current_mode = st.session_state.get(mode_key)
         if current_mode in front_right_instructor_names():
-            st.session_state[mode_key] = "体重を入力"
+            st.session_state[mode_key] = _WEIGHT_MODE_MANUAL
         elif current_mode == "増本教官":
-            st.session_state[mode_key] = "体重を入力"
+            st.session_state[mode_key] = _WEIGHT_MODE_MANUAL
         elif current_mode in name_to_display:
             st.session_state[mode_key] = name_to_display[current_mode]
         elif current_mode not in options:
-            st.session_state[mode_key] = "体重を入力"
-        mode = st.selectbox(seat_label, options, key=mode_key)
-        if mode == "体重を入力":
-            if prev_mode not in (None, "体重を入力"):
+            st.session_state[mode_key] = _WEIGHT_MODE_MANUAL
+        mode = st.selectbox(_WEIGHT_SELECT_LABEL, options, key=mode_key)
+        if mode == _WEIGHT_MODE_MANUAL:
+            if prev_mode not in (None, _WEIGHT_MODE_MANUAL):
                 st.session_state[weight_key] = 0.0
                 st.session_state.pop(manual_key, None)
             v = st.number_input(
@@ -1171,13 +1175,14 @@ def main() -> None:
             name_to_display=front_l_name_to_display,
             display_entry_map=registry_display_entries,
         )
-        front_r_options = ["体重を入力"] + front_right_instructor_names()
+        front_r_options = [_WEIGHT_MODE_MANUAL] + front_right_instructor_names()
         if st.session_state.get("front_r_mode") == "増本教官":
             st.session_state["front_r_mode"] = "増元教官"
         if st.session_state.get("front_r_mode") not in front_r_options:
-            st.session_state["front_r_mode"] = "体重を入力"
-        front_r_mode = st.selectbox("Front seat R", front_r_options, key="front_r_mode")
-        if front_r_mode == "体重を入力":
+            st.session_state["front_r_mode"] = _WEIGHT_MODE_MANUAL
+        st.markdown(f"**Front seat R [{unit_weight}]**")
+        front_r_mode = st.selectbox(_WEIGHT_SELECT_LABEL, front_r_options, key="front_r_mode")
+        if front_r_mode == _WEIGHT_MODE_MANUAL:
             v = st.number_input(
                 f"Front seat R [{unit_weight}]（体重）",
                 min_value=0.0,
