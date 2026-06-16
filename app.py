@@ -182,6 +182,12 @@ st.markdown(
         color: #4b5563 !important;
         line-height: 1.55;
     }
+
+    /* 登録者プルダウン（所属タグ色） */
+    .wb-sel-ohibirin, .wb-sel-ohibirin span { color: #a21caf !important; font-weight: 700 !important; }
+    .wb-sel-jcab, .wb-sel-jcab span { color: #15803d !important; font-weight: 700 !important; }
+    .wb-sel-general, .wb-sel-general span { color: #1d4ed8 !important; font-weight: 700 !important; }
+    .wb-sel-name, .wb-sel-name span { color: #111827 !important; font-weight: 500 !important; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -204,6 +210,94 @@ _REAR_RIGHT_SEAT_AFFILIATIONS: tuple[str, ...] = ("桜美林", "JCAB")
 _DEICE_MODE_OPTIONS: tuple[str, ...] = ("0L", "22L", "30L", "任意の量を入力")
 _DEICE_MODE_CUSTOM = "任意の量を入力"
 _DEICE_MODE_LEGACY_RANGE = "22L〜30L"
+
+
+def _inject_colored_select_options() -> None:
+    """登録者・所属プルダウンの選択肢に所属色を付ける。"""
+    components.html(
+        """
+<script>
+(function() {
+  const MANUAL = "体重を入力/選択";
+  const MANUAL_LEGACY = "体重を入力";
+
+  function kind(text) {
+    const t = (text || "").trim();
+    if (!t || t === MANUAL || t === MANUAL_LEGACY) return null;
+    if (t === "桜美林" || t.startsWith("[FO")) return "ohibirin";
+    if (t === "JCAB" || t.startsWith("[JCAB]")) return "jcab";
+    if (t === "一般" || t.startsWith("[一般]") || t.endsWith("教官")) return "general";
+    return null;
+  }
+
+  function tagKind(tag) {
+    if (tag.startsWith("[FO")) return "ohibirin";
+    if (tag === "[JCAB]") return "jcab";
+    if (tag === "[一般]") return "general";
+    return null;
+  }
+
+  function paintRegistrySplit(el, text) {
+    const m = text.match(/^(\\[[^\\]]+\\])\\s+(.+)$/);
+    if (!m) return false;
+    const tk = tagKind(m[1]);
+    if (!tk) return false;
+    const html =
+      '<span class="wb-sel-' + tk + '">' + m[1] + '</span> ' +
+      '<span class="wb-sel-name">' + m[2] + '</span>';
+    if (el.dataset.wbColored !== text) {
+      el.innerHTML = html;
+      el.dataset.wbColored = text;
+    }
+    return true;
+  }
+
+  function paintSimple(el, text) {
+    const k = kind(text);
+    if (!k) return;
+    el.classList.remove("wb-sel-ohibirin", "wb-sel-jcab", "wb-sel-general", "wb-sel-name");
+    el.classList.add("wb-sel-" + k);
+    el.dataset.wbColored = text;
+  }
+
+  function paintListItem(li) {
+    const text = (li.textContent || "").trim();
+    if (!text) return;
+    li.classList.remove("wb-sel-ohibirin", "wb-sel-jcab", "wb-sel-general", "wb-sel-name");
+    if (paintRegistrySplit(li, text)) return;
+    paintSimple(li, text);
+    li.querySelectorAll("span").forEach((span) => paintSimple(span, text));
+  }
+
+  function paintSelected() {
+    document.querySelectorAll('[data-testid="stSelectbox"] [data-baseweb="select"] > div > div').forEach((box) => {
+      box.querySelectorAll("span").forEach((span) => {
+        const text = (span.textContent || "").trim();
+        if (!text || text === MANUAL || text === MANUAL_LEGACY) {
+          span.classList.remove("wb-sel-ohibirin", "wb-sel-jcab", "wb-sel-general", "wb-sel-name");
+          span.removeAttribute("data-wb-colored");
+          return;
+        }
+        span.classList.remove("wb-sel-ohibirin", "wb-sel-jcab", "wb-sel-general", "wb-sel-name");
+        if (!paintRegistrySplit(span, text)) paintSimple(span, text);
+      });
+    });
+  }
+
+  function run() {
+    document.querySelectorAll('div[data-baseweb="popover"] ul li').forEach(paintListItem);
+    paintSelected();
+  }
+
+  const obs = new MutationObserver(() => run());
+  obs.observe(document.body, { childList: true, subtree: true });
+  run();
+  window.addEventListener("click", () => setTimeout(run, 40));
+})();
+</script>
+        """,
+        height=0,
+    )
 
 
 def parse_points(raw) -> list[tuple[float, float]]:
@@ -853,7 +947,6 @@ def main() -> None:
                 opacity: 1 !important;
                 filter: none !important;
                 transform: none !important;
-                color: #111827 !important;
             }
             </style>
             """,
@@ -1021,6 +1114,7 @@ def main() -> None:
             selected = {}
 
     st.title("DA42 WB")
+    _inject_colored_select_options()
     st.markdown('<div id="topview"></div>', unsafe_allow_html=True)
     st.caption(
         "基準点（Datum）からの距離を「アーム」として入力します。"

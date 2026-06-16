@@ -217,6 +217,20 @@ def affiliation_color(affiliation: str) -> str:
     return AFFILIATION_COLORS.get(str(affiliation).strip(), "#374151")
 
 
+def select_option_style_kind(label: str) -> str | None:
+    """プルダウン選択肢の所属色キー（ohibirin / jcab / general）。"""
+    text = str(label).strip()
+    if not text or text in ("体重を入力/選択", "体重を入力"):
+        return None
+    if text == OHIBIRIN_AFFILIATION or text.startswith("[FO"):
+        return "ohibirin"
+    if text == "JCAB" or text.startswith("[JCAB]"):
+        return "jcab"
+    if text == DEFAULT_AFFILIATION or text.startswith("[一般]") or text.endswith("教官"):
+        return "general"
+    return None
+
+
 def format_affiliation_html(affiliation: str) -> str:
     aff = str(affiliation).strip()
     color = affiliation_color(aff)
