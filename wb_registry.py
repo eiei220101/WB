@@ -226,7 +226,7 @@ def select_option_style_kind(label: str) -> str | None:
         return "ohibirin"
     if text == "JCAB" or text.startswith("[JCAB]"):
         return "jcab"
-    if text == DEFAULT_AFFILIATION or text.startswith("[一般]") or text.endswith("教官"):
+    if text == DEFAULT_AFFILIATION or text.startswith("[一般]"):
         return "general"
     return None
 

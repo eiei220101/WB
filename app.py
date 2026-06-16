@@ -231,8 +231,17 @@ def _select_colorizer_js() -> str:
     if (!t || t === MANUAL || t === MANUAL_LEGACY) return null;
     if (t === "桜美林" || t.startsWith("[FO")) return "ohibirin";
     if (t === "JCAB" || t.startsWith("[JCAB]")) return "jcab";
-    if (t === "一般" || t.startsWith("[一般]") || t.endsWith("教官")) return "general";
+    if (t === "一般" || t.startsWith("[一般]")) return "general";
     return null;
+  }}
+
+  function clearPaint(el) {{
+    if (!el.dataset.wbColored) return;
+    const plain = (el.textContent || "").trim();
+    el.textContent = plain;
+    el.style.removeProperty("color");
+    el.style.removeProperty("font-weight");
+    delete el.dataset.wbColored;
   }}
 
   function tagKind(tag) {{
@@ -259,34 +268,50 @@ def _select_colorizer_js() -> str:
 
   function paintSimple(el, text) {{
     const k = kind(text);
-    if (!k) return;
+    if (!k) {{
+      clearPaint(el);
+      return;
+    }}
     el.style.setProperty("color", COLORS[k], "important");
     el.style.setProperty("font-weight", "700", "important");
     el.dataset.wbColored = text;
   }}
 
-  function paintElement(el) {{
+  function paintPopoverItem(el) {{
     const text = (el.textContent || "").trim();
-    if (!text || text === MANUAL || text === MANUAL_LEGACY) return;
+    if (!text || text === MANUAL || text === MANUAL_LEGACY) {{
+      clearPaint(el);
+      return;
+    }}
     if (paintRegistrySplit(el, text)) return;
     paintSimple(el, text);
     el.querySelectorAll("span").forEach((span) => paintSimple(span, text));
+  }}
+
+  function paintClosedSelect(el) {{
+    const text = (el.textContent || "").trim();
+    if (!text || text === MANUAL || text === MANUAL_LEGACY) {{
+      clearPaint(el);
+      return;
+    }}
+    if (!kind(text)) {{
+      clearPaint(el);
+      return;
+    }}
+    paintSimple(el, text);
   }}
 
   function run(doc) {{
     const popoverItems = doc.querySelectorAll(
       '[data-baseweb="popover"] li, [data-baseweb="popover"] [role="option"], [role="listbox"] [role="option"]'
     );
-    popoverItems.forEach(paintElement);
+    popoverItems.forEach(paintPopoverItem);
 
     doc.querySelectorAll('[data-testid="stSelectbox"] [data-baseweb="select"]').forEach((selectEl) => {{
       selectEl.querySelectorAll("div, span").forEach((el) => {{
         if (el.closest("svg") || el.querySelector("svg")) return;
-        const text = (el.textContent || "").trim();
-        if (!text || text === MANUAL || text === MANUAL_LEGACY) return;
-        if (!kind(text) && !/^\\[[^\\]]+\\]\\s+/.test(text)) return;
         if (el.children.length > 3) return;
-        paintElement(el);
+        paintClosedSelect(el);
       }});
     }});
   }}
@@ -301,8 +326,8 @@ def _select_colorizer_js() -> str:
     }});
   }}
 
-  if (window.__wbSelectColorizerInstalled) return;
-  window.__wbSelectColorizerInstalled = true;
+  if (window.__wbSelectColorizerVer === 2) return;
+  window.__wbSelectColorizerVer = 2;
   const doc = document;
   run(doc);
   const obs = new MutationObserver(() => schedule(doc));
@@ -332,7 +357,7 @@ def _inject_colored_select_options() -> None:
 <script>
 (function() {{
   const pwin = window.parent;
-  if (pwin.__wbSelectColorizerInstalled) return;
+  if (pwin.__wbSelectColorizerVer === 2) return;
   const script = pwin.document.createElement("script");
   script.textContent = {js_escaped};
   pwin.document.head.appendChild(script);
@@ -1305,7 +1330,7 @@ def main() -> None:
             st.session_state["front_r_mode"] = _WEIGHT_MODE_MANUAL
             for pop_key in ("front_l_manual", "rear_r_manual", "front_r_manual"):
                 st.session_state.pop(pop_key, None)
-            for prev_key in ("front_l_mode__prev", "rear_r_mode__prev"):
+            for prev_key in ("front_l_mode__prev", "rear_r_mode__prev", "front_r_mode__prev"):
                 st.session_state.pop(prev_key, None)
             st.rerun()
 
@@ -1329,8 +1354,13 @@ def main() -> None:
             st.session_state["front_r_mode"] = "増元教官"
         if st.session_state.get("front_r_mode") not in front_r_options:
             st.session_state["front_r_mode"] = _WEIGHT_MODE_MANUAL
+        front_r_prev_key = "front_r_mode__prev"
+        front_r_prev = st.session_state.get(front_r_prev_key)
         front_r_mode = st.selectbox(f"Front seat R [{unit_weight}]", front_r_options, key="front_r_mode")
         if front_r_mode == _WEIGHT_MODE_MANUAL:
+            if front_r_prev not in (None, _WEIGHT_MODE_MANUAL, _WEIGHT_MODE_MANUAL_LEGACY):
+                st.session_state["front_r"] = 0.0
+                st.session_state.pop("front_r_manual", None)
             v = st.number_input(
                 f"Front seat R [{unit_weight}]（体重）",
                 min_value=0.0,
@@ -1344,6 +1374,7 @@ def main() -> None:
         else:
             st.session_state["front_r"] = float(instructor_map.get(front_r_mode, 0.0))
             st.caption(f"{front_r_mode}: **{st.session_state['front_r']:.1f} {unit_weight}**")
+        st.session_state[front_r_prev_key] = front_r_mode
         st.number_input(f"Rear seat L [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="rear_l")
         _seat_weight_from_registry(
             f"Rear seat R [{unit_weight}]",
