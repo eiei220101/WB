@@ -358,7 +358,8 @@ def seat_selectable_display_map_for_affiliations(
 ) -> dict[str, float]:
     """指定所属の登録者だけを、表示ラベル -> 体重 で返す。"""
     out: dict[str, float] = {}
-    for entry in _seat_entries_for_affiliations(entries, affiliations):
+    filtered = _seat_entries_for_affiliations(entries, affiliations)
+    for entry in sort_registry_entries_for_display(filtered):
         out[format_registry_display(entry)] = float(entry["weight"])
     return out
 
