@@ -1386,7 +1386,7 @@ def main() -> None:
             display_entry_map=registry_display_entries,
         )
 
-        st.markdown("**バゲッジ**")
+
         if tail in {"JA52DA", "JA53DA", "JA55DA", "JA56DA"}:
             st.number_input(f"Nose baggage [{unit_weight}]", min_value=0.0, max_value=30.0, step=1.0, format="%.1f", key="nose_bag")
             st.number_input(f"Cockpit baggage [{unit_weight}]", min_value=0.0, max_value=45.0, step=1.0, format="%.1f", key="cockpit_bag")
