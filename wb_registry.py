@@ -374,7 +374,7 @@ def seat_name_to_display_map_for_affiliations(
 
 
 FRONT_LEFT_AFFILIATIONS: tuple[str, ...] = (OHIBIRIN_AFFILIATION, DEFAULT_AFFILIATION)
-REAR_RIGHT_AFFILIATIONS: tuple[str, ...] = ("JCAB",)
+REAR_RIGHT_AFFILIATIONS: tuple[str, ...] = (OHIBIRIN_AFFILIATION, "JCAB")
 
 
 def seat_selectable_display_map(entries: list[dict[str, float | str]]) -> dict[str, float]:
