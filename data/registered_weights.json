@@ -100,5 +100,35 @@
     "weight": 72.0,
     "affiliation": "JCAB",
     "cohort": ""
+  },
+  {
+    "name": "石川",
+    "weight": 60.0,
+    "affiliation": "桜美林",
+    "cohort": "15期"
+  },
+  {
+    "name": "菊池",
+    "weight": 65.0,
+    "affiliation": "桜美林",
+    "cohort": "15期"
+  },
+  {
+    "name": "八坂",
+    "weight": 60.0,
+    "affiliation": "桜美林",
+    "cohort": "16期"
+  },
+  {
+    "name": "松岡",
+    "weight": 68.0,
+    "affiliation": "桜美林",
+    "cohort": "16期"
+  },
+  {
+    "name": "佐伯",
+    "weight": 70.0,
+    "affiliation": "桜美林",
+    "cohort": "16期"
   }
 ]
