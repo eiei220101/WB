@@ -204,8 +204,6 @@ _TABLE_TH_PROPS: list[tuple[str, str]] = [
 
 _WEIGHT_MODE_MANUAL = "体重を入力/選択"
 _WEIGHT_MODE_MANUAL_LEGACY = "体重を入力"
-# Rear seat R: 桜美林 + JCAB（wb_registry の import キャッシュに依存しない）
-_REAR_RIGHT_SEAT_AFFILIATIONS: tuple[str, ...] = ("桜美林", "JCAB")
 
 _DEICE_MODE_OPTIONS: tuple[str, ...] = ("0L", "22L", "30L", "任意の量を入力")
 _DEICE_MODE_CUSTOM = "任意の量を入力"
@@ -952,15 +950,12 @@ def main() -> None:
         return float(x) / arm_scale if arm_scale != 0 else float(x)
 
     try:
-        import importlib
-        import wb_registry as _wb_registry_mod
-
-        importlib.reload(_wb_registry_mod)
         from wb_registry import (
             AFFILIATION_OPTIONS,
             FRONT_LEFT_AFFILIATIONS,
             OHIBIRIN_AFFILIATION,
             OHIBIRIN_COHORT_OPTIONS,
+            REAR_RIGHT_AFFILIATIONS,
             deletable_display_options,
             format_registry_display,
             format_registry_display_html,
@@ -972,6 +967,7 @@ def main() -> None:
             is_protected_name,
             load_registry,
             registry_display_entry_map,
+            registry_path,
             remove_entry,
             save_registry,
             seat_name_to_display_map_for_affiliations,
@@ -1022,9 +1018,8 @@ def main() -> None:
         )
         st.header("体重登録")
         registry_entries = load_registry()
-        display_entries = sort_registry_entries_for_display(
-            [e for e in registry_entries if not is_protected_name(str(e["name"]))]
-        )
+        display_entries = sort_registry_entries_for_display(registry_entries)
+        st.caption(f"保存先: `{registry_path()}`")
 
         with st.expander("追加・更新", expanded=False):
             form_id = int(st.session_state.get("weight_reg_form_id", 0))
@@ -1135,7 +1130,7 @@ def main() -> None:
                         del_affiliation = str(del_entry.get("affiliation", "一般"))
                         if del_affiliation in FRONT_LEFT_AFFILIATIONS and st.session_state.get("front_l_mode") == del_display:
                             st.session_state["front_l_mode"] = _WEIGHT_MODE_MANUAL
-                        if del_affiliation in _REAR_RIGHT_SEAT_AFFILIATIONS and st.session_state.get("rear_r_mode") == del_display:
+                        if del_affiliation in REAR_RIGHT_AFFILIATIONS and st.session_state.get("rear_r_mode") == del_display:
                             st.session_state["rear_r_mode"] = _WEIGHT_MODE_MANUAL
                         if st.session_state.get("front_r_mode") == del_name:
                             st.session_state["front_r_mode"] = _WEIGHT_MODE_MANUAL
@@ -1148,10 +1143,10 @@ def main() -> None:
         with st.expander("登録者一覧", expanded=False):
             if display_entries:
                 for entry in display_entries:
-                    st.markdown(
-                        f"- {format_registry_list_item_html(entry, unit_weight=unit_weight)}",
-                        unsafe_allow_html=True,
-                    )
+                    line = format_registry_list_item_html(entry, unit_weight=unit_weight)
+                    if is_protected_name(str(entry["name"])):
+                        line += ' <span style="color:#6b7280;">（教官・削除不可）</span>'
+                    st.markdown(f"- {line}", unsafe_allow_html=True)
             else:
                 st.caption("登録がありません")
 
@@ -1163,10 +1158,10 @@ def main() -> None:
             registry_entries, FRONT_LEFT_AFFILIATIONS
         )
         rear_r_registry_display_map = seat_selectable_display_map_for_affiliations(
-            registry_entries, _REAR_RIGHT_SEAT_AFFILIATIONS
+            registry_entries, REAR_RIGHT_AFFILIATIONS
         )
         rear_r_name_to_display = seat_name_to_display_map_for_affiliations(
-            registry_entries, _REAR_RIGHT_SEAT_AFFILIATIONS
+            registry_entries, REAR_RIGHT_AFFILIATIONS
         )
         registry_display_entries = registry_display_entry_map(registry_entries)
 

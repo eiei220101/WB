@@ -33,29 +33,37 @@ _LEGACY_NAME_MAP: dict[str, str] = {
 }
 
 
+_LEGACY_REGISTRY_PATH = Path.home() / ".da42_wb" / "registered_weights.json"
+
+
 def registry_path() -> Path:
     override = os.environ.get("WB_REGISTRY_PATH", "").strip()
     if override:
         return Path(override).expanduser()
-    return Path.home() / ".da42_wb" / "registered_weights.json"
-
-
-def bundled_registry_path() -> Path:
     return Path(__file__).resolve().parent / "data" / "registered_weights.json"
 
 
+def legacy_registry_path() -> Path:
+    return _LEGACY_REGISTRY_PATH
+
+
+def bundled_registry_path() -> Path:
+    return registry_path()
+
+
 def _load_bundled_or_defaults() -> list[dict[str, float | str]]:
-    bundled = bundled_registry_path()
-    if bundled.exists():
-        try:
-            raw = json.loads(bundled.read_text(encoding="utf-8"))
-            if isinstance(raw, list) and raw:
-                normalized = _normalize(raw)
-                if normalized:
-                    return _migrate_and_ensure_defaults(normalized)
-        except (OSError, json.JSONDecodeError):
-            pass
     return _migrate_and_ensure_defaults(list(DEFAULT_REGISTRY))
+
+
+def _merge_registry_entries(*groups: list[dict[str, float | str]]) -> list[dict[str, float | str]]:
+    by_name: dict[str, dict[str, float | str]] = {}
+    for group in groups:
+        for entry in group:
+            name = str(entry["name"])
+            if name in _LEGACY_NAME_MAP:
+                name = _LEGACY_NAME_MAP[name]
+            by_name[name] = _entry_from_raw(name, entry)
+    return _migrate_and_ensure_defaults(list(by_name.values()))
 
 
 def _read_registry_file(path: Path) -> list[dict[str, float | str]] | None:
@@ -65,10 +73,7 @@ def _read_registry_file(path: Path) -> list[dict[str, float | str]] | None:
         return None
     if not isinstance(raw, list):
         return None
-    normalized = _normalize(raw)
-    if not normalized:
-        return None
-    return _migrate_and_ensure_defaults(normalized)
+    return _migrate_and_ensure_defaults(_normalize(raw))
 
 
 def _write_registry_file(path: Path, entries: list[dict[str, float | str]]) -> None:
@@ -165,9 +170,30 @@ def _migrate_and_ensure_defaults(entries: list[dict[str, float | str]]) -> list[
 
 def load_registry() -> list[dict[str, float | str]]:
     path = registry_path()
-    loaded = _read_registry_file(path) if path.exists() else None
-    if loaded is not None:
-        return loaded
+    primary = _read_registry_file(path) if path.exists() else None
+
+    legacy_path = legacy_registry_path()
+    legacy = (
+        _read_registry_file(legacy_path)
+        if legacy_path.exists() and legacy_path.resolve() != path.resolve()
+        else None
+    )
+
+    if primary is not None and legacy is not None:
+        merged = _merge_registry_entries(primary, legacy)
+        try:
+            _write_registry_file(path, merged)
+        except OSError:
+            pass
+        return merged
+    if primary is not None:
+        return primary
+    if legacy is not None:
+        try:
+            _write_registry_file(path, legacy)
+        except OSError:
+            pass
+        return legacy
 
     seeded = _load_bundled_or_defaults()
     try:
