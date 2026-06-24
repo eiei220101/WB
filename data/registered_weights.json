@@ -1,5 +1,104 @@
 [
-  {"name": "山口教官", "weight": 72.0, "affiliation": "一般"},
-  {"name": "羽山教官", "weight": 73.0, "affiliation": "一般"},
-  {"name": "増元教官", "weight": 83.0, "affiliation": "一般"}
+  {
+    "name": "山口教官",
+    "weight": 72.0,
+    "affiliation": "一般",
+    "cohort": ""
+  },
+  {
+    "name": "羽山教官",
+    "weight": 73.0,
+    "affiliation": "一般",
+    "cohort": ""
+  },
+  {
+    "name": "増元教官",
+    "weight": 83.0,
+    "affiliation": "一般",
+    "cohort": ""
+  },
+  {
+    "name": "今村試験官",
+    "weight": 75.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  },
+  {
+    "name": "湯田試験官",
+    "weight": 72.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  },
+  {
+    "name": "井澤試験官",
+    "weight": 65.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  },
+  {
+    "name": "内海試験官",
+    "weight": 65.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  },
+  {
+    "name": "石渡試験官",
+    "weight": 85.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  },
+  {
+    "name": "後藤試験官",
+    "weight": 72.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  },
+  {
+    "name": "一原試験官",
+    "weight": 80.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  },
+  {
+    "name": "宇野試験官",
+    "weight": 80.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  },
+  {
+    "name": "菊池試験官",
+    "weight": 81.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  },
+  {
+    "name": "角谷試験官",
+    "weight": 58.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  },
+  {
+    "name": "三好試験官",
+    "weight": 80.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  },
+  {
+    "name": "丹羽試験官",
+    "weight": 75.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  },
+  {
+    "name": "石橋試験官",
+    "weight": 65.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  },
+  {
+    "name": "坂井試験官",
+    "weight": 72.0,
+    "affiliation": "JCAB",
+    "cohort": ""
+  }
 ]
