@@ -299,13 +299,32 @@ def format_registry_display_html(entry: dict[str, float | str]) -> str:
     )
 
 
+def format_registry_list_tag(entry: dict[str, float | str]) -> str:
+    """登録者一覧用タグ（桜美林は期番号ではなく所属名を表示）。"""
+    name = str(entry.get("name", "")).strip()
+    if is_protected_name(name):
+        return "[教官]"
+    affiliation = str(entry.get("affiliation", DEFAULT_AFFILIATION))
+    if affiliation == OHIBIRIN_AFFILIATION:
+        return "[桜美林]"
+    if affiliation == "JCAB":
+        return "[JCAB]"
+    return "[一般]"
+
+
 def format_registry_list_item_html(
     entry: dict[str, float | str],
     *,
     unit_weight: str = "kg",
 ) -> str:
     """登録者一覧用。JCAB のみ体重を横に表示。"""
-    line = format_registry_display_html(entry)
+    tag = format_registry_list_tag(entry)
+    name = str(entry.get("name", "")).strip()
+    color = registry_tag_color(entry)
+    line = (
+        f'<span style="color:{color};font-weight:700;">{tag}</span> '
+        f'<span style="color:#111827;">{name}</span>'
+    )
     if str(entry.get("affiliation", DEFAULT_AFFILIATION)) == "JCAB":
         weight = float(entry.get("weight", 0.0))
         line += f' <span style="color:#4b5563;">{weight:.1f} {unit_weight}</span>'
