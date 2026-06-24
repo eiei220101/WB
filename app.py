@@ -972,7 +972,6 @@ def main() -> None:
             is_protected_name,
             load_registry,
             registry_display_entry_map,
-            registry_path,
             remove_entry,
             save_registry,
             seat_name_to_display_map_for_affiliations,
@@ -1024,7 +1023,6 @@ def main() -> None:
         st.header("体重登録")
         registry_entries = load_registry()
         display_entries = sort_registry_entries_for_display(registry_entries)
-        st.caption(f"保存先: `{registry_path()}`")
 
         with st.expander("追加・更新", expanded=False):
             form_id = int(st.session_state.get("weight_reg_form_id", 0))
