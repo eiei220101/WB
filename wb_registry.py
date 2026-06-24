@@ -314,18 +314,20 @@ def format_registry_list_item_html(
 
 AFFILIATION_DISPLAY_ORDER: tuple[str, ...] = (OHIBIRIN_AFFILIATION, DEFAULT_AFFILIATION, "JCAB")
 
+_INSTRUCTOR_NAME_ORDER: dict[str, int] = {
+    str(entry["name"]): index for index, entry in enumerate(DEFAULT_REGISTRY)
+}
+
 
 def registry_display_sort_key(entry: dict[str, float | str]) -> tuple[int, int, str]:
     name = str(entry.get("name", ""))
     if is_protected_name(name):
-        aff_order = 1
-        cohort_num = 0
-        return (aff_order, cohort_num, name)
+        return (2, _INSTRUCTOR_NAME_ORDER.get(name, 999), name)
     affiliation = str(entry.get("affiliation", DEFAULT_AFFILIATION))
     if affiliation == OHIBIRIN_AFFILIATION:
         aff_order = 0
     elif affiliation == DEFAULT_AFFILIATION:
-        aff_order = 2
+        aff_order = 1
     elif affiliation == "JCAB":
         aff_order = 3
     else:
@@ -335,11 +337,11 @@ def registry_display_sort_key(entry: dict[str, float | str]) -> tuple[int, int, 
         cohort_num = int(cohort[:-1])
     else:
         cohort_num = 999
-    return (aff_order, cohort_num, str(entry.get("name", "")))
+    return (aff_order, cohort_num, name)
 
 
 def sort_registry_entries_for_display(entries: list[dict[str, float | str]]) -> list[dict[str, float | str]]:
-    """登録者一覧の表示順: 桜美林 → 教官 → 一般 → JCAB。"""
+    """登録者一覧の表示順: 桜美林 → 一般 → 教官 → JCAB（教官は山口→羽山→増元）。"""
     return sorted(entries, key=registry_display_sort_key)
 
 
