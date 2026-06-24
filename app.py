@@ -187,6 +187,7 @@ st.markdown(
     .wb-sel-ohibirin, .wb-sel-ohibirin span { color: #a21caf !important; font-weight: 700 !important; }
     .wb-sel-jcab, .wb-sel-jcab span { color: #15803d !important; font-weight: 700 !important; }
     .wb-sel-general, .wb-sel-general span { color: #1d4ed8 !important; font-weight: 700 !important; }
+    .wb-sel-instructor, .wb-sel-instructor span { color: #dc2626 !important; font-weight: 700 !important; }
     .wb-sel-name, .wb-sel-name span { color: #111827 !important; font-weight: 500 !important; }
     </style>
     """,
@@ -213,6 +214,7 @@ _SELECT_OPTION_COLORS: dict[str, str] = {
     "ohibirin": "#a21caf",
     "jcab": "#15803d",
     "general": "#1d4ed8",
+    "instructor": "#dc2626",
 }
 
 
@@ -229,6 +231,7 @@ def _select_colorizer_js() -> str:
     if (!t || t === MANUAL || t === MANUAL_LEGACY) return null;
     if (t === "桜美林" || t.startsWith("[FO")) return "ohibirin";
     if (t === "JCAB" || t.startsWith("[JCAB]")) return "jcab";
+    if (t.startsWith("[教官]")) return "instructor";
     if (t === "一般" || t.startsWith("[一般]")) return "general";
     return null;
   }}
@@ -245,6 +248,7 @@ def _select_colorizer_js() -> str:
   function tagKind(tag) {{
     if (tag.startsWith("[FO")) return "ohibirin";
     if (tag === "[JCAB]") return "jcab";
+    if (tag === "[教官]") return "instructor";
     if (tag === "[一般]") return "general";
     return null;
   }}
@@ -324,8 +328,8 @@ def _select_colorizer_js() -> str:
     }});
   }}
 
-  if (window.__wbSelectColorizerVer === 2) return;
-  window.__wbSelectColorizerVer = 2;
+  if (window.__wbSelectColorizerVer === 3) return;
+  window.__wbSelectColorizerVer = 3;
   const doc = document;
   run(doc);
   const obs = new MutationObserver(() => schedule(doc));
@@ -355,7 +359,7 @@ def _inject_colored_select_options() -> None:
 <script>
 (function() {{
   const pwin = window.parent;
-  if (pwin.__wbSelectColorizerVer === 2) return;
+  if (pwin.__wbSelectColorizerVer === 3) return;
   const script = pwin.document.createElement("script");
   script.textContent = {js_escaped};
   pwin.document.head.appendChild(script);
@@ -962,7 +966,8 @@ def main() -> None:
             format_registry_list_item_html,
             format_affiliation_html,
             affiliation_color,
-            front_right_instructor_map,
+            front_right_instructor_display_map,
+            front_right_instructor_name_to_display,
             front_right_instructor_names,
             is_protected_name,
             load_registry,
@@ -1143,14 +1148,20 @@ def main() -> None:
         with st.expander("登録者一覧", expanded=False):
             if display_entries:
                 for entry in display_entries:
-                    line = format_registry_list_item_html(entry, unit_weight=unit_weight)
-                    if is_protected_name(str(entry["name"])):
-                        line += ' <span style="color:#6b7280;">（教官・削除不可）</span>'
-                    st.markdown(f"- {line}", unsafe_allow_html=True)
+                    st.markdown(
+                        f"- {format_registry_list_item_html(entry, unit_weight=unit_weight)}",
+                        unsafe_allow_html=True,
+                    )
             else:
                 st.caption("登録がありません")
 
-        instructor_map = front_right_instructor_map(registry_entries)
+        instructor_display_map = front_right_instructor_display_map(registry_entries)
+        instructor_name_to_display = front_right_instructor_name_to_display(registry_entries)
+        instructor_display_entries = {
+            format_registry_display(entry): entry
+            for entry in registry_entries
+            if is_protected_name(str(entry["name"]))
+        }
         front_l_registry_display_map = seat_selectable_display_map_for_affiliations(
             registry_entries, FRONT_LEFT_AFFILIATIONS
         )
@@ -1271,9 +1282,15 @@ def main() -> None:
             st.session_state[mode_key] = _WEIGHT_MODE_MANUAL
             current_mode = _WEIGHT_MODE_MANUAL
         if current_mode in front_right_instructor_names():
-            st.session_state[mode_key] = _WEIGHT_MODE_MANUAL
+            st.session_state[mode_key] = instructor_name_to_display.get(
+                str(current_mode), _WEIGHT_MODE_MANUAL
+            )
+            current_mode = st.session_state[mode_key]
         elif current_mode == "増本教官":
-            st.session_state[mode_key] = _WEIGHT_MODE_MANUAL
+            st.session_state[mode_key] = instructor_name_to_display.get(
+                "増元教官", _WEIGHT_MODE_MANUAL
+            )
+            current_mode = st.session_state[mode_key]
         elif current_mode in name_to_display:
             st.session_state[mode_key] = name_to_display[current_mode]
         elif current_mode not in options:
@@ -1342,11 +1359,17 @@ def main() -> None:
             name_to_display=front_l_name_to_display,
             display_entry_map=registry_display_entries,
         )
-        front_r_options = [_WEIGHT_MODE_MANUAL] + front_right_instructor_names()
+        front_r_options = [_WEIGHT_MODE_MANUAL] + list(instructor_display_map.keys())
         if st.session_state.get("front_r_mode") == _WEIGHT_MODE_MANUAL_LEGACY:
             st.session_state["front_r_mode"] = _WEIGHT_MODE_MANUAL
         if st.session_state.get("front_r_mode") == "増本教官":
-            st.session_state["front_r_mode"] = "増元教官"
+            st.session_state["front_r_mode"] = instructor_name_to_display.get(
+                "増元教官", "[教官] 増元教官"
+            )
+        if st.session_state.get("front_r_mode") in instructor_name_to_display:
+            st.session_state["front_r_mode"] = instructor_name_to_display[
+                str(st.session_state["front_r_mode"])
+            ]
         if st.session_state.get("front_r_mode") not in front_r_options:
             st.session_state["front_r_mode"] = _WEIGHT_MODE_MANUAL
         front_r_prev_key = "front_r_mode__prev"
@@ -1367,8 +1390,16 @@ def main() -> None:
             )
             st.session_state["front_r"] = float(v)
         else:
-            st.session_state["front_r"] = float(instructor_map.get(front_r_mode, 0.0))
-            st.caption(f"{front_r_mode}: **{st.session_state['front_r']:.1f} {unit_weight}**")
+            st.session_state["front_r"] = float(instructor_display_map.get(front_r_mode, 0.0))
+            selected_instructor = instructor_display_entries.get(front_r_mode)
+            if selected_instructor:
+                st.markdown(
+                    f"{format_registry_display_html(selected_instructor)}: "
+                    f"**{st.session_state['front_r']:.1f} {unit_weight}**",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.caption(f"{front_r_mode}: **{st.session_state['front_r']:.1f} {unit_weight}**")
         st.session_state[front_r_prev_key] = front_r_mode
         st.number_input(f"Rear seat L [{unit_weight}]", min_value=0.0, step=1.0, format="%.1f", key="rear_l")
         _seat_weight_from_registry(

@@ -19,6 +19,7 @@ AFFILIATION_COLORS: dict[str, str] = {
     DEFAULT_AFFILIATION: "#1d4ed8",
     "JCAB": "#15803d",
 }
+INSTRUCTOR_COLOR = "#dc2626"
 
 DEFAULT_REGISTRY: list[dict[str, float | str]] = [
     {"name": "山口教官", "weight": 72.0, "affiliation": DEFAULT_AFFILIATION},
@@ -243,11 +244,19 @@ def affiliation_color(affiliation: str) -> str:
     return AFFILIATION_COLORS.get(str(affiliation).strip(), "#374151")
 
 
+def registry_tag_color(entry: dict[str, float | str]) -> str:
+    if is_protected_name(str(entry.get("name", ""))):
+        return INSTRUCTOR_COLOR
+    return affiliation_color(str(entry.get("affiliation", DEFAULT_AFFILIATION)))
+
+
 def select_option_style_kind(label: str) -> str | None:
-    """プルダウン選択肢の所属色キー（ohibirin / jcab / general）。"""
+    """プルダウン選択肢の所属色キー（ohibirin / jcab / general / instructor）。"""
     text = str(label).strip()
     if not text or text in ("体重を入力/選択", "体重を入力"):
         return None
+    if text.startswith("[教官]"):
+        return "instructor"
     if text == OHIBIRIN_AFFILIATION or text.startswith("[FO"):
         return "ohibirin"
     if text == "JCAB" or text.startswith("[JCAB]"):
@@ -264,6 +273,9 @@ def format_affiliation_html(affiliation: str) -> str:
 
 
 def format_registry_tag(entry: dict[str, float | str]) -> str:
+    name = str(entry.get("name", "")).strip()
+    if is_protected_name(name):
+        return "[教官]"
     affiliation = str(entry.get("affiliation", DEFAULT_AFFILIATION))
     if affiliation == OHIBIRIN_AFFILIATION:
         cohort = str(entry.get("cohort", "")).strip()
@@ -280,7 +292,7 @@ def format_registry_tag(entry: dict[str, float | str]) -> str:
 def format_registry_display_html(entry: dict[str, float | str]) -> str:
     tag = format_registry_tag(entry)
     name = str(entry.get("name", "")).strip()
-    color = affiliation_color(str(entry.get("affiliation", DEFAULT_AFFILIATION)))
+    color = registry_tag_color(entry)
     return (
         f'<span style="color:{color};font-weight:700;">{tag}</span> '
         f'<span style="color:#111827;">{name}</span>'
@@ -304,11 +316,20 @@ AFFILIATION_DISPLAY_ORDER: tuple[str, ...] = (OHIBIRIN_AFFILIATION, DEFAULT_AFFI
 
 
 def registry_display_sort_key(entry: dict[str, float | str]) -> tuple[int, int, str]:
+    name = str(entry.get("name", ""))
+    if is_protected_name(name):
+        aff_order = 1
+        cohort_num = 0
+        return (aff_order, cohort_num, name)
     affiliation = str(entry.get("affiliation", DEFAULT_AFFILIATION))
-    try:
-        aff_order = AFFILIATION_DISPLAY_ORDER.index(affiliation)
-    except ValueError:
-        aff_order = len(AFFILIATION_DISPLAY_ORDER)
+    if affiliation == OHIBIRIN_AFFILIATION:
+        aff_order = 0
+    elif affiliation == DEFAULT_AFFILIATION:
+        aff_order = 2
+    elif affiliation == "JCAB":
+        aff_order = 3
+    else:
+        aff_order = 4
     cohort = str(entry.get("cohort", "")).strip()
     if cohort.endswith("期") and cohort[:-1].isdigit():
         cohort_num = int(cohort[:-1])
@@ -318,12 +339,14 @@ def registry_display_sort_key(entry: dict[str, float | str]) -> tuple[int, int, 
 
 
 def sort_registry_entries_for_display(entries: list[dict[str, float | str]]) -> list[dict[str, float | str]]:
-    """登録者一覧の表示順: 桜美林 → 一般 → JCAB。"""
+    """登録者一覧の表示順: 桜美林 → 教官 → 一般 → JCAB。"""
     return sorted(entries, key=registry_display_sort_key)
 
 
 def format_registry_display(entry: dict[str, float | str]) -> str:
     name = str(entry.get("name", "")).strip()
+    if is_protected_name(name):
+        return f"[教官] {name}"
     affiliation = str(entry.get("affiliation", DEFAULT_AFFILIATION))
     if affiliation == OHIBIRIN_AFFILIATION:
         cohort = str(entry.get("cohort", "")).strip()
@@ -371,6 +394,27 @@ def registry_as_map(entries: list[dict[str, float | str]]) -> dict[str, float]:
 
 def front_right_instructor_names() -> list[str]:
     return [str(e["name"]) for e in DEFAULT_REGISTRY]
+
+
+def front_right_instructor_display_map(
+    entries: list[dict[str, float | str]],
+) -> dict[str, float]:
+    """Front seat R 用: 表示ラベル -> 体重。"""
+    return {
+        format_registry_display(entry): float(entry["weight"])
+        for entry in entries
+        if is_protected_name(str(entry["name"]))
+    }
+
+
+def front_right_instructor_name_to_display(
+    entries: list[dict[str, float | str]],
+) -> dict[str, str]:
+    return {
+        str(entry["name"]): format_registry_display(entry)
+        for entry in entries
+        if is_protected_name(str(entry["name"]))
+    }
 
 
 def front_right_instructor_map(entries: list[dict[str, float | str]]) -> dict[str, float]:
